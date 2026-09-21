@@ -13,6 +13,7 @@ import {
   totalStats,
   powerScore,
 } from '../game/hero';
+import { CLASS_SKILLS, SKILL_MAX_LEVEL, SKILL_POINTS_PER_LEVEL } from '../game/skills';
 import { getStage, STAGES } from '../game/stages';
 import { ClassId, EquipmentItem, EquipmentSlot, PrimaryStats } from '../game/types';
 
@@ -40,6 +41,8 @@ interface GameState {
   heroExp: number;
   statPoints: number;
   allocatedStats: PrimaryStats;
+  skillPoints: number;
+  skillLevels: Record<string, number>;
   currentStage: number;
   highestStageCleared: number;
   inventory: EquipmentItem[];
@@ -66,6 +69,7 @@ interface GameState {
   allocateStat: (stat: keyof PrimaryStats, amount?: number) => void;
   autoAllocateStats: () => void;
   respecStats: () => boolean;
+  levelUpSkill: (skillId: string) => boolean;
   addGems: (amount: number) => void;
   claimOfflineGold: () => void;
   syncOfflineProgress: () => void;
@@ -87,6 +91,8 @@ export const useGameStore = create<GameState>()(
       heroExp: 0,
       statPoints: 0,
       allocatedStats: ZERO_STATS,
+      skillPoints: 0,
+      skillLevels: {},
       currentStage: 1,
       highestStageCleared: 0,
       inventory: [],
@@ -117,6 +123,7 @@ export const useGameStore = create<GameState>()(
           heroLevel: level,
           heroExp: newExp,
           statPoints: s.statPoints + levelsGained * STAT_POINTS_PER_LEVEL,
+          skillPoints: s.skillPoints + levelsGained * SKILL_POINTS_PER_LEVEL,
         });
       },
 
@@ -150,6 +157,7 @@ export const useGameStore = create<GameState>()(
           heroLevel: level,
           heroExp: exp,
           statPoints: s.statPoints + levelsGained * STAT_POINTS_PER_LEVEL,
+          skillPoints: s.skillPoints + levelsGained * SKILL_POINTS_PER_LEVEL,
           bossTickets: s.bossTickets - 1,
           inventory: item ? [...s.inventory, item] : s.inventory,
         });
@@ -243,6 +251,21 @@ export const useGameStore = create<GameState>()(
         return true;
       },
 
+      levelUpSkill: (skillId) => {
+        const s = get();
+        if (!s.classId || s.skillPoints <= 0) return false;
+        const skill = CLASS_SKILLS[s.classId].find((sk) => sk.id === skillId);
+        if (!skill || s.heroLevel < skill.requiredLevel) return false;
+        const current = s.skillLevels[skillId] ?? 0;
+        if (current >= SKILL_MAX_LEVEL) return false;
+
+        set({
+          skillPoints: s.skillPoints - 1,
+          skillLevels: { ...s.skillLevels, [skillId]: current + 1 },
+        });
+        return true;
+      },
+
       addGems: (amount) => set((s) => ({ gems: s.gems + amount })),
 
       syncOfflineProgress: () => {
@@ -284,6 +307,8 @@ export const useGameStore = create<GameState>()(
         heroExp: s.heroExp,
         statPoints: s.statPoints,
         allocatedStats: s.allocatedStats,
+        skillPoints: s.skillPoints,
+        skillLevels: s.skillLevels,
         currentStage: s.currentStage,
         highestStageCleared: s.highestStageCleared,
         inventory: s.inventory,

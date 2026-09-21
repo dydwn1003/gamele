@@ -5,8 +5,9 @@ import { CurrencyBar } from '../components/CurrencyBar';
 import { ProgressBar } from '../components/ProgressBar';
 import { HeroSprite } from '../components/sprites/HeroSprite';
 import { MonsterSprite } from '../components/sprites/MonsterSprite';
-import { CLASS_NAME, expToNextLevel } from '../game/hero';
+import { classTitle, expToNextLevel } from '../game/hero';
 import { getStage } from '../game/stages';
+import { CLASS_SKILLS, SKILL_MAX_LEVEL } from '../game/skills';
 import { PrimaryStats } from '../game/types';
 import { showRewardedAd } from '../services/ads';
 import { GEM_PACKS, purchaseGemPack } from '../services/iap';
@@ -31,6 +32,8 @@ export function HomeScreen() {
     heroExp,
     statPoints,
     allocatedStats,
+    skillPoints,
+    skillLevels,
     currentStage,
     highestStageCleared,
     pendingOfflineGold,
@@ -41,6 +44,7 @@ export function HomeScreen() {
     allocateStat,
     autoAllocateStats,
     respecStats,
+    levelUpSkill,
   } = useGameStore();
 
   useEffect(() => {
@@ -71,7 +75,7 @@ export function HomeScreen() {
       <View style={[styles.card, styles.heroCard]}>
         <HeroSprite classId={classId ?? 'warrior'} size={64} />
         <View style={{ flex: 1 }}>
-          <Text style={styles.cardTitle}>{classId ? CLASS_NAME[classId] : '영웅'}</Text>
+          <Text style={styles.cardTitle}>{classId ? classTitle(classId, heroLevel) : '영웅'}</Text>
           <Text style={styles.heroLevel}>Lv.{heroLevel}</Text>
           <ProgressBar progress={heroExp / needed} color={colors.success} />
           <Text style={styles.subText}>
@@ -109,6 +113,34 @@ export function HomeScreen() {
         >
           <Text style={styles.respecButtonText}>🪙 스탯 초기화 ({RESPEC_GOLD_COST}G)</Text>
         </TouchableOpacity>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>스킬 ({skillPoints} 포인트 남음)</Text>
+        {CLASS_SKILLS[classId ?? 'warrior'].map((skill) => {
+          const level = skillLevels[skill.id] ?? 0;
+          const locked = heroLevel < skill.requiredLevel;
+          const maxed = level >= SKILL_MAX_LEVEL;
+          const canLevelUp = !locked && !maxed && skillPoints > 0;
+          return (
+            <View key={skill.id} style={styles.skillRow}>
+              <Text style={styles.skillIcon}>{skill.icon}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.skillName}>{skill.name}</Text>
+                <Text style={styles.skillMeta}>
+                  {locked ? `Lv.${skill.requiredLevel} 해금` : maxed ? '최대 레벨' : `Lv ${level} / ${SKILL_MAX_LEVEL}`}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.statPlusButton, !canLevelUp && styles.statPlusButtonDisabled]}
+                disabled={!canLevelUp}
+                onPress={() => levelUpSkill(skill.id)}
+              >
+                <Text style={styles.statPlusText}>+</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        })}
       </View>
 
       <View style={[styles.card, styles.heroCard]}>
@@ -205,6 +237,10 @@ const styles = StyleSheet.create({
   },
   respecButtonDisabled: { opacity: 0.4 },
   respecButtonText: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
+  skillRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+  skillIcon: { fontSize: 20, width: 26, textAlign: 'center' },
+  skillName: { color: colors.text, fontSize: 13, fontWeight: '700' },
+  skillMeta: { color: colors.textMuted, fontSize: 11, marginTop: 1 },
   shopButton: {
     backgroundColor: colors.surfaceAlt,
     borderRadius: 10,

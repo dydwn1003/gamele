@@ -32,6 +32,34 @@ export const CLASS_NAME: Record<ClassId, string> = {
   mage: '마법사',
 };
 
+/** Job advancement: automatic at these levels, tier 0 = not yet advanced. */
+export const ADVANCEMENT_LEVELS = [10, 30, 60] as const;
+export const ADVANCEMENT_STAT_BONUS_PER_TIER = 0.06;
+
+export const ADVANCEMENT_TITLE: Record<ClassId, string[]> = {
+  warrior: ['전사', '기사', '나이트'],
+  rogue: ['도적', '자객', '섀도마스터'],
+  archer: ['궁수', '레인저', '아처로드'],
+  mage: ['마법사', '위저드', '아크메이지'],
+};
+
+export function advancementTier(level: number): number {
+  let tier = 0;
+  for (const threshold of ADVANCEMENT_LEVELS) {
+    if (level >= threshold) tier += 1;
+  }
+  return tier;
+}
+
+export function classTitle(classId: ClassId, level: number): string {
+  const tier = advancementTier(level);
+  return tier === 0 ? `초보 ${CLASS_NAME[classId]}` : ADVANCEMENT_TITLE[classId][tier - 1];
+}
+
+function advancementMultiplier(level: number): number {
+  return 1 + advancementTier(level) * ADVANCEMENT_STAT_BONUS_PER_TIER;
+}
+
 export function expToNextLevel(level: number): number {
   return Math.round(20 * Math.pow(1.12, level - 1));
 }
@@ -106,7 +134,14 @@ export function totalStats(
   equipped: EquipmentItem[]
 ): StatBlock {
   const primary = primaryStatsAtLevel(classId, level, allocated);
-  const base = derivedStats(classId, primary);
+  const rawBase = derivedStats(classId, primary);
+  const tierMult = advancementMultiplier(level);
+  const base: StatBlock = {
+    atk: rawBase.atk * tierMult,
+    hp: rawBase.hp * tierMult,
+    def: rawBase.def * tierMult,
+    critRate: rawBase.critRate,
+  };
   return equipped.reduce<StatBlock>((acc, item) => {
     const bonus = effectiveItemStats(item);
     return {

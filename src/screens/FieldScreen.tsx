@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Joystick } from '../components/Joystick';
 import { HeroSprite } from '../components/sprites/HeroSprite';
@@ -30,7 +30,7 @@ import {
   TICK_MS,
   wanderVelocity,
 } from '../game/field';
-import { CLASS_SKILLS, SkillConfig } from '../game/skills';
+import { CLASS_SKILLS, SkillConfig, skillPowerMultiplier } from '../game/skills';
 import { getStage } from '../game/stages';
 import { StatBlock } from '../game/types';
 import { totalStats } from '../game/hero';
@@ -138,6 +138,7 @@ export function FieldScreen() {
   const currentStage = useGameStore((s) => s.currentStage);
   const classId = useGameStore((s) => s.classId) ?? 'warrior';
   const allocatedStats = useGameStore((s) => s.allocatedStats);
+  const skillLevelsSelector = useGameStore((s) => s.skillLevels);
 
   const initialStage = getStage(currentStage);
   const initialEquippedList = Object.values(equipped).filter(
@@ -179,7 +180,8 @@ export function FieldScreen() {
         (i): i is EquipmentItem => i !== null
       );
       const baseHeroStats = totalStats(activeClassId, s.heroLevel, s.allocatedStats, equippedList);
-      const skills = CLASS_SKILLS[activeClassId];
+      const skills = CLASS_SKILLS[activeClassId].filter((sk) => (s.skillLevels[sk.id] ?? 0) >= 1);
+      const skillLevels = s.skillLevels;
       const stage = getStage(s.currentStage);
       const monsterStats: StatBlock = stage.enemyStats;
       const perKillGold = Math.max(1, Math.round(stage.goldReward / KILLS_PER_STAGE));
@@ -305,6 +307,7 @@ export function FieldScreen() {
         if (!ready || !shouldTry || stunned) continue;
 
         const alive = monsters.filter((m) => m.alive);
+        const skillMult = skillPowerMultiplier(skill, skillLevels[skill.id] ?? 0);
         if (skill.kind === 'buff') {
           skillCooldownUntil[skill.id] = now + skill.cooldownMs;
           nextBuff = {
@@ -320,7 +323,7 @@ export function FieldScreen() {
           heroAttack = { at: now, angle: 0 };
           monsters = monsters.map((m) => {
             if (!hits.find((h) => h.id === m.id)) return m;
-            const roll = rollDamage(heroStats, monsterStats, skill.multiplier);
+            const roll = rollDamage(heroStats, monsterStats, skillMult);
             damagePopups.push({
               id: ++popupIdCounter,
               x: m.x,
@@ -339,7 +342,7 @@ export function FieldScreen() {
           }, null);
           if (!target || distance(heroX, heroY, target.x, target.y) > skill.range) continue;
           skillCooldownUntil[skill.id] = now + skill.cooldownMs;
-          const roll = rollDamage(heroStats, monsterStats, skill.multiplier);
+          const roll = rollDamage(heroStats, monsterStats, skillMult);
           heroAttack = { at: now, angle: Math.atan2(target.y - heroY, target.x - heroX) };
           damagePopups.push({
             id: ++popupIdCounter,
@@ -408,7 +411,7 @@ export function FieldScreen() {
   const palette = paletteForChapter(chapterForStage(stage.id));
   const stunned = now < world.stunnedUntil;
   const activeBuff = world.buff && now < world.buff.until ? world.buff : null;
-  const skills = CLASS_SKILLS[classId];
+  const skills = CLASS_SKILLS[classId].filter((sk) => (skillLevelsSelector[sk.id] ?? 0) >= 1);
 
   const lungeElapsed = world.heroAttack ? now - world.heroAttack.at : Infinity;
   const lungeProgress = lungeElapsed < LUNGE_MS ? Math.sin((lungeElapsed / LUNGE_MS) * Math.PI) : 0;
@@ -520,11 +523,17 @@ export function FieldScreen() {
           >
             <Text style={styles.autoButtonText}>{autoHunt ? '자동사냥 ON' : '자동사냥 OFF'}</Text>
           </TouchableOpacity>
-          <View style={styles.skillRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.skillScroll}
+            contentContainerStyle={styles.skillRow}
+          >
             {skills.map((skill: SkillConfig) => {
               const cooldownUntil = world.skillCooldownUntil[skill.id] ?? 0;
               const remaining = Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
               const ready = remaining <= 0;
+              const level = skillLevelsSelector[skill.id] ?? 0;
               return (
                 <TouchableOpacity
                   key={skill.id}
@@ -534,11 +543,15 @@ export function FieldScreen() {
                 >
                   <Text style={styles.skillIcon}>{skill.icon}</Text>
                   <Text style={styles.skillName}>{skill.name}</Text>
+                  <Text style={styles.skillLevelText}>Lv{level}</Text>
                   {!ready && <Text style={styles.skillCooldownText}>{remaining}</Text>}
                 </TouchableOpacity>
               );
             })}
-          </View>
+            {skills.length === 0 && (
+              <Text style={styles.noSkillText}>홈에서 스킬을 먼저 배워보세요</Text>
+            )}
+          </ScrollView>
         </View>
       </View>
     </View>
@@ -635,6 +648,7 @@ const styles = StyleSheet.create({
   },
   autoButtonActive: { backgroundColor: colors.success },
   autoButtonText: { color: colors.text, fontWeight: '700', fontSize: 12 },
+  skillScroll: { maxWidth: 230 },
   skillRow: { flexDirection: 'row', gap: 6 },
   skillButton: {
     width: 54,
@@ -647,12 +661,14 @@ const styles = StyleSheet.create({
   skillButtonCooldown: { backgroundColor: colors.surfaceAlt },
   skillIcon: { fontSize: 17 },
   skillName: { color: colors.text, fontSize: 8, fontWeight: '700', marginTop: 1 },
+  skillLevelText: { color: colors.gold, fontSize: 7, fontWeight: '700' },
   skillCooldownText: {
     position: 'absolute',
     color: colors.text,
     fontWeight: '800',
     fontSize: 15,
   },
+  noSkillText: { color: colors.textMuted, fontSize: 11, width: 150 },
   buffGlow: {
     position: 'absolute',
     top: -6,
