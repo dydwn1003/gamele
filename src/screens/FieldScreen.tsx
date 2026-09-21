@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 
 import { Joystick } from '../components/Joystick';
 import { RPGStatBar } from '../components/rpg/RPGStatBar';
-import { SideScrollBackground } from '../components/SideScrollBackground';
+import { TileWorldBackground } from '../components/TileWorldBackground';
 import { HeroSprite } from '../components/sprites/HeroSprite';
 import { MonsterSprite } from '../components/sprites/MonsterSprite';
 import { chapterForStage, paletteForChapter } from '../components/sprites/palette';
@@ -18,7 +18,6 @@ import {
   ENTITY_RADIUS,
   FIELD_HEIGHT,
   FIELD_WIDTH,
-  GROUND_Y,
   HERO_STUN_MS,
   HIT_FLASH_MS,
   KILLS_PER_STAGE,
@@ -36,7 +35,7 @@ import { mapName } from '../game/maps';
 import { CLASS_SKILLS, SkillConfig, skillPowerMultiplier } from '../game/skills';
 import { getStage } from '../game/stages';
 import { StatBlock } from '../game/types';
-import { totalStats } from '../game/hero';
+import { classTitle, totalStats } from '../game/hero';
 import { EquipmentItem } from '../game/types';
 import { useGameStore } from '../state/useGameStore';
 import { colors } from '../theme/colors';
@@ -120,7 +119,7 @@ function spawnAllMonsters(maxHp: number): MonsterEntity[] {
 function buildInitialWorld(heroMaxHp: number, monsterMaxHp: number): WorldState {
   return {
     heroX: FIELD_WIDTH / 2,
-    heroY: GROUND_Y,
+    heroY: FIELD_HEIGHT / 2,
     heroHp: heroMaxHp,
     heroMaxHp,
     heroLastAttackAt: 0,
@@ -208,8 +207,9 @@ export function FieldScreen() {
       const buff = prev.buff && now < prev.buff.until ? prev.buff : null;
       const heroStats = applyBuff(baseHeroStats, buff, now);
 
-      // --- movement (side-scroller: X only, hero always stands on the ground line) ---
+      // --- movement (top-down: free 2D movement) ---
       let moveX = 0;
+      let moveY = 0;
       if (!stunned) {
         if (autoHuntRef.current) {
           const alive = monsters.filter((m) => m.alive);
@@ -218,21 +218,32 @@ export function FieldScreen() {
             const cd = closest ? distance(heroX, heroY, closest.x, closest.y) : Infinity;
             return d < cd ? m : closest;
           }, null);
-          if (target && Math.abs(target.x - heroX) > ATTACK_RANGE * 0.7) {
-            moveX = target.x > heroX ? 1 : -1;
+          if (target) {
+            const d = distance(heroX, heroY, target.x, target.y);
+            if (d > ATTACK_RANGE * 0.7) {
+              moveX = (target.x - heroX) / d;
+              moveY = (target.y - heroY) / d;
+            }
           }
         } else {
           moveX = joystickDirRef.current.x;
+          moveY = joystickDirRef.current.y;
         }
       }
-      if (Math.abs(moveX) > 0.05) {
+      const moveLen = Math.hypot(moveX, moveY);
+      if (moveLen > 0.05) {
         heroX = clamp(
-          heroX + Math.sign(moveX) * PLAYER_SPEED * dt,
+          heroX + (moveX / moveLen) * PLAYER_SPEED * dt,
           ENTITY_RADIUS,
           FIELD_WIDTH - ENTITY_RADIUS
         );
+        heroY = clamp(
+          heroY + (moveY / moveLen) * PLAYER_SPEED * dt,
+          ENTITY_RADIUS,
+          FIELD_HEIGHT - ENTITY_RADIUS
+        );
+        heroFacing = moveX < -0.05 ? -1 : moveX > 0.05 ? 1 : heroFacing;
       }
-      if (Math.abs(moveX) > 0.05) heroFacing = moveX < 0 ? -1 : 1;
 
       // --- monster AI: wander, bounce, attack hero ---
       let goldGained = 0;
@@ -252,8 +263,11 @@ export function FieldScreen() {
           vy = w.vy;
         }
         x += vx * dt;
+        y += vy * dt;
         if (x <= ENTITY_RADIUS || x >= FIELD_WIDTH - ENTITY_RADIUS) vx = -vx;
+        if (y <= ENTITY_RADIUS || y >= FIELD_HEIGHT - ENTITY_RADIUS) vy = -vy;
         x = clamp(x, ENTITY_RADIUS, FIELD_WIDTH - ENTITY_RADIUS);
+        y = clamp(y, ENTITY_RADIUS, FIELD_HEIGHT - ENTITY_RADIUS);
 
         if (!stunned && distance(x, y, heroX, heroY) < MONSTER_ATTACK_RANGE) {
           if (now - lastAttackAt > MONSTER_ATTACK_COOLDOWN_MS) {
@@ -436,7 +450,7 @@ export function FieldScreen() {
       />
 
       <View style={[styles.field, { width: FIELD_WIDTH, height: FIELD_HEIGHT }]}>
-        <SideScrollBackground palette={palette} chapter={chapterForStage(stage.id)} />
+        <TileWorldBackground palette={palette} chapter={chapterForStage(stage.id)} />
 
         {world.monsters.map((m) => {
           const alive = m.alive;
@@ -477,6 +491,9 @@ export function FieldScreen() {
             opacity: stunned ? 0.5 : 1,
           }}
         >
+          <Text style={styles.nameTag}>
+            Lv.{heroLevel} {classTitle(classId, heroLevel)}
+          </Text>
           <View style={styles.shadow} />
           {activeBuff && <View style={styles.buffGlow} />}
           <View style={{ transform: [{ scaleX: world.heroFacing }] }}>
@@ -598,6 +615,19 @@ const styles = StyleSheet.create({
     color: colors.danger,
     fontWeight: '800',
     fontSize: 11,
+  },
+  nameTag: {
+    position: 'absolute',
+    top: -16,
+    width: 120,
+    left: -30,
+    textAlign: 'center',
+    color: colors.frame.gold,
+    fontWeight: '800',
+    fontSize: 9,
+    textShadowColor: '#000000cc',
+    textShadowRadius: 2,
+    textShadowOffset: { width: 0, height: 1 },
   },
   damagePopup: {
     position: 'absolute',
