@@ -1,0 +1,18 @@
+export const colors = {
+  background: '#151322',
+  surface: '#221f36',
+  surfaceAlt: '#2c2847',
+  primary: '#7c5cff',
+  gold: '#ffce54',
+  gem: '#4fd8e8',
+  text: '#f4f2ff',
+  textMuted: '#a49bd1',
+  success: '#5be08a',
+  danger: '#ff6b6b',
+  rarity: {
+    normal: '#9aa0a8',
+    rare: '#4fa3ff',
+    epic: '#c060ff',
+    legendary: '#ffb020',
+  },
+};
