@@ -1,4 +1,4 @@
-import Svg, { Circle, Ellipse, Path } from 'react-native-svg';
+import Svg, { Circle, Defs, Ellipse, LinearGradient, Path, Stop } from 'react-native-svg';
 
 import { chapterForStage, paletteForChapter } from './palette';
 
@@ -11,14 +11,25 @@ interface Props {
 export function MonsterSprite({ stageId, isMiniBoss = false, size = 72 }: Props) {
   const palette = paletteForChapter(chapterForStage(stageId));
 
+  const gradient = (
+    <LinearGradient id="mbody" x1="0" y1="0" x2="0" y2="1">
+      <Stop offset="0" stopColor={palette.glow} />
+      <Stop offset="1" stopColor={palette.body} />
+    </LinearGradient>
+  );
+
   if (isMiniBoss) {
     return (
       <Svg width={size} height={size} viewBox="0 0 100 100">
+        <Defs>{gradient}</Defs>
         <Circle cx="50" cy="55" r="34" fill={palette.glow} opacity={0.5} />
         <Path
           d="M20 60 Q18 25 50 20 Q82 25 80 60 Q80 88 50 90 Q20 88 20 60 Z"
-          fill={palette.body}
+          fill="url(#mbody)"
+          stroke={palette.accent}
+          strokeWidth="1.5"
         />
+        <Ellipse cx="38" cy="34" rx="8" ry="5" fill="#ffffff40" />
         <Path d="M32 30 L38 14 L44 32 Z" fill={palette.accent} />
         <Path d="M68 30 L62 14 L56 32 Z" fill={palette.accent} />
         <Circle cx="40" cy="55" r="5" fill="#241a12" />
@@ -30,10 +41,12 @@ export function MonsterSprite({ stageId, isMiniBoss = false, size = 72 }: Props)
 
   return (
     <Svg width={size} height={size} viewBox="0 0 100 100">
+      <Defs>{gradient}</Defs>
       {/* body */}
-      <Ellipse cx="50" cy="58" rx="30" ry="24" fill={palette.body} />
+      <Ellipse cx="50" cy="58" rx="30" ry="24" fill="url(#mbody)" stroke={palette.accent} strokeWidth="1.2" />
       {/* head */}
-      <Circle cx="50" cy="32" r="20" fill={palette.body} />
+      <Circle cx="50" cy="32" r="20" fill="url(#mbody)" stroke={palette.accent} strokeWidth="1.2" />
+      <Ellipse cx="42" cy="24" rx="6" ry="4" fill="#ffffff45" />
       {/* ears */}
       <Path d="M32 22 L26 6 L42 16 Z" fill={palette.accent} />
       <Path d="M68 22 L74 6 L58 16 Z" fill={palette.accent} />

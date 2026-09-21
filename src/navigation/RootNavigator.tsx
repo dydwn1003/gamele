@@ -2,6 +2,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { ActivityIndicator, Text, View } from 'react-native';
 
+import { ClassSelectScreen } from '../screens/ClassSelectScreen';
 import { DungeonScreen } from '../screens/DungeonScreen';
 import { FieldScreen } from '../screens/FieldScreen';
 import { GachaScreen } from '../screens/GachaScreen';
@@ -10,6 +11,7 @@ import { LeaderboardScreen } from '../screens/LeaderboardScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import { isFirebaseConfigured } from '../services/firebase';
 import { useAuthStore } from '../state/useAuthStore';
+import { useGameStore } from '../state/useGameStore';
 import { colors } from '../theme/colors';
 
 const Tab = createBottomTabNavigator();
@@ -24,6 +26,7 @@ const TAB_ICON: Record<string, string> = {
 
 export function RootNavigator() {
   const { user, initializing } = useAuthStore();
+  const classId = useGameStore((s) => s.classId);
 
   if (initializing) {
     return (
@@ -38,6 +41,10 @@ export function RootNavigator() {
   // extra.firebase/googleAuth are filled in, this falls back to real auth.
   if (!user && isFirebaseConfigured) {
     return <LoginScreen />;
+  }
+
+  if (!classId) {
+    return <ClassSelectScreen />;
   }
 
   return (

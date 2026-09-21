@@ -30,13 +30,24 @@ import {
   TICK_MS,
   wanderVelocity,
 } from '../game/field';
-import { SKILLS } from '../game/skills';
+import { CLASS_SKILLS, SkillConfig } from '../game/skills';
 import { getStage } from '../game/stages';
 import { StatBlock } from '../game/types';
 import { totalStats } from '../game/hero';
 import { EquipmentItem } from '../game/types';
 import { useGameStore } from '../state/useGameStore';
 import { colors } from '../theme/colors';
+
+interface ActiveBuff {
+  stat: keyof StatBlock;
+  multiplier: number;
+  until: number;
+}
+
+function applyBuff(stats: StatBlock, buff: ActiveBuff | null, now: number): StatBlock {
+  if (!buff || now >= buff.until) return stats;
+  return { ...stats, [buff.stat]: stats[buff.stat] * buff.multiplier };
+}
 
 interface MonsterEntity {
   id: number;
@@ -78,6 +89,7 @@ interface WorldState {
   killCount: number;
   damagePopups: DamagePopup[];
   skillCooldownUntil: Record<string, number>;
+  buff: ActiveBuff | null;
 }
 
 function spawnMonster(id: number, maxHp: number): MonsterEntity {
@@ -114,6 +126,7 @@ function buildInitialWorld(heroMaxHp: number, monsterMaxHp: number): WorldState 
     killCount: 0,
     damagePopups: [],
     skillCooldownUntil: {},
+    buff: null,
   };
 }
 
@@ -123,12 +136,14 @@ export function FieldScreen() {
   const equipped = useGameStore((s) => s.equipped);
   const heroLevel = useGameStore((s) => s.heroLevel);
   const currentStage = useGameStore((s) => s.currentStage);
+  const classId = useGameStore((s) => s.classId) ?? 'warrior';
+  const allocatedStats = useGameStore((s) => s.allocatedStats);
 
   const initialStage = getStage(currentStage);
   const initialEquippedList = Object.values(equipped).filter(
     (i): i is EquipmentItem => i !== null
   );
-  const initialHeroStats = totalStats(heroLevel, initialEquippedList);
+  const initialHeroStats = totalStats(classId, heroLevel, allocatedStats, initialEquippedList);
 
   const worldRef = useRef<WorldState | null>(null);
   const [world, setWorld] = useState<WorldState>(() => {
@@ -159,10 +174,12 @@ export function FieldScreen() {
       lastTsRef.current = now;
 
       const s = useGameStore.getState();
+      const activeClassId = s.classId ?? 'warrior';
       const equippedList = Object.values(s.equipped).filter(
         (i): i is EquipmentItem => i !== null
       );
-      const heroStats = totalStats(s.heroLevel, equippedList);
+      const baseHeroStats = totalStats(activeClassId, s.heroLevel, s.allocatedStats, equippedList);
+      const skills = CLASS_SKILLS[activeClassId];
       const stage = getStage(s.currentStage);
       const monsterStats: StatBlock = stage.enemyStats;
       const perKillGold = Math.max(1, Math.round(stage.goldReward / KILLS_PER_STAGE));
@@ -177,10 +194,12 @@ export function FieldScreen() {
       const skillCooldownUntil = { ...prev.skillCooldownUntil };
 
       // heal to full whenever max HP changes (level up / gear change)
-      let heroMaxHp = heroStats.hp;
+      let heroMaxHp = baseHeroStats.hp;
       if (heroMaxHp !== prev.heroMaxHp) heroHp = heroMaxHp;
 
       const stunned = now < stunnedUntil;
+      const buff = prev.buff && now < prev.buff.until ? prev.buff : null;
+      const heroStats = applyBuff(baseHeroStats, buff, now);
 
       // --- movement ---
       let moveX = 0;
@@ -279,13 +298,22 @@ export function FieldScreen() {
       const requestedSkill = skillRequestRef.current;
       skillRequestRef.current = null;
       const wantsAutoSkill = autoHuntRef.current;
-      for (const skill of SKILLS) {
+      let nextBuff = buff;
+      for (const skill of skills) {
         const ready = now >= (skillCooldownUntil[skill.id] ?? 0);
         const shouldTry = requestedSkill === skill.id || (wantsAutoSkill && ready);
         if (!ready || !shouldTry || stunned) continue;
 
         const alive = monsters.filter((m) => m.alive);
-        if (skill.kind === 'aoe') {
+        if (skill.kind === 'buff') {
+          skillCooldownUntil[skill.id] = now + skill.cooldownMs;
+          nextBuff = {
+            stat: skill.buffStat ?? 'atk',
+            multiplier: skill.buffMultiplier ?? 1,
+            until: now + (skill.durationMs ?? 4000),
+          };
+          heroAttack = { at: now, angle: 0 };
+        } else if (skill.kind === 'aoe') {
           const hits = alive.filter((m) => distance(heroX, heroY, m.x, m.y) < skill.range);
           if (hits.length === 0 && requestedSkill !== skill.id) continue;
           skillCooldownUntil[skill.id] = now + skill.cooldownMs;
@@ -365,6 +393,7 @@ export function FieldScreen() {
         monsters,
         killCount: finalKillCount,
         damagePopups,
+        buff: nextBuff,
         skillCooldownUntil,
       };
       worldRef.current = next;
@@ -378,6 +407,8 @@ export function FieldScreen() {
   const stage = getStage(currentStage);
   const palette = paletteForChapter(chapterForStage(stage.id));
   const stunned = now < world.stunnedUntil;
+  const activeBuff = world.buff && now < world.buff.until ? world.buff : null;
+  const skills = CLASS_SKILLS[classId];
 
   const lungeElapsed = world.heroAttack ? now - world.heroAttack.at : Infinity;
   const lungeProgress = lungeElapsed < LUNGE_MS ? Math.sin((lungeElapsed / LUNGE_MS) * Math.PI) : 0;
@@ -452,7 +483,8 @@ export function FieldScreen() {
           }}
         >
           <View style={styles.shadow} />
-          <HeroSprite size={ENTITY_RADIUS * 2} />
+          {activeBuff && <View style={styles.buffGlow} />}
+          <HeroSprite classId={classId} size={ENTITY_RADIUS * 2} />
           {stunned && <Text style={styles.stunLabel}>기절!</Text>}
         </View>
 
@@ -489,7 +521,7 @@ export function FieldScreen() {
             <Text style={styles.autoButtonText}>{autoHunt ? '자동사냥 ON' : '자동사냥 OFF'}</Text>
           </TouchableOpacity>
           <View style={styles.skillRow}>
-            {SKILLS.map((skill) => {
+            {skills.map((skill: SkillConfig) => {
               const cooldownUntil = world.skillCooldownUntil[skill.id] ?? 0;
               const remaining = Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
               const ready = remaining <= 0;
@@ -603,22 +635,32 @@ const styles = StyleSheet.create({
   },
   autoButtonActive: { backgroundColor: colors.success },
   autoButtonText: { color: colors.text, fontWeight: '700', fontSize: 12 },
-  skillRow: { flexDirection: 'row', gap: 8 },
+  skillRow: { flexDirection: 'row', gap: 6 },
   skillButton: {
-    width: 62,
-    height: 62,
-    borderRadius: 16,
+    width: 54,
+    height: 54,
+    borderRadius: 14,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   skillButtonCooldown: { backgroundColor: colors.surfaceAlt },
-  skillIcon: { fontSize: 20 },
-  skillName: { color: colors.text, fontSize: 9, fontWeight: '700', marginTop: 2 },
+  skillIcon: { fontSize: 17 },
+  skillName: { color: colors.text, fontSize: 8, fontWeight: '700', marginTop: 1 },
   skillCooldownText: {
     position: 'absolute',
     color: colors.text,
     fontWeight: '800',
-    fontSize: 16,
+    fontSize: 15,
+  },
+  buffGlow: {
+    position: 'absolute',
+    top: -6,
+    left: -6,
+    right: -6,
+    bottom: -6,
+    borderRadius: ENTITY_RADIUS + 6,
+    backgroundColor: colors.gold,
+    opacity: 0.35,
   },
 });

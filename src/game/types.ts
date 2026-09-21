@@ -1,6 +1,8 @@
 export type Rarity = 'normal' | 'rare' | 'epic' | 'legendary';
 
-export type EquipmentSlot = 'weapon' | 'armor' | 'accessory';
+export type EquipmentSlot = 'weapon' | 'armor' | 'offhand' | 'shoes' | 'ring' | 'necklace';
+
+export type ClassId = 'warrior' | 'rogue' | 'archer' | 'mage';
 
 export interface StatBlock {
   atk: number;
@@ -9,12 +11,21 @@ export interface StatBlock {
   critRate: number; // 0..1
 }
 
+export interface PrimaryStats {
+  str: number;
+  agi: number;
+  int: number;
+  vit: number;
+}
+
 export interface EquipmentItem {
   id: string;
   slot: EquipmentSlot;
   rarity: Rarity;
+  classId: ClassId;
   name: string;
   stats: StatBlock;
+  enhanceLevel: number;
 }
 
 export interface StageConfig {

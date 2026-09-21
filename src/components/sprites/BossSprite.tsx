@@ -1,4 +1,4 @@
-import Svg, { Circle, Ellipse, Path, Polygon, Rect } from 'react-native-svg';
+import Svg, { Circle, Defs, Ellipse, LinearGradient, Path, Polygon, Rect, Stop } from 'react-native-svg';
 
 import { paletteForChapter } from './palette';
 
@@ -98,8 +98,14 @@ export function BossSprite({ chapter, size = 120 }: Props) {
   const palette = paletteForChapter(chapter);
   return (
     <Svg width={size} height={size} viewBox="0 0 100 100">
+      <Defs>
+        <LinearGradient id="bbody" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={palette.glow} />
+          <Stop offset="1" stopColor={palette.body} />
+        </LinearGradient>
+      </Defs>
       <Circle cx="50" cy="55" r="46" fill={palette.glow} opacity={0.45} />
-      <BossBody chapter={chapter} body={palette.body} accent={palette.accent} />
+      <BossBody chapter={chapter} body="url(#bbody)" accent={palette.accent} />
     </Svg>
   );
 }
