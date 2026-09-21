@@ -1,8 +1,9 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Joystick } from '../components/Joystick';
+import { RPGStatBar } from '../components/rpg/RPGStatBar';
+import { SideScrollBackground } from '../components/SideScrollBackground';
 import { HeroSprite } from '../components/sprites/HeroSprite';
 import { MonsterSprite } from '../components/sprites/MonsterSprite';
 import { chapterForStage, paletteForChapter } from '../components/sprites/palette';
@@ -17,6 +18,7 @@ import {
   ENTITY_RADIUS,
   FIELD_HEIGHT,
   FIELD_WIDTH,
+  GROUND_Y,
   HERO_STUN_MS,
   HIT_FLASH_MS,
   KILLS_PER_STAGE,
@@ -30,6 +32,7 @@ import {
   TICK_MS,
   wanderVelocity,
 } from '../game/field';
+import { mapName } from '../game/maps';
 import { CLASS_SKILLS, SkillConfig, skillPowerMultiplier } from '../game/skills';
 import { getStage } from '../game/stages';
 import { StatBlock } from '../game/types';
@@ -84,6 +87,7 @@ interface WorldState {
   heroMaxHp: number;
   heroLastAttackAt: number;
   heroAttack: HeroAttackFx | null;
+  heroFacing: 1 | -1;
   stunnedUntil: number;
   monsters: MonsterEntity[];
   killCount: number;
@@ -116,11 +120,12 @@ function spawnAllMonsters(maxHp: number): MonsterEntity[] {
 function buildInitialWorld(heroMaxHp: number, monsterMaxHp: number): WorldState {
   return {
     heroX: FIELD_WIDTH / 2,
-    heroY: FIELD_HEIGHT - ENTITY_RADIUS * 2,
+    heroY: GROUND_Y,
     heroHp: heroMaxHp,
     heroMaxHp,
     heroLastAttackAt: 0,
     heroAttack: null,
+    heroFacing: 1,
     stunnedUntil: 0,
     monsters: spawnAllMonsters(monsterMaxHp),
     killCount: 0,
@@ -189,7 +194,7 @@ export function FieldScreen() {
 
       const prev = worldRef.current;
       if (!prev) return;
-      let { heroX, heroY, heroHp, stunnedUntil, killCount, heroLastAttackAt } = prev;
+      let { heroX, heroY, heroHp, stunnedUntil, killCount, heroLastAttackAt, heroFacing } = prev;
       let heroAttack = prev.heroAttack;
       let monsters = prev.monsters;
       let damagePopups = prev.damagePopups.filter((p) => now - p.createdAt < DAMAGE_POPUP_MS);
@@ -203,9 +208,8 @@ export function FieldScreen() {
       const buff = prev.buff && now < prev.buff.until ? prev.buff : null;
       const heroStats = applyBuff(baseHeroStats, buff, now);
 
-      // --- movement ---
+      // --- movement (side-scroller: X only, hero always stands on the ground line) ---
       let moveX = 0;
-      let moveY = 0;
       if (!stunned) {
         if (autoHuntRef.current) {
           const alive = monsters.filter((m) => m.alive);
@@ -214,31 +218,21 @@ export function FieldScreen() {
             const cd = closest ? distance(heroX, heroY, closest.x, closest.y) : Infinity;
             return d < cd ? m : closest;
           }, null);
-          if (target) {
-            const d = distance(heroX, heroY, target.x, target.y);
-            if (d > ATTACK_RANGE * 0.7) {
-              moveX = (target.x - heroX) / d;
-              moveY = (target.y - heroY) / d;
-            }
+          if (target && Math.abs(target.x - heroX) > ATTACK_RANGE * 0.7) {
+            moveX = target.x > heroX ? 1 : -1;
           }
         } else {
           moveX = joystickDirRef.current.x;
-          moveY = joystickDirRef.current.y;
         }
       }
-      const moveLen = Math.hypot(moveX, moveY);
-      if (moveLen > 0.05) {
+      if (Math.abs(moveX) > 0.05) {
         heroX = clamp(
-          heroX + (moveX / moveLen) * PLAYER_SPEED * dt,
+          heroX + Math.sign(moveX) * PLAYER_SPEED * dt,
           ENTITY_RADIUS,
           FIELD_WIDTH - ENTITY_RADIUS
         );
-        heroY = clamp(
-          heroY + (moveY / moveLen) * PLAYER_SPEED * dt,
-          ENTITY_RADIUS,
-          FIELD_HEIGHT - ENTITY_RADIUS
-        );
       }
+      if (Math.abs(moveX) > 0.05) heroFacing = moveX < 0 ? -1 : 1;
 
       // --- monster AI: wander, bounce, attack hero ---
       let goldGained = 0;
@@ -258,11 +252,8 @@ export function FieldScreen() {
           vy = w.vy;
         }
         x += vx * dt;
-        y += vy * dt;
         if (x <= ENTITY_RADIUS || x >= FIELD_WIDTH - ENTITY_RADIUS) vx = -vx;
-        if (y <= ENTITY_RADIUS || y >= FIELD_HEIGHT - ENTITY_RADIUS) vy = -vy;
         x = clamp(x, ENTITY_RADIUS, FIELD_WIDTH - ENTITY_RADIUS);
-        y = clamp(y, ENTITY_RADIUS, FIELD_HEIGHT - ENTITY_RADIUS);
 
         if (!stunned && distance(x, y, heroX, heroY) < MONSTER_ATTACK_RANGE) {
           if (now - lastAttackAt > MONSTER_ATTACK_COOLDOWN_MS) {
@@ -392,6 +383,7 @@ export function FieldScreen() {
         heroMaxHp,
         heroLastAttackAt,
         heroAttack,
+        heroFacing,
         stunnedUntil,
         monsters,
         killCount: finalKillCount,
@@ -419,32 +411,32 @@ export function FieldScreen() {
   const heroOffsetX = Math.cos(lungeAngle) * lungeProgress * 12;
   const heroOffsetY = Math.sin(lungeAngle) * lungeProgress * 12;
 
+  const mapLabel = `${chapterForStage(stage.id)}. ${mapName(chapterForStage(stage.id))}`;
+
   return (
     <View style={styles.container}>
-      <View style={styles.headerRow}>
-        <Text style={styles.stageLabel}>{stage.name} · {stage.enemyName}</Text>
-        <Text style={styles.killCount}>
-          처치 {world.killCount} / {KILLS_PER_STAGE}
-        </Text>
+      <View style={styles.mapHeader}>
+        <Text style={styles.mapPin}>📍 {mapLabel}</Text>
+        <Text style={styles.mapEnemy}>{stage.enemyName}</Text>
+      </View>
+      <View style={styles.stageProgressRow}>
+        <RPGStatBar
+          progress={world.killCount / KILLS_PER_STAGE}
+          color={colors.frame.gold}
+          label={`${stage.name} · ${world.killCount}/${KILLS_PER_STAGE}`}
+          height={20}
+        />
       </View>
 
-      <View style={styles.hpBarTrack}>
-        <View
-          style={[
-            styles.hpBarFill,
-            { width: `${Math.max(0, (world.heroHp / world.heroMaxHp) * 100)}%` },
-          ]}
-        />
-        <Text style={styles.hpBarText}>
-          HP {Math.max(0, world.heroHp)} / {world.heroMaxHp}
-        </Text>
-      </View>
+      <RPGStatBar
+        progress={world.heroHp / world.heroMaxHp}
+        color={colors.success}
+        label={`HP ${Math.max(0, Math.round(world.heroHp))} / ${Math.round(world.heroMaxHp)}`}
+        height={18}
+      />
 
       <View style={[styles.field, { width: FIELD_WIDTH, height: FIELD_HEIGHT }]}>
-        <LinearGradient
-          colors={[palette.glow, colors.background]}
-          style={StyleSheet.absoluteFill}
-        />
+        <SideScrollBackground palette={palette} />
 
         {world.monsters.map((m) => {
           const alive = m.alive;
@@ -487,7 +479,9 @@ export function FieldScreen() {
         >
           <View style={styles.shadow} />
           {activeBuff && <View style={styles.buffGlow} />}
-          <HeroSprite classId={classId} size={ENTITY_RADIUS * 2} />
+          <View style={{ transform: [{ scaleX: world.heroFacing }] }}>
+            <HeroSprite classId={classId} size={ENTITY_RADIUS * 2} />
+          </View>
           {stunned && <Text style={styles.stunLabel}>기절!</Text>}
         </View>
 
@@ -559,36 +553,17 @@ export function FieldScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, padding: 16, gap: 10 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  stageLabel: { color: colors.text, fontWeight: '800', fontSize: 15 },
-  killCount: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
-  hpBarTrack: {
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.surfaceAlt,
-    overflow: 'hidden',
-    justifyContent: 'center',
-  },
-  hpBarFill: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    backgroundColor: colors.success,
-  },
-  hpBarText: {
-    color: colors.text,
-    fontSize: 11,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
+  container: { flex: 1, backgroundColor: colors.background, padding: 16, gap: 8 },
+  mapHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  mapPin: { color: colors.frame.gold, fontWeight: '800', fontSize: 14 },
+  mapEnemy: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
+  stageProgressRow: { marginBottom: 2 },
   field: {
     alignSelf: 'center',
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: colors.surfaceAlt,
+    borderWidth: 3,
+    borderColor: colors.frame.goldDark,
   },
   shadow: {
     position: 'absolute',
@@ -641,12 +616,14 @@ const styles = StyleSheet.create({
   },
   rightControls: { alignItems: 'flex-end', gap: 8 },
   autoButton: {
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: colors.frame.wood,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.frame.goldDark,
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
-  autoButtonActive: { backgroundColor: colors.success },
+  autoButtonActive: { backgroundColor: colors.success, borderColor: colors.success },
   autoButtonText: { color: colors.text, fontWeight: '700', fontSize: 12 },
   skillScroll: { maxWidth: 230 },
   skillRow: { flexDirection: 'row', gap: 6 },
@@ -654,11 +631,13 @@ const styles = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 14,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.frame.gold,
+    borderWidth: 1,
+    borderColor: colors.frame.goldDark,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  skillButtonCooldown: { backgroundColor: colors.surfaceAlt },
+  skillButtonCooldown: { backgroundColor: colors.frame.wood },
   skillIcon: { fontSize: 17 },
   skillName: { color: colors.text, fontSize: 8, fontWeight: '700', marginTop: 1 },
   skillLevelText: { color: colors.gold, fontSize: 7, fontWeight: '700' },

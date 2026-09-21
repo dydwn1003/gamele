@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { CurrencyBar } from '../components/CurrencyBar';
+import { Panel } from '../components/rpg/Panel';
+import { RPGButton } from '../components/rpg/RPGButton';
+import { SectionHeader } from '../components/rpg/SectionHeader';
 import { EquipmentIcon } from '../components/sprites/EquipmentIcon';
 import { GACHA_COST_GEMS, GACHA_COST_GEMS_TEN } from '../game/gacha';
 import {
@@ -41,76 +44,80 @@ export function GachaScreen() {
         <CurrencyBar gold={gold} gems={gems} />
       </View>
 
-      <View style={styles.pullRow}>
-        <TouchableOpacity
-          style={[styles.pullButton, gems < GACHA_COST_GEMS && styles.pullButtonDisabled]}
-          disabled={gems < GACHA_COST_GEMS}
-          onPress={() => {
-            const item = pullGacha();
-            if (item) setLastPull([item]);
-          }}
-        >
-          <Text style={styles.pullButtonText}>💎 {GACHA_COST_GEMS} 1회 뽑기</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.pullButtonTen, gems < GACHA_COST_GEMS_TEN && styles.pullButtonDisabled]}
-          disabled={gems < GACHA_COST_GEMS_TEN}
-          onPress={() => {
-            const items = pullGachaTen();
-            if (items) setLastPull(items);
-          }}
-        >
-          <Text style={styles.pullButtonText}>💎 {GACHA_COST_GEMS_TEN} 10연차</Text>
-        </TouchableOpacity>
-      </View>
-
-      {lastPull.length > 0 && (
-        <View style={styles.resultBar}>
-          <FlatList
-            horizontal
-            data={lastPull}
-            keyExtractor={(item, i) => `${item.id}-${i}`}
-            showsHorizontalScrollIndicator={false}
-            renderItem={({ item }) => (
-              <View style={styles.resultItem}>
-                <EquipmentIcon slot={item.slot} color={colors.rarity[item.rarity]} size={30} />
-                <Text style={[styles.resultLabel, { color: colors.rarity[item.rarity] }]} numberOfLines={1}>
-                  {RARITY_LABEL[item.rarity]}
-                </Text>
-              </View>
-            )}
-          />
-          <TouchableOpacity onPress={() => setLastPull([])}>
-            <Text style={styles.resultClose}>닫기</Text>
-          </TouchableOpacity>
+      <Panel style={{ gap: 12 }}>
+        <View style={styles.pullRow}>
+          <RPGButton
+            variant="neutral"
+            disabled={gems < GACHA_COST_GEMS}
+            style={{ flex: 1 }}
+            onPress={() => {
+              const item = pullGacha();
+              if (item) setLastPull([item]);
+            }}
+          >
+            {`💎 ${GACHA_COST_GEMS} 1회`}
+          </RPGButton>
+          <RPGButton
+            disabled={gems < GACHA_COST_GEMS_TEN}
+            style={{ flex: 1 }}
+            onPress={() => {
+              const items = pullGachaTen();
+              if (items) setLastPull(items);
+            }}
+          >
+            {`💎 ${GACHA_COST_GEMS_TEN} 10연차`}
+          </RPGButton>
         </View>
-      )}
 
-      <View style={styles.equippedGrid}>
-        {SLOTS.map((slot) => {
-          const item = equipped[slot];
-          return (
-            <View key={slot} style={styles.equippedSlot}>
-              <EquipmentIcon
-                slot={slot}
-                color={item ? colors.rarity[item.rarity] : colors.textMuted}
-                size={26}
-              />
-              <Text style={styles.slotLabel}>{slotLabel[slot]}</Text>
-              <Text style={styles.slotItem} numberOfLines={1}>
-                {item ? `${item.name}${item.enhanceLevel > 0 ? ` +${item.enhanceLevel}` : ''}` : '없음'}
-              </Text>
-              {item && (
-                <TouchableOpacity onPress={() => unequipItem(slot)}>
-                  <Text style={styles.unequipText}>해제</Text>
-                </TouchableOpacity>
+        {lastPull.length > 0 && (
+          <View style={styles.resultBar}>
+            <FlatList
+              horizontal
+              data={lastPull}
+              keyExtractor={(item, i) => `${item.id}-${i}`}
+              showsHorizontalScrollIndicator={false}
+              renderItem={({ item }) => (
+                <View style={styles.resultItem}>
+                  <EquipmentIcon slot={item.slot} color={colors.rarity[item.rarity]} size={30} />
+                  <Text style={[styles.resultLabel, { color: colors.rarity[item.rarity] }]} numberOfLines={1}>
+                    {RARITY_LABEL[item.rarity]}
+                  </Text>
+                </View>
               )}
-            </View>
-          );
-        })}
-      </View>
+            />
+            <TouchableOpacity onPress={() => setLastPull([])}>
+              <Text style={styles.resultClose}>닫기</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
-      <Text style={styles.sectionTitle}>보유 장비 ({inventory.length})</Text>
+        <SectionHeader title="장착중" />
+        <View style={styles.equippedGrid}>
+          {SLOTS.map((slot) => {
+            const item = equipped[slot];
+            return (
+              <View key={slot} style={styles.equippedSlot}>
+                <EquipmentIcon
+                  slot={slot}
+                  color={item ? colors.rarity[item.rarity] : colors.textMuted}
+                  size={26}
+                />
+                <Text style={styles.slotLabel}>{slotLabel[slot]}</Text>
+                <Text style={styles.slotItem} numberOfLines={1}>
+                  {item ? `${item.name}${item.enhanceLevel > 0 ? ` +${item.enhanceLevel}` : ''}` : '없음'}
+                </Text>
+                {item && (
+                  <TouchableOpacity onPress={() => unequipItem(slot)}>
+                    <Text style={styles.unequipText}>해제</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            );
+          })}
+        </View>
+      </Panel>
+
+      <SectionHeader title={`보유 장비 · ${inventory.length}`} />
       <FlatList
         data={[...inventory].reverse()}
         keyExtractor={(item) => item.id}
@@ -159,27 +166,13 @@ const styles = StyleSheet.create({
   headerRow: { gap: 10 },
   title: { color: colors.text, fontSize: 22, fontWeight: '800' },
   pullRow: { flexDirection: 'row', gap: 8 },
-  pullButton: {
-    flex: 1,
-    backgroundColor: colors.gem,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  pullButtonTen: {
-    flex: 1,
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  pullButtonDisabled: { opacity: 0.4 },
-  pullButtonText: { color: colors.background, fontWeight: '800', fontSize: 13 },
   resultBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: colors.frame.wood,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.frame.goldDark,
     padding: 8,
     gap: 8,
   },
@@ -189,8 +182,10 @@ const styles = StyleSheet.create({
   equippedGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   equippedSlot: {
     width: '31%',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.frame.wood,
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.frame.goldDark,
     padding: 8,
     alignItems: 'center',
     gap: 3,
@@ -198,11 +193,12 @@ const styles = StyleSheet.create({
   slotLabel: { color: colors.textMuted, fontSize: 10, fontWeight: '700' },
   slotItem: { color: colors.text, fontSize: 11, fontWeight: '600' },
   unequipText: { color: colors.danger, fontSize: 10 },
-  sectionTitle: { color: colors.textMuted, fontSize: 12, fontWeight: '700', marginTop: 4 },
   itemRow: {
     flexDirection: 'row',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.frame.wood,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.frame.goldDark + '80',
     padding: 12,
     marginBottom: 8,
     alignItems: 'center',
@@ -213,12 +209,12 @@ const styles = StyleSheet.create({
   itemStats: { color: colors.textMuted, fontSize: 10, marginTop: 2 },
   itemActions: { gap: 6 },
   equipButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.frame.gold,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  equipButtonText: { color: colors.text, fontWeight: '700', fontSize: 11, textAlign: 'center' },
+  equipButtonText: { color: '#3a2a0a', fontWeight: '700', fontSize: 11, textAlign: 'center' },
   enhanceButton: {
     backgroundColor: colors.surfaceAlt,
     borderRadius: 8,

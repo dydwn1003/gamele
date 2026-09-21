@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 
+import { RPGButton } from '../components/rpg/RPGButton';
 import { isFirebaseConfigured } from '../services/firebase';
 import { fetchTopScores, LeaderboardEntry, submitScore } from '../services/leaderboard';
 import { useAuthStore } from '../state/useAuthStore';
@@ -66,9 +67,9 @@ export function LeaderboardScreen() {
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <Text style={styles.title}>랭킹</Text>
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-          <Text style={styles.submitButtonText}>내 기록 갱신</Text>
-        </TouchableOpacity>
+        <RPGButton style={styles.submitButton} onPress={handleSubmit}>
+          내 기록 갱신
+        </RPGButton>
       </View>
 
       {error && <Text style={styles.errorText}>{error}</Text>}
@@ -110,23 +111,19 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background, padding: 16, gap: 12 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { color: colors.text, fontSize: 22, fontWeight: '800' },
-  submitButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  submitButtonText: { color: colors.text, fontWeight: '700', fontSize: 12 },
+  submitButton: { paddingHorizontal: 4 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.frame.wood,
+    borderWidth: 1,
+    borderColor: colors.frame.goldDark + '80',
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
     gap: 10,
   },
-  rowMine: { borderWidth: 1, borderColor: colors.primary },
+  rowMine: { borderWidth: 1.5, borderColor: colors.frame.gold },
   rank: { color: colors.textMuted, fontWeight: '800', width: 36 },
   rowInfo: { flex: 1 },
   name: { color: colors.text, fontWeight: '700' },

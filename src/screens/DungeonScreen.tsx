@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { RPGButton } from '../components/rpg/RPGButton';
+import { SectionHeader } from '../components/rpg/SectionHeader';
 import { BossSprite, BOSS_NAMES } from '../components/sprites/BossSprite';
 import { CHAPTER_COUNT, getBoss } from '../game/bosses';
 import { chapterForStage } from '../components/sprites/palette';
@@ -69,22 +71,19 @@ export function DungeonScreen() {
                     : `보상 ${boss.goldReward}G · ${boss.gemReward}💎 · ${RARITY_LABEL[boss.guaranteedRarity]}+ 확정`}
                 </Text>
               </View>
-              <TouchableOpacity
-                style={[
-                  styles.challengeButton,
-                  (locked || bossTickets <= 0) && styles.challengeButtonDisabled,
-                ]}
+              <RPGButton
                 disabled={locked || bossTickets <= 0}
                 onPress={() => challenge(chapter)}
+                style={styles.challengeButton}
               >
-                <Text style={styles.challengeButtonText}>{locked ? '잠김' : '도전'}</Text>
-              </TouchableOpacity>
+                {locked ? '잠김' : '도전'}
+              </RPGButton>
             </View>
           );
         }}
       />
 
-      <Text style={styles.sectionTitle}>전투 기록</Text>
+      <SectionHeader title="전투 기록" />
       <FlatList
         style={styles.log}
         data={log}
@@ -105,7 +104,9 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontSize: 22, fontWeight: '800' },
   subText: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
   ticketPill: {
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: colors.frame.wood,
+    borderWidth: 1,
+    borderColor: colors.frame.goldDark,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
@@ -114,7 +115,9 @@ const styles = StyleSheet.create({
   bossCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.frame.wood,
+    borderWidth: 1,
+    borderColor: colors.frame.goldDark + '80',
     borderRadius: 14,
     padding: 12,
     gap: 12,
@@ -123,15 +126,7 @@ const styles = StyleSheet.create({
   bossInfo: { flex: 1 },
   bossName: { color: colors.text, fontWeight: '800', fontSize: 15 },
   bossMeta: { color: colors.textMuted, fontSize: 11, marginTop: 2 },
-  challengeButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  challengeButtonDisabled: { backgroundColor: colors.surfaceAlt },
-  challengeButtonText: { color: colors.text, fontWeight: '700' },
-  sectionTitle: { color: colors.textMuted, fontSize: 12, fontWeight: '700', marginBottom: 4 },
-  log: { maxHeight: 140 },
+  challengeButton: { paddingHorizontal: 8, minWidth: 80 },
+  log: { maxHeight: 140, marginTop: 6 },
   logText: { fontSize: 12, paddingVertical: 2 },
 });

@@ -1,6 +1,9 @@
 export const FIELD_WIDTH = 340;
 export const FIELD_HEIGHT = 380;
 export const ENTITY_RADIUS = 30;
+/** Side-scroller ground line: entity Y centers stay near here, only X varies. */
+export const GROUND_Y = FIELD_HEIGHT - 70;
+const GROUND_JITTER = 8;
 
 export const PLAYER_SPEED = 130; // px/sec
 export const MONSTER_SPEED = 55; // px/sec
@@ -33,13 +36,14 @@ export function distance(ax: number, ay: number, bx: number, by: number): number
 export function randomFieldPoint(): { x: number; y: number } {
   return {
     x: ENTITY_RADIUS + Math.random() * (FIELD_WIDTH - ENTITY_RADIUS * 2),
-    y: ENTITY_RADIUS + Math.random() * (FIELD_HEIGHT - ENTITY_RADIUS * 2),
+    y: GROUND_Y + (Math.random() - 0.5) * GROUND_JITTER,
   };
 }
 
-/** Nudges a wandering monster's velocity occasionally so movement feels organic. */
-export function wanderVelocity(vx: number, vy: number): { vx: number; vy: number } {
+/** Nudges a wandering monster's horizontal drift — side-scroller movement is X-only. */
+export function wanderVelocity(vx: number, _vy: number): { vx: number; vy: number } {
   const speed = MONSTER_SPEED;
-  const angle = Math.atan2(vy, vx) + (Math.random() - 0.5) * 0.8;
-  return { vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed };
+  const direction = vx >= 0 ? 1 : -1;
+  const flip = Math.random() < 0.35 ? -1 : 1;
+  return { vx: speed * direction * flip, vy: 0 };
 }

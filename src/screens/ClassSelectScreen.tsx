@@ -1,7 +1,9 @@
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { Panel } from '../components/rpg/Panel';
+import { RPGButton } from '../components/rpg/RPGButton';
+import { RPGStatBar } from '../components/rpg/RPGStatBar';
 import { HeroSprite } from '../components/sprites/HeroSprite';
-import { ProgressBar } from '../components/ProgressBar';
 import { CLASS_BASE_PRIMARY, CLASS_NAME } from '../game/hero';
 import { ClassId, PrimaryStats } from '../game/types';
 import { useGameStore } from '../state/useGameStore';
@@ -36,7 +38,7 @@ export function ClassSelectScreen() {
       {CLASS_ORDER.map((classId) => {
         const base = CLASS_BASE_PRIMARY[classId];
         return (
-          <View key={classId} style={styles.card}>
+          <Panel key={classId}>
             <View style={styles.cardHeader}>
               <HeroSprite classId={classId} size={72} />
               <View style={{ flex: 1 }}>
@@ -49,15 +51,15 @@ export function ClassSelectScreen() {
               {(Object.keys(base) as (keyof PrimaryStats)[]).map((stat) => (
                 <View key={stat} style={styles.statRow}>
                   <Text style={styles.statLabel}>{STAT_LABEL[stat]}</Text>
-                  <ProgressBar progress={base[stat] / MAX_BASE} color={colors.primary} height={7} />
+                  <RPGStatBar progress={base[stat] / MAX_BASE} color={colors.frame.gold} height={9} />
                 </View>
               ))}
             </View>
 
-            <TouchableOpacity style={styles.selectButton} onPress={() => chooseClass(classId)}>
-              <Text style={styles.selectButtonText}>{CLASS_NAME[classId]}(으)로 시작하기</Text>
-            </TouchableOpacity>
-          </View>
+            <RPGButton onPress={() => chooseClass(classId)}>
+              {`${CLASS_NAME[classId]}(으)로 시작하기`}
+            </RPGButton>
+          </Panel>
         );
       })}
     </ScrollView>
@@ -69,18 +71,10 @@ const styles = StyleSheet.create({
   content: { padding: 20, gap: 16, paddingBottom: 40 },
   title: { color: colors.text, fontSize: 24, fontWeight: '800', textAlign: 'center' },
   subtitle: { color: colors.textMuted, fontSize: 12, textAlign: 'center', marginBottom: 8 },
-  card: { backgroundColor: colors.surface, borderRadius: 18, padding: 16, gap: 12 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  className: { color: colors.text, fontSize: 18, fontWeight: '800' },
+  className: { color: colors.frame.gold, fontSize: 18, fontWeight: '800' },
   blurb: { color: colors.textMuted, fontSize: 12, marginTop: 4, lineHeight: 17 },
   statBlock: { gap: 6 },
   statRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   statLabel: { color: colors.textMuted, fontSize: 11, width: 32, fontWeight: '700' },
-  selectButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  selectButtonText: { color: colors.text, fontWeight: '700' },
 });

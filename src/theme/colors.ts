@@ -15,4 +15,12 @@ export const colors = {
     epic: '#c060ff',
     legendary: '#ffb020',
   },
+  frame: {
+    gold: '#e8c15a',
+    goldLight: '#fbe6a8',
+    goldDark: '#8a611f',
+    panelTop: '#3a3358',
+    panelBottom: '#211d38',
+    wood: '#2a2038',
+  },
 };
