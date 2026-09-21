@@ -7,6 +7,7 @@ import { GachaScreen } from '../screens/GachaScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { LeaderboardScreen } from '../screens/LeaderboardScreen';
 import { LoginScreen } from '../screens/LoginScreen';
+import { isFirebaseConfigured } from '../services/firebase';
 import { useAuthStore } from '../state/useAuthStore';
 import { colors } from '../theme/colors';
 
@@ -30,12 +31,22 @@ export function RootNavigator() {
     );
   }
 
-  if (!user) {
+  // Firebase isn't wired up yet in this environment — skip the login gate so
+  // the game loop can still be played/tested locally. Once app.json's
+  // extra.firebase/googleAuth are filled in, this falls back to real auth.
+  if (!user && isFirebaseConfigured) {
     return <LoginScreen />;
   }
 
   return (
     <NavigationContainer>
+      {!isFirebaseConfigured && (
+        <View style={styles.testBanner}>
+          <Text style={styles.testBannerText}>
+            테스트 모드 · Firebase 미설정 (로그인/랭킹 비활성)
+          </Text>
+        </View>
+      )}
       <Tab.Navigator
         screenOptions={({ route }) => ({
           headerShown: false,
@@ -53,3 +64,16 @@ export function RootNavigator() {
     </NavigationContainer>
   );
 }
+
+const styles = {
+  testBanner: {
+    backgroundColor: colors.rarity.legendary,
+    paddingVertical: 6,
+    alignItems: 'center' as const,
+  },
+  testBannerText: {
+    color: colors.background,
+    fontSize: 11,
+    fontWeight: '700' as const,
+  },
+};
