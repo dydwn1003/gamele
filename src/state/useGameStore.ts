@@ -28,7 +28,8 @@ interface GameState {
   bossTickets: number;
   lastTicketRefillAt: number;
 
-  fightCurrentStage: () => { won: boolean; goldEarned: number; expEarned: number };
+  gainKillReward: (gold: number, exp: number) => void;
+  advanceStage: () => void;
   fightBoss: (chapter: number) => {
     won: boolean;
     goldEarned: number;
@@ -71,30 +72,19 @@ export const useGameStore = create<GameState>()(
         return powerScore(totalStats(s.heroLevel, equippedList));
       },
 
-      fightCurrentStage: () => {
+      gainKillReward: (gold, exp) => {
         const s = get();
-        const stage = getStage(s.currentStage);
-        const equippedList = Object.values(s.equipped).filter(
-          (i): i is EquipmentItem => i !== null
-        );
-        const stats = totalStats(s.heroLevel, equippedList);
-        const result = simulateBattle(stats, stage);
+        const { level, exp: newExp } = applyExp({ level: s.heroLevel, exp: s.heroExp }, exp);
+        set({ gold: s.gold + gold, heroLevel: level, heroExp: newExp });
+      },
 
-        const { level, exp } = applyExp({ level: s.heroLevel, exp: s.heroExp }, result.expEarned);
-        const nextStage =
-          result.won && s.currentStage < STAGES.length ? s.currentStage + 1 : s.currentStage;
-
+      advanceStage: () => {
+        const s = get();
+        const nextStage = Math.min(s.currentStage + 1, STAGES.length);
         set({
-          gold: s.gold + result.goldEarned,
-          heroLevel: level,
-          heroExp: exp,
           currentStage: nextStage,
-          highestStageCleared: result.won
-            ? Math.max(s.highestStageCleared, s.currentStage)
-            : s.highestStageCleared,
+          highestStageCleared: Math.max(s.highestStageCleared, s.currentStage),
         });
-
-        return { won: result.won, goldEarned: result.goldEarned, expEarned: result.expEarned };
       },
 
       fightBoss: (chapter) => {

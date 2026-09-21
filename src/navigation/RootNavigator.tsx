@@ -2,8 +2,8 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { ActivityIndicator, Text, View } from 'react-native';
 
-import { BattleScreen } from '../screens/BattleScreen';
 import { DungeonScreen } from '../screens/DungeonScreen';
+import { FieldScreen } from '../screens/FieldScreen';
 import { GachaScreen } from '../screens/GachaScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { LeaderboardScreen } from '../screens/LeaderboardScreen';
@@ -16,7 +16,7 @@ const Tab = createBottomTabNavigator();
 
 const TAB_ICON: Record<string, string> = {
   홈: '🏠',
-  전투: '⚔️',
+  사냥: '🏹',
   던전: '🐉',
   뽑기: '🎁',
   랭킹: '🏆',
@@ -59,7 +59,7 @@ export function RootNavigator() {
         })}
       >
         <Tab.Screen name="홈" component={HomeScreen} />
-        <Tab.Screen name="전투" component={BattleScreen} />
+        <Tab.Screen name="사냥" component={FieldScreen} />
         <Tab.Screen name="던전" component={DungeonScreen} />
         <Tab.Screen name="뽑기" component={GachaScreen} />
         <Tab.Screen name="랭킹" component={LeaderboardScreen} />

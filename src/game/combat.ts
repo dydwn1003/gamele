@@ -2,10 +2,19 @@ import { BattleResult, StageConfig, StatBlock } from './types';
 
 const MAX_TICKS = 200;
 
-function rollDamage(attacker: StatBlock, defender: StatBlock): number {
+export interface DamageRoll {
+  damage: number;
+  isCrit: boolean;
+}
+
+export function rollDamage(
+  attacker: StatBlock,
+  defender: StatBlock,
+  multiplier = 1
+): DamageRoll {
   const isCrit = Math.random() < attacker.critRate;
-  const raw = Math.max(1, attacker.atk - defender.def * 0.5);
-  return Math.round(isCrit ? raw * 1.75 : raw);
+  const raw = Math.max(1, attacker.atk - defender.def * 0.5) * multiplier;
+  return { damage: Math.round(isCrit ? raw * 1.75 : raw), isCrit };
 }
 
 /**
@@ -19,9 +28,9 @@ export function simulateBattle(hero: StatBlock, stage: StageConfig): BattleResul
 
   while (heroHp > 0 && enemyHp > 0 && ticks < MAX_TICKS) {
     ticks += 1;
-    enemyHp -= rollDamage(hero, stage.enemyStats);
+    enemyHp -= rollDamage(hero, stage.enemyStats).damage;
     if (enemyHp <= 0) break;
-    heroHp -= rollDamage(stage.enemyStats, hero);
+    heroHp -= rollDamage(stage.enemyStats, hero).damage;
   }
 
   const won = enemyHp <= 0 && heroHp > 0;
