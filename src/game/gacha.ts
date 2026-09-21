@@ -27,3 +27,14 @@ export function pullGacha(): EquipmentItem {
   const rarity = pickRarity();
   return rollEquipment(slot, rarity);
 }
+
+const RARITY_ORDER: Rarity[] = ['normal', 'rare', 'epic', 'legendary'];
+
+/** Boss rewards: roll normally but never below the raid's guaranteed floor. */
+export function pullBossReward(minRarity: Rarity): EquipmentItem {
+  const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)];
+  const rolled = pickRarity();
+  const rarity =
+    RARITY_ORDER.indexOf(rolled) < RARITY_ORDER.indexOf(minRarity) ? minRarity : rolled;
+  return rollEquipment(slot, rarity);
+}

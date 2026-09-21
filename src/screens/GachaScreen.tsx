@@ -1,6 +1,7 @@
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { CurrencyBar } from '../components/CurrencyBar';
+import { EquipmentIcon } from '../components/sprites/EquipmentIcon';
 import { GACHA_COST_GEMS } from '../game/gacha';
 import { RARITY_LABEL } from '../game/equipment';
 import { EquipmentItem } from '../game/types';
@@ -36,6 +37,11 @@ export function GachaScreen() {
           const item = equipped[slot];
           return (
             <View key={slot} style={styles.equippedSlot}>
+              <EquipmentIcon
+                slot={slot}
+                color={item ? colors.rarity[item.rarity] : colors.textMuted}
+                size={30}
+              />
               <Text style={styles.slotLabel}>{SLOT_LABEL[slot]}</Text>
               <Text style={styles.slotItem} numberOfLines={1}>
                 {item ? item.name : '없음'}
@@ -56,6 +62,7 @@ export function GachaScreen() {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.itemRow}>
+            <EquipmentIcon slot={item.slot} color={colors.rarity[item.rarity]} size={30} />
             <View style={styles.itemInfo}>
               <Text style={[styles.itemName, { color: colors.rarity[item.rarity] }]}>
                 [{RARITY_LABEL[item.rarity]}] {item.name}

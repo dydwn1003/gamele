@@ -2,13 +2,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
+import { getBoss } from '../game/bosses';
 import { calculateOfflineGold, simulateBattle } from '../game/combat';
-import { pullGacha as rollGacha } from '../game/gacha';
+import { pullBossReward, pullGacha as rollGacha } from '../game/gacha';
 import { applyExp, totalStats, powerScore } from '../game/hero';
 import { getStage, STAGES } from '../game/stages';
 import { EquipmentItem, EquipmentSlot } from '../game/types';
 
 type EquippedMap = Record<EquipmentSlot, EquipmentItem | null>;
+
+export const MAX_BOSS_TICKETS = 3;
+export const BOSS_TICKET_REFILL_MS = 3 * 60 * 60 * 1000; // one ticket every 3h
 
 interface GameState {
   gold: number;
@@ -21,14 +25,23 @@ interface GameState {
   equipped: EquippedMap;
   lastActiveAt: number;
   pendingOfflineGold: number;
+  bossTickets: number;
+  lastTicketRefillAt: number;
 
   fightCurrentStage: () => { won: boolean; goldEarned: number; expEarned: number };
+  fightBoss: (chapter: number) => {
+    won: boolean;
+    goldEarned: number;
+    gemsEarned: number;
+    item: EquipmentItem | null;
+  } | null;
   pullGacha: () => EquipmentItem | null;
   equipItem: (item: EquipmentItem) => void;
   unequipItem: (slot: EquipmentSlot) => void;
   addGems: (amount: number) => void;
   claimOfflineGold: () => void;
   syncOfflineProgress: () => void;
+  syncBossTickets: () => void;
   heroPower: () => number;
 }
 
@@ -47,6 +60,8 @@ export const useGameStore = create<GameState>()(
       equipped: INITIAL_EQUIPPED,
       lastActiveAt: Date.now(),
       pendingOfflineGold: 0,
+      bossTickets: MAX_BOSS_TICKETS,
+      lastTicketRefillAt: Date.now(),
 
       heroPower: () => {
         const s = get();
@@ -82,6 +97,34 @@ export const useGameStore = create<GameState>()(
         return { won: result.won, goldEarned: result.goldEarned, expEarned: result.expEarned };
       },
 
+      fightBoss: (chapter) => {
+        const s = get();
+        if (s.bossTickets <= 0) return null;
+
+        const boss = getBoss(chapter);
+        const equippedList = Object.values(s.equipped).filter(
+          (i): i is EquipmentItem => i !== null
+        );
+        const stats = totalStats(s.heroLevel, equippedList);
+        const result = simulateBattle(stats, boss);
+        const { level, exp } = applyExp({ level: s.heroLevel, exp: s.heroExp }, result.expEarned);
+
+        const goldEarned = result.won ? boss.goldReward : Math.round(boss.goldReward * 0.15);
+        const gemsEarned = result.won ? boss.gemReward : 0;
+        const item = result.won ? pullBossReward(boss.guaranteedRarity) : null;
+
+        set({
+          gold: s.gold + goldEarned,
+          gems: s.gems + gemsEarned,
+          heroLevel: level,
+          heroExp: exp,
+          bossTickets: s.bossTickets - 1,
+          inventory: item ? [...s.inventory, item] : s.inventory,
+        });
+
+        return { won: result.won, goldEarned, gemsEarned, item };
+      },
+
       pullGacha: () => {
         const s = get();
         const GACHA_COST = 50;
@@ -113,6 +156,21 @@ export const useGameStore = create<GameState>()(
         const s = get();
         set({ gold: s.gold + s.pendingOfflineGold, pendingOfflineGold: 0 });
       },
+
+      syncBossTickets: () => {
+        const s = get();
+        if (s.bossTickets >= MAX_BOSS_TICKETS) {
+          set({ lastTicketRefillAt: Date.now() });
+          return;
+        }
+        const elapsed = Date.now() - s.lastTicketRefillAt;
+        const gained = Math.floor(elapsed / BOSS_TICKET_REFILL_MS);
+        if (gained <= 0) return;
+        set({
+          bossTickets: Math.min(MAX_BOSS_TICKETS, s.bossTickets + gained),
+          lastTicketRefillAt: s.lastTicketRefillAt + gained * BOSS_TICKET_REFILL_MS,
+        });
+      },
     }),
     {
       name: 'gamele-save',
@@ -128,6 +186,8 @@ export const useGameStore = create<GameState>()(
         equipped: s.equipped,
         lastActiveAt: s.lastActiveAt,
         pendingOfflineGold: s.pendingOfflineGold,
+        bossTickets: s.bossTickets,
+        lastTicketRefillAt: s.lastTicketRefillAt,
       }),
     }
   )

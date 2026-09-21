@@ -3,6 +3,8 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 
 import { CurrencyBar } from '../components/CurrencyBar';
 import { ProgressBar } from '../components/ProgressBar';
+import { HeroSprite } from '../components/sprites/HeroSprite';
+import { MonsterSprite } from '../components/sprites/MonsterSprite';
 import { expToNextLevel } from '../game/hero';
 import { getStage } from '../game/stages';
 import { showRewardedAd } from '../services/ads';
@@ -52,19 +54,29 @@ export function HomeScreen() {
         </View>
       )}
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>영웅</Text>
-        <Text style={styles.heroLevel}>Lv.{heroLevel}</Text>
-        <ProgressBar progress={heroExp / needed} color={colors.success} />
-        <Text style={styles.subText}>
-          {heroExp} / {needed} EXP · 전투력 {heroPower().toLocaleString()}
-        </Text>
+      <View style={[styles.card, styles.heroCard]}>
+        <HeroSprite size={64} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.cardTitle}>영웅</Text>
+          <Text style={styles.heroLevel}>Lv.{heroLevel}</Text>
+          <ProgressBar progress={heroExp / needed} color={colors.success} />
+          <Text style={styles.subText}>
+            {heroExp} / {needed} EXP · 전투력 {heroPower().toLocaleString()}
+          </Text>
+        </View>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>진행 상황</Text>
-        <Text style={styles.stageName}>{stage.name} · {stage.enemyName}</Text>
-        <Text style={styles.subText}>최고 기록: {highestStageCleared} 스테이지</Text>
+      <View style={[styles.card, styles.heroCard]}>
+        <MonsterSprite
+          stageId={stage.id}
+          isMiniBoss={stage.enemyName.includes('보스')}
+          size={64}
+        />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.cardTitle}>진행 상황</Text>
+          <Text style={styles.stageName}>{stage.name} · {stage.enemyName}</Text>
+          <Text style={styles.subText}>최고 기록: {highestStageCleared} 스테이지</Text>
+        </View>
       </View>
 
       <View style={styles.card}>
@@ -119,6 +131,7 @@ const styles = StyleSheet.create({
   },
   claimButtonText: { color: colors.text, fontWeight: '700' },
   card: { backgroundColor: colors.surface, borderRadius: 16, padding: 16, gap: 8 },
+  heroCard: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   cardTitle: { color: colors.textMuted, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
   heroLevel: { color: colors.text, fontSize: 24, fontWeight: '800' },
   subText: { color: colors.textMuted, fontSize: 12 },
