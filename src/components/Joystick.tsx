@@ -62,14 +62,14 @@ export function Joystick({ size = 108, onChange }: Props) {
 
 const styles = StyleSheet.create({
   base: {
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: '#1a1430aa',
     borderWidth: 2,
-    borderColor: '#3a3560',
+    borderColor: '#ffffff40',
     alignItems: 'center',
     justifyContent: 'center',
   },
   knob: {
     backgroundColor: colors.primary,
-    opacity: 0.9,
+    opacity: 0.85,
   },
 });

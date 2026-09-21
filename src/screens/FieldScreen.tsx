@@ -433,24 +433,24 @@ export function FieldScreen() {
         <Text style={styles.mapPin}>📍 {mapLabel}</Text>
         <Text style={styles.mapEnemy}>{stage.enemyName}</Text>
       </View>
-      <View style={styles.stageProgressRow}>
-        <RPGStatBar
-          progress={world.killCount / KILLS_PER_STAGE}
-          color={colors.frame.gold}
-          label={`${stage.name} · ${world.killCount}/${KILLS_PER_STAGE}`}
-          height={20}
-        />
-      </View>
-
-      <RPGStatBar
-        progress={world.heroHp / world.heroMaxHp}
-        color={colors.success}
-        label={`HP ${Math.max(0, Math.round(world.heroHp))} / ${Math.round(world.heroMaxHp)}`}
-        height={18}
-      />
 
       <View style={[styles.field, { width: FIELD_WIDTH, height: FIELD_HEIGHT }]}>
         <TileWorldBackground palette={palette} chapter={chapterForStage(stage.id)} />
+
+        <View style={styles.hudOverlay} pointerEvents="none">
+          <RPGStatBar
+            progress={world.heroHp / world.heroMaxHp}
+            color={colors.success}
+            label={`HP ${Math.max(0, Math.round(world.heroHp))}/${Math.round(world.heroMaxHp)}`}
+            height={16}
+          />
+          <RPGStatBar
+            progress={world.killCount / KILLS_PER_STAGE}
+            color={colors.gem}
+            label={`${stage.name} · ${world.killCount}/${KILLS_PER_STAGE}`}
+            height={13}
+          />
+        </View>
 
         {world.monsters.map((m) => {
           const alive = m.alive;
@@ -491,9 +491,11 @@ export function FieldScreen() {
             opacity: stunned ? 0.5 : 1,
           }}
         >
-          <Text style={styles.nameTag}>
-            Lv.{heroLevel} {classTitle(classId, heroLevel)}
-          </Text>
+          <View style={styles.nameTagPill}>
+            <Text style={styles.nameTag}>
+              Lv.{heroLevel} {classTitle(classId, heroLevel)}
+            </Text>
+          </View>
           <View style={styles.shadow} />
           {activeBuff && <View style={styles.buffGlow} />}
           <View style={{ transform: [{ scaleX: world.heroFacing }] }}>
@@ -522,47 +524,47 @@ export function FieldScreen() {
             </Text>
           );
         })}
-      </View>
 
-      <View style={styles.controlsRow}>
-        <Joystick onChange={(dir) => { joystickDirRef.current = dir; }} />
+        <View style={styles.controlsOverlay} pointerEvents="box-none">
+          <Joystick onChange={(dir) => { joystickDirRef.current = dir; }} />
 
-        <View style={styles.rightControls}>
-          <TouchableOpacity
-            style={[styles.autoButton, autoHunt && styles.autoButtonActive]}
-            onPress={toggleAutoHunt}
-          >
-            <Text style={styles.autoButtonText}>{autoHunt ? '자동사냥 ON' : '자동사냥 OFF'}</Text>
-          </TouchableOpacity>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.skillScroll}
-            contentContainerStyle={styles.skillRow}
-          >
-            {skills.map((skill: SkillConfig) => {
-              const cooldownUntil = world.skillCooldownUntil[skill.id] ?? 0;
-              const remaining = Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
-              const ready = remaining <= 0;
-              const level = skillLevelsSelector[skill.id] ?? 0;
-              return (
-                <TouchableOpacity
-                  key={skill.id}
-                  style={[styles.skillButton, !ready && styles.skillButtonCooldown]}
-                  onPress={() => requestSkill(skill.id)}
-                  disabled={!ready}
-                >
-                  <Text style={styles.skillIcon}>{skill.icon}</Text>
-                  <Text style={styles.skillName}>{skill.name}</Text>
-                  <Text style={styles.skillLevelText}>Lv{level}</Text>
-                  {!ready && <Text style={styles.skillCooldownText}>{remaining}</Text>}
-                </TouchableOpacity>
-              );
-            })}
-            {skills.length === 0 && (
-              <Text style={styles.noSkillText}>홈에서 스킬을 먼저 배워보세요</Text>
-            )}
-          </ScrollView>
+          <View style={styles.dockRow}>
+            <TouchableOpacity
+              style={[styles.dockButton, styles.autoDockButton, autoHunt && styles.autoDockButtonActive]}
+              onPress={toggleAutoHunt}
+            >
+              <Text style={styles.dockIcon}>{autoHunt ? '🟢' : '⚔️'}</Text>
+              <Text style={styles.dockLabel}>자동</Text>
+            </TouchableOpacity>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.skillScroll}
+              contentContainerStyle={styles.dockRow}
+            >
+              {skills.map((skill: SkillConfig) => {
+                const cooldownUntil = world.skillCooldownUntil[skill.id] ?? 0;
+                const remaining = Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
+                const ready = remaining <= 0;
+                const level = skillLevelsSelector[skill.id] ?? 0;
+                return (
+                  <TouchableOpacity
+                    key={skill.id}
+                    style={[styles.dockButton, !ready && styles.dockButtonCooldown]}
+                    onPress={() => requestSkill(skill.id)}
+                    disabled={!ready}
+                  >
+                    <Text style={styles.dockIcon}>{skill.icon}</Text>
+                    <Text style={styles.dockLabel}>Lv{level}</Text>
+                    {!ready && <Text style={styles.skillCooldownText}>{remaining}</Text>}
+                  </TouchableOpacity>
+                );
+              })}
+              {skills.length === 0 && (
+                <Text style={styles.noSkillText}>홈에서{'\n'}스킬 배우기</Text>
+              )}
+            </ScrollView>
+          </View>
         </View>
       </View>
     </View>
@@ -574,13 +576,20 @@ const styles = StyleSheet.create({
   mapHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   mapPin: { color: colors.frame.gold, fontWeight: '800', fontSize: 14 },
   mapEnemy: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
-  stageProgressRow: { marginBottom: 2 },
   field: {
     alignSelf: 'center',
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
-    borderWidth: 3,
+    borderWidth: 4,
     borderColor: colors.frame.goldDark,
+  },
+  hudOverlay: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    width: 150,
+    gap: 4,
+    zIndex: 5,
   },
   shadow: {
     position: 'absolute',
@@ -616,18 +625,25 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 11,
   },
-  nameTag: {
+  nameTagPill: {
     position: 'absolute',
-    top: -16,
+    top: -20,
     width: 120,
     left: -30,
+    alignItems: 'center',
+  },
+  nameTag: {
+    backgroundColor: '#1a1430cc',
+    borderWidth: 1,
+    borderColor: colors.frame.gold,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
     textAlign: 'center',
-    color: colors.frame.gold,
+    color: colors.frame.goldLight,
     fontWeight: '800',
     fontSize: 9,
-    textShadowColor: '#000000cc',
-    textShadowRadius: 2,
-    textShadowOffset: { width: 0, height: 1 },
+    overflow: 'hidden',
   },
   damagePopup: {
     position: 'absolute',
@@ -638,46 +654,40 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   damagePopupCrit: { color: colors.gold, fontSize: 16 },
-  controlsRow: {
+  controlsOverlay: {
+    position: 'absolute',
+    left: 10,
+    right: 10,
+    bottom: 10,
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
-    marginTop: 4,
+    zIndex: 5,
   },
-  rightControls: { alignItems: 'flex-end', gap: 8 },
-  autoButton: {
-    backgroundColor: colors.frame.wood,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.frame.goldDark,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  autoButtonActive: { backgroundColor: colors.success, borderColor: colors.success },
-  autoButtonText: { color: colors.text, fontWeight: '700', fontSize: 12 },
-  skillScroll: { maxWidth: 230 },
-  skillRow: { flexDirection: 'row', gap: 6 },
-  skillButton: {
-    width: 54,
-    height: 54,
-    borderRadius: 14,
-    backgroundColor: colors.frame.gold,
-    borderWidth: 1,
-    borderColor: colors.frame.goldDark,
+  dockRow: { flexDirection: 'row', gap: 6, alignItems: 'center' },
+  skillScroll: { maxWidth: 190 },
+  dockButton: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#1a1430d0',
+    borderWidth: 2,
+    borderColor: colors.frame.gold,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  skillButtonCooldown: { backgroundColor: colors.frame.wood },
-  skillIcon: { fontSize: 17 },
-  skillName: { color: colors.text, fontSize: 8, fontWeight: '700', marginTop: 1 },
-  skillLevelText: { color: colors.gold, fontSize: 7, fontWeight: '700' },
+  autoDockButton: { borderColor: colors.frame.goldLight },
+  autoDockButtonActive: { backgroundColor: '#2f6b4ad0', borderColor: colors.success },
+  dockButtonCooldown: { opacity: 0.45, borderColor: colors.frame.goldDark },
+  dockIcon: { fontSize: 18 },
+  dockLabel: { color: colors.frame.goldLight, fontSize: 7, fontWeight: '800', marginTop: -1 },
   skillCooldownText: {
     position: 'absolute',
     color: colors.text,
     fontWeight: '800',
-    fontSize: 15,
+    fontSize: 14,
   },
-  noSkillText: { color: colors.textMuted, fontSize: 11, width: 150 },
+  noSkillText: { color: colors.textMuted, fontSize: 9, width: 70, textAlign: 'center' },
   buffGlow: {
     position: 'absolute',
     top: -6,

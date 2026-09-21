@@ -26,10 +26,14 @@ function GroundTexture({ palette }: { palette: ChapterPalette }) {
       <Defs>
         <Pattern id="ground" width={TILE} height={TILE} patternUnits="userSpaceOnUse">
           <Rect width={TILE} height={TILE} fill={palette.body} />
-          <Path d="M4 20 L3 14" stroke={palette.accent} strokeWidth={1.4} opacity={0.6} />
-          <Path d="M16 22 L15 16" stroke={palette.accent} strokeWidth={1.4} opacity={0.6} />
-          <Path d="M9 8 L8 3" stroke={palette.accent} strokeWidth={1.4} opacity={0.5} />
-          <Path d="M20 10 L21 5" stroke={palette.accent} strokeWidth={1.4} opacity={0.5} />
+          {/* soft patch of a slightly darker shade for organic variation */}
+          <Circle cx={6} cy={18} r={7} fill={palette.accent} opacity={0.08} />
+          <Circle cx={19} cy={6} r={6} fill={palette.glow} opacity={0.1} />
+          {/* grass blade tufts */}
+          <Path d="M4 20 L3 14 M5.4 20 L5.8 15" stroke={palette.accent} strokeWidth={1.3} opacity={0.65} strokeLinecap="round" />
+          <Path d="M16 22 L15 16 M17.4 22 L17.8 17" stroke={palette.accent} strokeWidth={1.3} opacity={0.65} strokeLinecap="round" />
+          <Path d="M9 8 L8 3 M10.4 8 L10.8 4" stroke={palette.accent} strokeWidth={1.3} opacity={0.55} strokeLinecap="round" />
+          <Path d="M20 10 L21 5 M22.2 10 L22.8 6" stroke={palette.accent} strokeWidth={1.3} opacity={0.55} strokeLinecap="round" />
           <Circle cx={4} cy={5} r={1.6} fill={palette.glow} opacity={0.5} />
           <Circle cx={16} cy={3} r={1.2} fill={palette.glow} opacity={0.4} />
           <Circle cx={10} cy={14} r={1.8} fill={palette.accent} opacity={0.35} />
@@ -39,6 +43,50 @@ function GroundTexture({ palette }: { palette: ChapterPalette }) {
       </Defs>
       <Rect width={FIELD_WIDTH} height={FIELD_HEIGHT} fill="url(#ground)" />
     </Svg>
+  );
+}
+
+/** A meandering dirt path from the top edge down to the landmark, like a well-trodden field trail. */
+function DirtPath() {
+  const cx = FIELD_WIDTH / 2;
+  return (
+    <Svg width={FIELD_WIDTH} height={FIELD_HEIGHT} style={StyleSheet.absoluteFill}>
+      <Path
+        d={`M${cx} 0 Q${cx - 30} ${FIELD_HEIGHT * 0.3} ${cx} ${FIELD_HEIGHT * 0.55} Q${cx + 24} ${FIELD_HEIGHT * 0.8} ${cx} ${FIELD_HEIGHT}`}
+        stroke="#c9a15f"
+        strokeWidth={26}
+        strokeLinecap="round"
+        fill="none"
+        opacity={0.28}
+      />
+    </Svg>
+  );
+}
+
+function FlowerProp({ x, y, scale, color }: { x: number; y: number; scale: number; color: string }) {
+  const w = 12 * scale;
+  const h = 12 * scale;
+  return (
+    <Prop x={x} y={y} w={w} h={h}>
+      <Circle cx={w / 2} cy={h / 2} r={w * 0.16} fill="#ffe98a" />
+      <Circle cx={w * 0.3} cy={h * 0.35} r={w * 0.18} fill={color} opacity={0.9} />
+      <Circle cx={w * 0.7} cy={h * 0.35} r={w * 0.18} fill={color} opacity={0.9} />
+      <Circle cx={w * 0.3} cy={h * 0.7} r={w * 0.18} fill={color} opacity={0.9} />
+      <Circle cx={w * 0.7} cy={h * 0.7} r={w * 0.18} fill={color} opacity={0.9} />
+    </Prop>
+  );
+}
+
+function BushProp({ x, y, scale, color }: { x: number; y: number; scale: number; color: string }) {
+  const w = 22 * scale;
+  const h = 16 * scale;
+  return (
+    <Prop x={x} y={y} w={w} h={h}>
+      <Ellipse cx={w / 2} cy={h - 2} rx={w * 0.42} ry={3} fill="#00000025" />
+      <Circle cx={w * 0.3} cy={h * 0.55} r={w * 0.3} fill={color} stroke="#241a30" strokeWidth={1.4} />
+      <Circle cx={w * 0.65} cy={h * 0.45} r={w * 0.34} fill={color} stroke="#241a30" strokeWidth={1.4} />
+      <Circle cx={w * 0.48} cy={h * 0.35} r={w * 0.26} fill={color} stroke="#241a30" strokeWidth={1.4} />
+    </Prop>
   );
 }
 
@@ -141,61 +189,84 @@ function Landmark({ chapter, palette }: { chapter: number; palette: ChapterPalet
   }
 }
 
-const PROP_LAYOUT: Record<number, { x: number; y: number; scale: number; kind: 'tree' | 'rock' }[]> = {
+type PropKind = 'tree' | 'rock' | 'flower' | 'bush';
+
+const PROP_LAYOUT: Record<number, { x: number; y: number; scale: number; kind: PropKind }[]> = {
   1: [
     { x: 0.05, y: 0.15, scale: 1, kind: 'tree' },
     { x: 0.85, y: 0.2, scale: 1.1, kind: 'tree' },
     { x: 0.12, y: 0.75, scale: 0.9, kind: 'tree' },
     { x: 0.88, y: 0.7, scale: 1, kind: 'rock' },
     { x: 0.6, y: 0.85, scale: 1, kind: 'rock' },
+    { x: 0.25, y: 0.4, scale: 1, kind: 'flower' },
+    { x: 0.72, y: 0.45, scale: 1, kind: 'flower' },
+    { x: 0.35, y: 0.9, scale: 1, kind: 'flower' },
+    { x: 0.2, y: 0.55, scale: 1, kind: 'bush' },
+    { x: 0.78, y: 0.85, scale: 0.9, kind: 'bush' },
   ],
   2: [
     { x: 0.08, y: 0.2, scale: 0.9, kind: 'tree' },
     { x: 0.9, y: 0.25, scale: 1, kind: 'rock' },
     { x: 0.15, y: 0.8, scale: 1, kind: 'rock' },
     { x: 0.85, y: 0.78, scale: 0.9, kind: 'tree' },
+    { x: 0.3, y: 0.45, scale: 1, kind: 'flower' },
+    { x: 0.65, y: 0.5, scale: 1, kind: 'bush' },
+    { x: 0.4, y: 0.85, scale: 1, kind: 'flower' },
   ],
   3: [
     { x: 0.06, y: 0.18, scale: 1, kind: 'rock' },
     { x: 0.9, y: 0.2, scale: 1.1, kind: 'rock' },
     { x: 0.1, y: 0.78, scale: 1, kind: 'rock' },
     { x: 0.88, y: 0.75, scale: 0.9, kind: 'rock' },
+    { x: 0.3, y: 0.5, scale: 1, kind: 'bush' },
+    { x: 0.68, y: 0.55, scale: 1, kind: 'flower' },
   ],
   4: [
     { x: 0.06, y: 0.2, scale: 1, kind: 'rock' },
     { x: 0.88, y: 0.18, scale: 0.9, kind: 'rock' },
     { x: 0.15, y: 0.8, scale: 1.1, kind: 'rock' },
     { x: 0.82, y: 0.78, scale: 1, kind: 'rock' },
+    { x: 0.4, y: 0.5, scale: 1, kind: 'rock' },
   ],
   5: [
     { x: 0.06, y: 0.18, scale: 1, kind: 'tree' },
     { x: 0.88, y: 0.2, scale: 0.9, kind: 'tree' },
     { x: 0.12, y: 0.78, scale: 1, kind: 'rock' },
     { x: 0.85, y: 0.75, scale: 1, kind: 'rock' },
+    { x: 0.3, y: 0.5, scale: 1, kind: 'bush' },
   ],
   6: [
     { x: 0.06, y: 0.2, scale: 1, kind: 'tree' },
     { x: 0.88, y: 0.18, scale: 0.9, kind: 'tree' },
     { x: 0.14, y: 0.8, scale: 1, kind: 'rock' },
     { x: 0.84, y: 0.78, scale: 0.9, kind: 'tree' },
+    { x: 0.5, y: 0.55, scale: 1, kind: 'bush' },
   ],
 };
 
-/** A top-down tile-based world: ground texture, scattered trees/rocks, and a per-map landmark. */
+/** A top-down tile-based world: ground texture, dirt path, scattered trees/rocks/flowers, and a per-map landmark. */
 export function TileWorldBackground({ palette, chapter }: Props) {
   const props = PROP_LAYOUT[Math.min(Math.max(chapter, 1), 6)] ?? PROP_LAYOUT[1];
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       <GroundTexture palette={palette} />
+      <DirtPath />
       <Landmark chapter={chapter} palette={palette} />
-      {props.map((p, i) =>
-        p.kind === 'tree' ? (
-          <TreeProp key={i} x={FIELD_WIDTH * p.x} y={FIELD_HEIGHT * p.y} scale={p.scale} color={palette.body} />
-        ) : (
-          <RockProp key={i} x={FIELD_WIDTH * p.x} y={FIELD_HEIGHT * p.y} scale={p.scale} color={palette.accent} />
-        )
-      )}
+      {props.map((p, i) => {
+        const x = FIELD_WIDTH * p.x;
+        const y = FIELD_HEIGHT * p.y;
+        switch (p.kind) {
+          case 'tree':
+            return <TreeProp key={i} x={x} y={y} scale={p.scale} color={palette.body} />;
+          case 'rock':
+            return <RockProp key={i} x={x} y={y} scale={p.scale} color={palette.accent} />;
+          case 'flower':
+            return <FlowerProp key={i} x={x} y={y} scale={p.scale} color={palette.glow} />;
+          case 'bush':
+            return <BushProp key={i} x={x} y={y} scale={p.scale} color={palette.accent} />;
+        }
+      })}
     </View>
   );
 }

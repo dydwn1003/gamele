@@ -61,10 +61,15 @@ export function RootNavigator() {
       <Tab.Navigator
         screenOptions={({ route }) => ({
           headerShown: false,
-          tabBarActiveTintColor: colors.primary,
+          tabBarActiveTintColor: colors.frame.gold,
           tabBarInactiveTintColor: colors.textMuted,
-          tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.surfaceAlt },
-          tabBarIcon: () => <Text>{TAB_ICON[route.name]}</Text>,
+          tabBarStyle: styles.tabBar,
+          tabBarItemStyle: styles.tabBarItem,
+          tabBarIcon: ({ focused }) => (
+            <View style={[styles.tabIconBubble, focused && styles.tabIconBubbleActive]}>
+              <Text style={styles.tabIconText}>{TAB_ICON[route.name]}</Text>
+            </View>
+          ),
         })}
       >
         <Tab.Screen name="홈" component={HomeScreen} />
@@ -89,4 +94,31 @@ const styles = {
     fontSize: 11,
     fontWeight: '700' as const,
   },
+  tabBar: {
+    backgroundColor: colors.surface,
+    borderTopWidth: 0,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    height: 68,
+    paddingTop: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 12,
+  },
+  tabBarItem: { paddingTop: 2 },
+  tabIconBubble: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  tabIconBubbleActive: {
+    backgroundColor: colors.frame.wood,
+    borderWidth: 1.5,
+    borderColor: colors.frame.gold,
+  },
+  tabIconText: { fontSize: 17 },
 };
