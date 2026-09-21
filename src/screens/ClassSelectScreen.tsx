@@ -51,7 +51,9 @@ export function ClassSelectScreen() {
               {(Object.keys(base) as (keyof PrimaryStats)[]).map((stat) => (
                 <View key={stat} style={styles.statRow}>
                   <Text style={styles.statLabel}>{STAT_LABEL[stat]}</Text>
-                  <RPGStatBar progress={base[stat] / MAX_BASE} color={colors.frame.gold} height={9} />
+                  <View style={{ flex: 1 }}>
+                    <RPGStatBar progress={base[stat] / MAX_BASE} color={colors.frame.gold} height={9} />
+                  </View>
                 </View>
               ))}
             </View>

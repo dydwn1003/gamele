@@ -436,7 +436,7 @@ export function FieldScreen() {
       />
 
       <View style={[styles.field, { width: FIELD_WIDTH, height: FIELD_HEIGHT }]}>
-        <SideScrollBackground palette={palette} />
+        <SideScrollBackground palette={palette} chapter={chapterForStage(stage.id)} />
 
         {world.monsters.map((m) => {
           const alive = m.alive;
