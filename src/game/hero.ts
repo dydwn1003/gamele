@@ -1,7 +1,7 @@
 import { effectiveItemStats } from './equipment';
 import { ClassId, EquipmentItem, HeroProgress, PrimaryStats, StatBlock } from './types';
 
-export const STAT_POINTS_PER_LEVEL = 3;
+export const STAT_POINTS_PER_LEVEL = 5;
 
 export const CLASS_BASE_PRIMARY: Record<ClassId, PrimaryStats> = {
   warrior: { str: 12, agi: 6, int: 4, vit: 13 },
