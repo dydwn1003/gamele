@@ -4,6 +4,7 @@ import { ActivityIndicator, Text, View } from 'react-native';
 
 import { ClassSelectScreen } from '../screens/ClassSelectScreen';
 import { DungeonScreen } from '../screens/DungeonScreen';
+import { FarmScreen } from '../screens/FarmScreen';
 import { FieldScreen } from '../screens/FieldScreen';
 import { GachaScreen } from '../screens/GachaScreen';
 import { HomeScreen } from '../screens/HomeScreen';
@@ -19,6 +20,7 @@ const Tab = createBottomTabNavigator();
 const TAB_ICON: Record<string, string> = {
   홈: '🏠',
   사냥: '🏹',
+  농장: '🌾',
   던전: '🐉',
   뽑기: '🎁',
   랭킹: '🏆',
@@ -67,6 +69,7 @@ export function RootNavigator() {
       >
         <Tab.Screen name="홈" component={HomeScreen} />
         <Tab.Screen name="사냥" component={FieldScreen} />
+        <Tab.Screen name="농장" component={FarmScreen} />
         <Tab.Screen name="던전" component={DungeonScreen} />
         <Tab.Screen name="뽑기" component={GachaScreen} />
         <Tab.Screen name="랭킹" component={LeaderboardScreen} />

@@ -5,6 +5,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { getBoss } from '../game/bosses';
 import { calculateOfflineGold, simulateBattle } from '../game/combat';
 import { enhanceCost, ENHANCE_MAX_LEVEL } from '../game/equipment';
+import { FARM_PLOT_COUNT, FarmPlot, getCrop, isReady } from '../game/farm';
 import { pullBossReward, pullGacha as rollGacha, pullGachaTen as rollGachaTen } from '../game/gacha';
 import {
   applyExp,
@@ -32,6 +33,10 @@ const INITIAL_EQUIPPED: EquippedMap = {
   necklace: null,
 };
 const ZERO_STATS: PrimaryStats = { str: 0, agi: 0, int: 0, vit: 0 };
+const INITIAL_FARM_PLOTS: FarmPlot[] = Array.from({ length: FARM_PLOT_COUNT }, () => ({
+  cropId: null,
+  plantedAt: null,
+}));
 
 interface GameState {
   classId: ClassId | null;
@@ -51,6 +56,7 @@ interface GameState {
   pendingOfflineGold: number;
   bossTickets: number;
   lastTicketRefillAt: number;
+  farmPlots: FarmPlot[];
 
   chooseClass: (classId: ClassId) => void;
   gainKillReward: (gold: number, exp: number) => void;
@@ -70,6 +76,8 @@ interface GameState {
   autoAllocateStats: () => void;
   respecStats: () => boolean;
   levelUpSkill: (skillId: string) => boolean;
+  plantSeed: (plotIndex: number, cropId: string) => boolean;
+  harvestPlot: (plotIndex: number) => { gold: number; exp: number } | null;
   addGems: (amount: number) => void;
   claimOfflineGold: () => void;
   syncOfflineProgress: () => void;
@@ -101,6 +109,7 @@ export const useGameStore = create<GameState>()(
       pendingOfflineGold: 0,
       bossTickets: MAX_BOSS_TICKETS,
       lastTicketRefillAt: Date.now(),
+      farmPlots: INITIAL_FARM_PLOTS,
 
       chooseClass: (classId) => {
         if (get().classId) return; // one-time choice
@@ -266,6 +275,44 @@ export const useGameStore = create<GameState>()(
         return true;
       },
 
+      plantSeed: (plotIndex, cropId) => {
+        const s = get();
+        const plot = s.farmPlots[plotIndex];
+        if (!plot || plot.cropId !== null) return false;
+        const crop = getCrop(cropId);
+        if (s.gold < crop.seedCost) return false;
+
+        const farmPlots = s.farmPlots.map((p, i) =>
+          i === plotIndex ? { cropId, plantedAt: Date.now() } : p
+        );
+        set({ gold: s.gold - crop.seedCost, farmPlots });
+        return true;
+      },
+
+      harvestPlot: (plotIndex) => {
+        const s = get();
+        const plot = s.farmPlots[plotIndex];
+        if (!plot || !plot.cropId || !isReady(plot, Date.now())) return null;
+        const crop = getCrop(plot.cropId);
+
+        const before = s.heroLevel;
+        const { level, exp } = applyExp({ level: s.heroLevel, exp: s.heroExp }, crop.expReward);
+        const levelsGained = level - before;
+
+        const farmPlots = s.farmPlots.map((p, i) =>
+          i === plotIndex ? { cropId: null, plantedAt: null } : p
+        );
+        set({
+          gold: s.gold + crop.sellPrice,
+          heroLevel: level,
+          heroExp: exp,
+          statPoints: s.statPoints + levelsGained * STAT_POINTS_PER_LEVEL,
+          skillPoints: s.skillPoints + levelsGained * SKILL_POINTS_PER_LEVEL,
+          farmPlots,
+        });
+        return { gold: crop.sellPrice, exp: crop.expReward };
+      },
+
       addGems: (amount) => set((s) => ({ gems: s.gems + amount })),
 
       syncOfflineProgress: () => {
@@ -317,6 +364,7 @@ export const useGameStore = create<GameState>()(
         pendingOfflineGold: s.pendingOfflineGold,
         bossTickets: s.bossTickets,
         lastTicketRefillAt: s.lastTicketRefillAt,
+        farmPlots: s.farmPlots,
       }),
     }
   )
