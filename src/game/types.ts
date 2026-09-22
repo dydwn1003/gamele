@@ -1,41 +1,31 @@
-export type Species = 'cat' | 'dog' | 'hamster';
+export type Facing = 'left' | 'right';
 
-export type ItemKind = 'fish' | 'bone' | 'seed' | 'rock';
-
-export const FAVORITE_FOOD: Record<Species, ItemKind> = {
-  cat: 'fish',
-  dog: 'bone',
-  hamster: 'seed',
-};
-
-export const SPECIES_LABEL: Record<Species, string> = {
-  cat: '고양이',
-  dog: '강아지',
-  hamster: '햄스터',
-};
-
-export interface FallingItem {
-  id: number;
-  kind: ItemKind;
+export interface Vec2 {
   x: number;
   y: number;
-  size: number;
-  speed: number;
 }
 
-export type GameStatus = 'playing' | 'gameover';
+export interface CatState {
+  x: number;
+  y: number;
+  facing: Facing;
+  moving: boolean;
+  animTimer: number;
+  animFrame: 0 | 1;
+}
 
-export interface GameState {
-  species: Species;
-  areaWidth: number;
-  areaHeight: number;
-  playerX: number;
-  playerSize: number;
-  items: FallingItem[];
-  score: number;
-  lives: number;
-  elapsed: number;
+export interface Treat {
+  id: number;
+  x: number;
+  y: number;
+}
+
+export interface FieldState {
+  cat: CatState;
+  treats: Treat[];
+  fullness: number;
+  affection: number;
+  bondLevel: number;
   spawnCooldown: number;
-  nextId: number;
-  status: GameStatus;
+  nextTreatId: number;
 }

@@ -1,15 +1,7 @@
 import { mirrorRows } from './mirror';
 import type { PixelSprite } from './types';
 
-/**
- * Every animal/item below is authored as its LEFT half only (one string per
- * row, the last character is the vertical centerline) and mirrored into a
- * full symmetric sprite by `mirrorRows`. Palette keys map a character to a
- * color; '.' is always transparent.
- */
-
-function buildSprite(leftHalves: string[], palette: Record<string, string>): PixelSprite {
-  const rows = mirrorRows(leftHalves);
+function buildSprite(rows: string[], palette: Record<string, string>): PixelSprite {
   const width = rows[0].length;
   rows.forEach((row, i) => {
     if (row.length !== width) {
@@ -19,79 +11,60 @@ function buildSprite(leftHalves: string[], palette: Record<string, string>): Pix
   return { rows, palette };
 }
 
-export const CAT_SPRITE = buildSprite(
-  [
-    '..k....',
-    '.kok...',
-    '.koookk',
-    'koooook',
-    'kokoooo',
-    'koooooo',
-    'koooopp',
-    '.kooook',
-    '.kwwwww',
-    'kowwwww',
-    'kowwwww',
-    '.kkwwkk',
-    '..kkkkk',
-  ],
-  { k: '#3a2a1d', o: '#f6a94a', w: '#fff8ec', p: '#ff9db0' },
-);
+function buildMirroredSprite(leftHalves: string[], palette: Record<string, string>): PixelSprite {
+  return buildSprite(mirrorRows(leftHalves), palette);
+}
 
-export const DOG_SPRITE = buildSprite(
-  [
-    '.......',
-    '..k....',
-    '.kbk...',
-    'kbbbbbk',
-    'kbkbbbb',
-    'kbbbbbb',
-    'kbbbbkk',
-    '.kbbbbk',
-    '.kwwwww',
-    'kbwwwww',
-    'kbwwwww',
-    '.kkwwkk',
-    '..kkkkk',
-  ],
-  { k: '#2b1d12', b: '#b17a44', w: '#fff8ec' },
-);
+/**
+ * Side-view chibi cat, facing right: big round head + eye on top of a
+ * smaller pudgy body with a curled tail. The head/body/tail (top 13 rows)
+ * stay fixed while the two leg rows swap between CAT_WALK_1 and
+ * CAT_WALK_2 to make a simple diagonal-gait walk cycle. Flip horizontally
+ * (scaleX: -1) to face left.
+ */
+const CAT_BODY = [
+  '............k....k..',
+  '...........kok..kok.',
+  '..........koookooook',
+  '.........koooooooook',
+  '.........koooooehook',
+  '.........koooooeoook',
+  '.........kooopoooowk',
+  '.........kooooowwwpk',
+  '.........kkkkkkkkkkk',
+  '...ko.kooooooooooook',
+  '..kokkoooooooooooook',
+  '.kok.kwwwwwwwwwwwwwk',
+  '......kkkkkkkkkkkkkk',
+];
 
-export const HAMSTER_SPRITE = buildSprite(
-  [
-    '.......',
-    '..hp...',
-    '.hhhhh.',
-    'khhhhhk',
-    'khkhhhh',
-    'khhhhhh',
-    'khhhhpp',
-    '.khhhhk',
-    '.khwwww',
-    'khwwwww',
-    'khwwwww',
-    '.kkwwkk',
-    '..kkkkk',
-  ],
-  { k: '#5c4632', h: '#eec488', w: '#fff8ec', p: '#ffb6c9' },
-);
+const CAT_PALETTE = {
+  k: '#5b3d28',
+  o: '#ffcd9a',
+  w: '#fff3e0',
+  p: '#ff9fb0',
+  e: '#241a12',
+  h: '#ffffff',
+};
+
+const LEG_A = ['.......kw......kw...', '.......kk......kk...'];
+const LEG_B = ['........kw...kw.....', '........kk...kk.....'];
+
+export const CAT_WALK_1 = buildSprite([...CAT_BODY, ...LEG_A], CAT_PALETTE);
+export const CAT_WALK_2 = buildSprite([...CAT_BODY, ...LEG_B], CAT_PALETTE);
+export const CAT_IDLE = CAT_WALK_1;
 
 export const FISH_SPRITE = buildSprite(
   ['.....', '..k..', '.kfk.', 'kffff', 'kffff', 'kwfff', '.kfff', '..kff', '...kk'],
   { k: '#1d3a52', f: '#4fa3d1', w: '#ffffff' },
 );
 
-export const BONE_SPRITE = buildSprite(
-  ['.....', 'n....', 'nk...', 'nkk..', '.nnnn', 'nkk..', 'nk...', 'n....', '.....'],
-  { k: '#d8c48a', n: '#fff9e6' },
-);
+const FLOWER_LEFT = ['..p', 'p.c', '..p'];
 
-export const SEED_SPRITE = buildSprite(
-  ['.....', '..s..', '.sss.', 'sssss', 'sssss', 'sssss', '.sss.', '..s..', '.....'],
-  { s: '#caa25e' },
-);
+export const FLOWER_PINK = buildMirroredSprite(FLOWER_LEFT, { p: '#ff8fb3', c: '#ffe066' });
+export const FLOWER_WHITE = buildMirroredSprite(FLOWER_LEFT, { p: '#ffffff', c: '#ffc94d' });
+export const FLOWER_PURPLE = buildMirroredSprite(FLOWER_LEFT, { p: '#c199ff', c: '#ffe066' });
 
-export const ROCK_SPRITE = buildSprite(
-  ['.....', '..r..', '.rrr.', 'rrrrk', 'rrrrr', 'krrrr', '.rrr.', '..r..', '.....'],
-  { r: '#9a9a9a', k: '#6e6e6e' },
-);
+export const BUSH_SPRITE = buildMirroredSprite(['..b.', '.bbb', 'bbbb', '.bbb', '..b.'], {
+  b: '#5f9c4c',
+});

@@ -1,49 +1,30 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { PixelGrid } from '../pixel/PixelGrid';
-import { SPECIES_SPRITE } from '../pixel/spriteMaps';
+import { CAT_IDLE } from '../pixel/sprites';
 import { colors } from '../theme/colors';
-import { SPECIES_LABEL, Species } from '../game/types';
-
-const SPECIES_LIST: Species[] = ['cat', 'dog', 'hamster'];
 
 interface Props {
-  highScore: number;
-  onStart: (species: Species) => void;
+  bondLevel: number;
+  onStart: () => void;
 }
 
-export function HomeScreen({ highScore, onStart }: Props) {
-  const [selected, setSelected] = useState<Species>('cat');
-
+export function HomeScreen({ bondLevel, onStart }: Props) {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>도트 펫 캐치</Text>
-      <Text style={styles.subtitle}>좋아하는 간식을 떨어뜨려 받아주세요!</Text>
+      <Text style={styles.title}>고양이 마당</Text>
+      <Text style={styles.subtitle}>자유롭게 돌아다니는 고양이를 밥도 주고 쓰다듬으며 키워보세요</Text>
 
-      <View style={styles.cardRow}>
-        {SPECIES_LIST.map((species) => {
-          const isSelected = species === selected;
-          return (
-            <Pressable
-              key={species}
-              onPress={() => setSelected(species)}
-              style={[styles.card, isSelected && styles.cardSelected]}
-            >
-              <PixelGrid sprite={SPECIES_SPRITE[species]} pixelSize={5} />
-              <Text style={[styles.cardLabel, isSelected && styles.cardLabelSelected]}>
-                {SPECIES_LABEL[species]}
-              </Text>
-            </Pressable>
-          );
-        })}
+      <View style={styles.catPreview}>
+        <PixelGrid sprite={CAT_IDLE} pixelSize={7} />
       </View>
 
-      <Pressable style={styles.startButton} onPress={() => onStart(selected)}>
-        <Text style={styles.startButtonText}>게임 시작</Text>
+      <Pressable style={styles.startButton} onPress={onStart}>
+        <Text style={styles.startButtonText}>마당으로 가기</Text>
       </Pressable>
 
-      <Text style={styles.highScore}>최고 점수: {highScore}</Text>
+      <Text style={styles.bondText}>친밀도 Lv.{bondLevel + 1}</Text>
     </View>
   );
 }
@@ -64,35 +45,11 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: colors.textDim,
-    marginBottom: 32,
+    marginBottom: 24,
     textAlign: 'center',
   },
-  cardRow: {
-    flexDirection: 'row',
-    gap: 12,
+  catPreview: {
     marginBottom: 32,
-  },
-  card: {
-    width: 96,
-    height: 120,
-    borderRadius: 16,
-    backgroundColor: colors.panel,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  cardSelected: {
-    borderColor: colors.accent,
-  },
-  cardLabel: {
-    color: colors.textDim,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  cardLabelSelected: {
-    color: colors.accent,
   },
   startButton: {
     backgroundColor: colors.accent,
@@ -105,7 +62,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#3a2a1d',
   },
-  highScore: {
+  bondText: {
     marginTop: 20,
     color: colors.textDim,
     fontSize: 14,
