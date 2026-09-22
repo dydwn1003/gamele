@@ -1,51 +1,41 @@
-export type Rarity = 'normal' | 'rare' | 'epic' | 'legendary';
+export type Species = 'cat' | 'dog' | 'hamster';
 
-export type EquipmentSlot = 'weapon' | 'armor' | 'offhand' | 'shoes' | 'ring' | 'necklace';
+export type ItemKind = 'fish' | 'bone' | 'seed' | 'rock';
 
-export type ClassId = 'warrior' | 'rogue' | 'archer' | 'mage';
+export const FAVORITE_FOOD: Record<Species, ItemKind> = {
+  cat: 'fish',
+  dog: 'bone',
+  hamster: 'seed',
+};
 
-export interface StatBlock {
-  atk: number;
-  hp: number;
-  def: number;
-  critRate: number; // 0..1
-}
+export const SPECIES_LABEL: Record<Species, string> = {
+  cat: '고양이',
+  dog: '강아지',
+  hamster: '햄스터',
+};
 
-export interface PrimaryStats {
-  str: number;
-  agi: number;
-  int: number;
-  vit: number;
-}
-
-export interface EquipmentItem {
-  id: string;
-  slot: EquipmentSlot;
-  rarity: Rarity;
-  classId: ClassId;
-  name: string;
-  stats: StatBlock;
-  enhanceLevel: number;
-}
-
-export interface StageConfig {
+export interface FallingItem {
   id: number;
-  name: string;
-  enemyName: string;
-  enemyStats: StatBlock;
-  goldReward: number;
-  expReward: number;
-  idleGoldPerSec: number;
+  kind: ItemKind;
+  x: number;
+  y: number;
+  size: number;
+  speed: number;
 }
 
-export interface HeroProgress {
-  level: number;
-  exp: number;
-}
+export type GameStatus = 'playing' | 'gameover';
 
-export interface BattleResult {
-  won: boolean;
-  ticks: number;
-  goldEarned: number;
-  expEarned: number;
+export interface GameState {
+  species: Species;
+  areaWidth: number;
+  areaHeight: number;
+  playerX: number;
+  playerSize: number;
+  items: FallingItem[];
+  score: number;
+  lives: number;
+  elapsed: number;
+  spawnCooldown: number;
+  nextId: number;
+  status: GameStatus;
 }
