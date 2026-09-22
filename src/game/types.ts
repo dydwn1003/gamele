@@ -20,6 +20,11 @@ export interface Treat {
   y: number;
 }
 
+export interface GameEvent {
+  type: 'zone' | 'friend' | 'treasure' | 'levelup' | 'complete';
+  text: string;
+}
+
 export interface FieldState {
   cat: CatState;
   treats: Treat[];
@@ -28,4 +33,8 @@ export interface FieldState {
   bondLevel: number;
   spawnCooldown: number;
   nextTreatId: number;
+  currentZoneId: string;
+  metNpcIds: string[];
+  collectedTreasureIds: number[];
+  events: GameEvent[];
 }

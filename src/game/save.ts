@@ -6,9 +6,17 @@ export interface CatSave {
   bondLevel: number;
   affection: number;
   fullness: number;
+  metNpcIds: string[];
+  collectedTreasureIds: number[];
 }
 
-const DEFAULT_SAVE: CatSave = { bondLevel: 0, affection: 60, fullness: 70 };
+const DEFAULT_SAVE: CatSave = {
+  bondLevel: 0,
+  affection: 60,
+  fullness: 70,
+  metNpcIds: [],
+  collectedTreasureIds: [],
+};
 
 export async function loadCatSave(): Promise<CatSave> {
   try {
@@ -19,6 +27,10 @@ export async function loadCatSave(): Promise<CatSave> {
       bondLevel: typeof parsed.bondLevel === 'number' ? parsed.bondLevel : DEFAULT_SAVE.bondLevel,
       affection: typeof parsed.affection === 'number' ? parsed.affection : DEFAULT_SAVE.affection,
       fullness: typeof parsed.fullness === 'number' ? parsed.fullness : DEFAULT_SAVE.fullness,
+      metNpcIds: Array.isArray(parsed.metNpcIds) ? parsed.metNpcIds : DEFAULT_SAVE.metNpcIds,
+      collectedTreasureIds: Array.isArray(parsed.collectedTreasureIds)
+        ? parsed.collectedTreasureIds
+        : DEFAULT_SAVE.collectedTreasureIds,
     };
   } catch {
     return DEFAULT_SAVE;
