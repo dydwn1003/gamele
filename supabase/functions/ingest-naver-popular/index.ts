@@ -59,15 +59,37 @@ function naverHeaders(): { url: string; headers: Record<string, string> } | null
   return null;
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** 네이버 검색 API는 초당 호출 수 제한이 있어 호출 사이에 간격을 둔다 */
+const MIN_INTERVAL_MS = 150;
+let lastCall = 0;
+
 async function searchPopular(api: { url: string; headers: Record<string, string> }, query: string): Promise<NaverItem[]> {
   const url = new URL(api.url);
   url.search = new URLSearchParams({ query, display: "5", start: "1", sort: "comment" }).toString();
-  const res = await fetch(url, { headers: api.headers });
-  if (res.status === 429) throw new Error("네이버 API 호출 한도 초과(429)");
-  if (res.status === 401 || res.status === 403) throw new Error(`네이버 API 인증 실패(${res.status}) — 키와 '검색' API 사용 설정을 확인하세요`);
-  if (!res.ok) return [];
-  const body = await res.json().catch(() => null);
-  return Array.isArray(body?.items) ? body.items : [];
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const wait = lastCall + MIN_INTERVAL_MS - Date.now();
+    if (wait > 0) await sleep(wait);
+    lastCall = Date.now();
+    const res = await fetch(url, { headers: api.headers });
+    if (res.ok) {
+      const body = await res.json().catch(() => null);
+      return Array.isArray(body?.items) ? body.items : [];
+    }
+    const err = await res.json().catch(() => ({}));
+    if (res.status === 401 || res.status === 403) {
+      throw new Error(`네이버 API 인증 실패(${res.status} ${err.errorCode ?? ""}) — 키와 '검색' API 사용 설정을 확인하세요`);
+    }
+    if (res.status === 429) {
+      // 012 = 하루 호출 한도 소진 → 더 시도해도 소용없음
+      if (err.errorCode === "012") throw new Error("네이버 API 하루 호출 한도를 모두 썼습니다(012). 내일 다시 실행하세요");
+      await sleep(1000 * (attempt + 1)); // 초당 제한 → 잠시 쉬고 재시도
+      continue;
+    }
+    return [];
+  }
+  throw new Error("네이버 API 호출 한도 초과(429)가 계속됩니다. 잠시 후 다시 실행하세요");
 }
 
 /** 네이버 좌표: 현재는 WGS84 × 1e7 정수 문자열 */
@@ -149,6 +171,7 @@ Deno.serve(async (req) => {
 
     const hits = new Map<string, KnownPlace>();
     let queries = 0, results = 0, unmatched = 0;
+    let stopError: string | null = null;
     try {
       for (const alias of area.aliases) {
         for (const kw of KEYWORDS) {
@@ -166,7 +189,8 @@ Deno.serve(async (req) => {
         }
       }
     } catch (e) {
-      return json({ ok: false, error: String(e instanceof Error ? e.message : e), done }, 502);
+      // 그때까지 찾은 인기 가게는 저장하고 멈춘다
+      stopError = String(e instanceof Error ? e.message : e);
     }
 
     let tagged = 0, errors = 0;
@@ -177,6 +201,9 @@ Deno.serve(async (req) => {
       if (error) errors++; else tagged++;
     }
     done[name] = { queries, results, matched: hits.size, newlyTagged: tagged, unmatched, errors };
+    if (stopError) {
+      return json({ ok: false, error: stopError, done, remaining: requested.slice(requested.indexOf(name)) }, 502);
+    }
   }
 
   return json({ ok: true, done, remaining: requested.slice(perCall) });
