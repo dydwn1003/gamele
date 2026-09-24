@@ -77,7 +77,8 @@ void main() {
 
     test('novelty score', () {
       expect(s.noveltyScore(true, 99999), 1);
-      expect(s.noveltyScore(false, 0), closeTo(1, 1e-9));
+      expect(s.noveltyScore(false, 0), 0.5); // 리뷰 수 미상
+      expect(s.noveltyScore(false, 90), closeTo(0.5, 1e-9));
       expect(s.noveltyScore(false, 990), closeTo(1 / 3, 1e-9));
     });
 
@@ -158,6 +159,31 @@ void main() {
       expect(second, isNotEmpty);
       final shown = first.values.map((c) => c.signature).toSet();
       expect(second.values.where((c) => shown.contains(c.signature)), isEmpty);
+    });
+
+    test('every area has enough data for a course', () {
+      final raw = jsonDecode(File('assets/mock/places.json').readAsStringSync()) as List;
+      final places = raw.cast<Map<String, dynamic>>().map(Place.fromJson).toList();
+      for (final area in Areas.all) {
+        for (final time in TimeBudget.values) {
+          final s = _situation(time: time, budget: Budget.any, range: TravelRange.transit30);
+          final result = const RecommendationEngine().recommend(
+            EngineRequest(
+              situation: s,
+              candidates: [
+                for (final p in places)
+                  if (GeoUtils.distanceKm(area.center, p.point) <= 5)
+                    PlaceWithDistance(p, GeoUtils.distanceKm(area.center, p.point)),
+              ],
+              areaName: area.name,
+              startAt: DateTime(2026, 9, 26, 13),
+              maxDistanceKm: 5,
+            ),
+          );
+          expect(result, isNotEmpty, reason: '${area.name} / ${time.label}');
+          print('${area.name} ${time.label}: ${result[PlanType.best]!.stops.map((e) => e.place.name).join(' → ')}');
+        }
+      }
     });
 
     test('Course json round trip', () {

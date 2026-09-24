@@ -10,8 +10,8 @@ import '../../features/situation/presentation/pages/situation_input_page.dart';
 CustomTransitionPage<void> _fadeSlide(GoRouterState state, Widget child) => CustomTransitionPage(
   key: state.pageKey,
   child: child,
-  transitionDuration: const Duration(milliseconds: 380),
-  reverseTransitionDuration: const Duration(milliseconds: 280),
+  transitionDuration: const Duration(milliseconds: 220),
+  reverseTransitionDuration: const Duration(milliseconds: 160),
   transitionsBuilder: (context, animation, _, child) {
     final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
     return FadeTransition(

@@ -141,6 +141,8 @@ class ScoringService {
 
   /// 명세에 정의되지 않은 S_pop: 평점 × 리뷰 수 신뢰도
   double popularityScore(double rating, int reviewCount) {
+    // 평점 데이터가 없는 장소는 중립값
+    if (rating <= 0 || reviewCount <= 0) return 0.5;
     final confidence = math.min(1.0, math.log(reviewCount + 1) / math.ln10 / 4);
     return (rating / 5).clamp(0, 1) * confidence;
   }
@@ -148,6 +150,8 @@ class ScoringService {
   /// S_nov = 1.0 (이벤트/팝업) | 1 / log10(ReviewCount + 10)
   double noveltyScore(bool isEvent, int reviewCount) {
     if (isEvent) return 1.0;
+    // 리뷰 수를 모르는 장소는 중립값 (0이면 공식상 1.0이 되어 모두 '새로운 곳'이 되므로)
+    if (reviewCount <= 0) return 0.5;
     return 1 / (math.log(reviewCount + 10) / math.ln10);
   }
 

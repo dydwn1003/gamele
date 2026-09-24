@@ -34,7 +34,7 @@ class GradientButton extends StatelessWidget {
     return Pressable(
       onTap: active ? onTap : onDisabledTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 380),
+        duration: const Duration(milliseconds: 200),
         curve: Curves.easeOutCubic,
         height: height,
         decoration: BoxDecoration(
@@ -45,7 +45,7 @@ class GradientButton extends StatelessWidget {
         ),
         alignment: Alignment.center,
         child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 250),
+          duration: const Duration(milliseconds: 160),
           transitionBuilder: (child, anim) => FadeTransition(
             opacity: anim,
             child: SlideTransition(

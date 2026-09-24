@@ -31,6 +31,7 @@ abstract final class AppTheme {
   static ThemeData light() {
     final base = ThemeData(
       useMaterial3: true,
+      fontFamily: AppTypography.family,
       brightness: Brightness.light,
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
@@ -44,7 +45,7 @@ abstract final class AppTheme {
     return base.copyWith(
       scaffoldBackgroundColor: AppColors.background,
       textTheme: AppTypography.textTheme(),
-      splashFactory: InkSparkle.splashFactory,
+      splashFactory: InkRipple.splashFactory,
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.background,
         surfaceTintColor: Colors.transparent,

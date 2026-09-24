@@ -20,7 +20,7 @@ flutter run \
   --dart-define=SUPABASE_ANON_KEY=<anon-or-publishable-key>
 ```
 
-값이 없거나 DB 연결에 실패하면 `assets/mock/places.json`(성수·연남 샘플 38곳)으로 자동 전환됩니다.
+값이 없거나 DB 연결에 실패하면 `assets/mock/places.json`(서울 17개 동네, 샘플 175곳)으로 자동 전환됩니다.
 
 ## 구조
 
@@ -72,5 +72,6 @@ supabase functions deploy ingest-tour-data --no-verify-jwt
 | google_maps_flutter | flutter_map + CARTO 타일 | API 키 없이 동작, 오프라인이면 종이 지도 배경으로 표시 |
 | Lottie 로딩 | CustomPainter 동선 애니메이션 | 별도 애니메이션 파일 없이 동일한 연출 |
 | S_pop 미정의 | `평점/5 × min(1, log10(리뷰+1)/4)` | 리뷰가 적은 고평점 장소 과대평가 방지 |
+| 폰트 (명세 없음) | Pretendard (SIL OFL, `assets/fonts`) | 요즘 앱에서 많이 쓰는 한글 폰트, 한글 2,350자로 줄여 번들 |
 
-샘플 데이터의 장소·가격·영업시간은 데모용이며 실제 정보와 다를 수 있습니다.
+샘플 데이터는 실제 명소·시장·골목을 바탕으로 정리했지만 좌표는 근사치이고, 가격·영업시간은 카테고리 기본값이라 실제와 다를 수 있습니다. 평점·리뷰 수는 확인할 수 없어 비워 두었고, 점수 계산에서는 중립값(0.5)으로 처리합니다. 대량의 실제 데이터는 `ingest-tour-data`(TourAPI·서울시 API 키 필요)로 채우세요.

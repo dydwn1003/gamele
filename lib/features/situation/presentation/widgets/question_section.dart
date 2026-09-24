@@ -57,18 +57,18 @@ class _QuestionSectionState extends State<QuestionSection> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     return AnimatedSize(
-      duration: const Duration(milliseconds: 480),
+      duration: const Duration(milliseconds: 240),
       curve: Curves.easeOutCubic,
       alignment: Alignment.topCenter,
       child: !widget.visible
           ? const SizedBox(width: double.infinity)
           : TweenAnimationBuilder<double>(
               tween: Tween(begin: 0, end: 1),
-              duration: const Duration(milliseconds: 520),
+              duration: const Duration(milliseconds: 260),
               curve: Curves.easeOutCubic,
               builder: (context, t, child) => Opacity(
                 opacity: t,
-                child: Transform.translate(offset: Offset(0, (1 - t) * -18), child: child),
+                child: Transform.translate(offset: Offset(0, (1 - t) * -10), child: child),
               ),
               child: AnimatedBuilder(
                 animation: _shake,
@@ -78,8 +78,8 @@ class _QuestionSectionState extends State<QuestionSection> with SingleTickerProv
                 ),
                 child: AnimatedContainer(
                   width: double.infinity,
-                  duration: const Duration(milliseconds: 300),
-                  margin: const EdgeInsets.only(top: AppSpacing.section),
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.only(top: AppSpacing.section - 8, bottom: 8),
                   padding: EdgeInsets.all(_glow ? 14 : 0),
                   decoration: BoxDecoration(
                     borderRadius: AppRadius.largeAll,

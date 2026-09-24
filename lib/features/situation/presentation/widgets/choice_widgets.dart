@@ -53,7 +53,7 @@ class _CompanionCard extends StatelessWidget {
     return Pressable(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 260),
+        duration: const Duration(milliseconds: 160),
         curve: Curves.easeOutCubic,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -64,15 +64,15 @@ class _CompanionCard extends StatelessWidget {
           border: Border.all(color: selected ? Colors.transparent : AppColors.border),
         ),
         child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 260),
+          duration: const Duration(milliseconds: 160),
           opacity: dimmed ? 0.55 : 1,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               AnimatedScale(
                 scale: selected ? 1.15 : 1,
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.elasticOut,
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutBack,
                 alignment: Alignment.centerLeft,
                 child: Text(companion.emoji, style: const TextStyle(fontSize: 30)),
               ),
@@ -152,7 +152,7 @@ class _Pill extends StatelessWidget {
     return Pressable(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
+        duration: const Duration(milliseconds: 140),
         curve: Curves.easeOut,
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: hasSub ? 10 : 12),
         decoration: BoxDecoration(
@@ -214,7 +214,7 @@ class StepProgress extends StatelessWidget {
               for (var i = 0; i < total; i++) ...[
                 Expanded(
                   child: AnimatedContainer(
-                    duration: Duration(milliseconds: 300 + i * 40),
+                    duration: Duration(milliseconds: 200 + i * 20),
                     curve: Curves.easeOutCubic,
                     height: 6,
                     decoration: BoxDecoration(

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:mwohaji/core/network/supabase_service.dart';
 import 'package:mwohaji/features/situation/application/situation_notifier.dart';
 import 'package:mwohaji/features/situation/data/location_service.dart';
@@ -16,7 +15,6 @@ class _NoGps extends LocationService {
 
 void main() {
   testWidgets('progressive form: every option is tappable', (tester) async {
-    GoogleFonts.config.allowRuntimeFetching = false;
     tester.view.physicalSize = const Size(400, 860);
     tester.view.devicePixelRatio = 1;
     SharedPreferences.setMockInitialValues({});

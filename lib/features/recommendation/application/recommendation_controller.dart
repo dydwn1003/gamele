@@ -58,7 +58,7 @@ class RecommendationController extends AsyncNotifier<RecommendationResult?> {
     final radiusKm = situation.range!.radiusKm;
 
     // 계산 중 애니메이션을 충분히 보여주기 위한 최소 대기
-    final minDelay = Future<void>.delayed(const Duration(milliseconds: 1400));
+    final minDelay = Future<void>.delayed(const Duration(milliseconds: 450));
 
     final repo = ref.read(placeRepositoryProvider);
     final candidates = await repo.candidates(location.point, radiusKm: radiusKm);

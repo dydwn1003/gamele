@@ -80,13 +80,14 @@ class PlaceRepository {
       );
     }
 
-    // 주변 데이터가 없으면 샘플 데이터가 있는 성수동 기준으로 추천
-    final anchor = Areas.seongsu.center;
+    // 주변 데이터가 없으면 가장 가까운 동네(샘플 데이터 보유) 기준으로 추천
+    final area = Areas.nearest(at);
+    final anchor = area.center;
     return CandidateResult(
       places: within(mock, anchor),
       anchor: anchor,
       source: PlaceDataSource.mock,
-      relocatedTo: Areas.seongsu.name,
+      relocatedTo: area.name,
     );
   }
 

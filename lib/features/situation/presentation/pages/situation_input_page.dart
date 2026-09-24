@@ -75,26 +75,29 @@ class _SituationInputPageState extends ConsumerState<SituationInputPage> {
     if (area != null) ref.read(situationProvider.notifier).selectArea(area);
   }
 
-  void _scrollToStep(int step) {
+  /// [minimal]이면 새 질문이 화면에 다 들어올 만큼만 짧게 스크롤한다.
+  void _scrollToStep(int step, {bool minimal = false}) {
     final ctx = _keys[step].currentContext;
-    if (ctx != null) {
-      Scrollable.ensureVisible(
-        ctx,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeOutCubic,
-        alignment: 0.2,
-      );
-    }
+    if (ctx == null) return;
+    Scrollable.ensureVisible(
+      ctx,
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+      alignment: minimal ? 1.0 : 0.2,
+      alignmentPolicy: minimal
+          ? ScrollPositionAlignmentPolicy.keepVisibleAtEnd
+          : ScrollPositionAlignmentPolicy.explicit,
+    );
   }
 
   /// 선택 직후 다음 질문으로 부드럽게 스크롤
   void _afterSelect(int step) {
     if (step + 1 >= Situation.totalSteps) return;
-    Future.delayed(const Duration(milliseconds: 380), () {
+    // 새 질문이 펼쳐지는 애니메이션(240ms)이 끝나면 바로 이어서 스크롤
+    Future.delayed(const Duration(milliseconds: 250), () {
       if (!mounted) return;
-      final s = ref.read(situationProvider);
-      final next = s.firstMissingStep;
-      if (next != null) _scrollToStep(next);
+      final next = ref.read(situationProvider).firstMissingStep;
+      if (next != null) _scrollToStep(next, minimal: true);
     });
   }
 
@@ -138,7 +141,7 @@ class _SituationInputPageState extends ConsumerState<SituationInputPage> {
                 Expanded(
                   child: SingleChildScrollView(
                     controller: _scroll,
-                    padding: const EdgeInsets.fromLTRB(AppSpacing.gutter, 8, AppSpacing.gutter, 140),
+                    padding: const EdgeInsets.fromLTRB(AppSpacing.gutter, 8, AppSpacing.gutter, 28),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -253,14 +256,9 @@ class _SituationInputPageState extends ConsumerState<SituationInputPage> {
               ],
             ),
           ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: _BottomCta(enabled: s.isComplete, onTap: _submit, onDisabledTap: _onIncompleteTap),
-          ),
         ],
       ),
+      bottomNavigationBar: _BottomCta(enabled: s.isComplete, onTap: _submit, onDisabledTap: _onIncompleteTap),
     );
   }
 }
@@ -459,17 +457,13 @@ class _BottomCta extends StatelessWidget {
     return Container(
       padding: EdgeInsets.fromLTRB(
         AppSpacing.gutter,
-        24,
+        10,
         AppSpacing.gutter,
-        16 + MediaQuery.paddingOf(context).bottom,
+        14 + MediaQuery.paddingOf(context).bottom,
       ),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [AppColors.background.withValues(alpha: 0), AppColors.background, AppColors.background],
-          stops: const [0, 0.35, 1],
-        ),
+      decoration: const BoxDecoration(
+        color: AppColors.background,
+        boxShadow: [BoxShadow(color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, -4))],
       ),
       child: GradientButton(
         enabled: enabled,
