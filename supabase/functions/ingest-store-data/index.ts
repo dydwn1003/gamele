@@ -23,7 +23,7 @@ const AREAS: Record<string, [number, number]> = {
 /** 동네 하나당 카테고리별 최대 저장 수 */
 const CAP: Record<Category, number> = { FOOD: 180, CAFE: 140, BAR: 70, ACTIVITY: 70, EXHIBITION: 30 };
 
-/** 체인점은 제외 (지점명이 있는 업소도 제외) */
+/** 알려진 체인점 이름. 그 밖에 같은 반경 안에 같은 상호가 여러 개면 체인으로 본다 */
 const CHAINS = /스타벅스|이디야|투썸|메가(엠지씨|MGC)?커피|빽다방|컴포즈|할리스|파스쿠찌|커피빈|엔제리너스|탐앤탐스|폴바셋|배스킨|던킨|파리바게|뚜레쥬르|맥도날드|버거킹|롯데리아|KFC|맘스터치|서브웨이|써브웨이|도미노|피자헛|파파존스|BBQ|비비큐|BHC|교촌|굽네|네네|처갓집|김밥천국|본죽|이삭토스트|홍콩반점|새마을식당|역전할머니|한신포차|코인노래|GS25|CU|세븐일레븐|이마트|노브랜드|다이소|올리브영/i;
 
 interface Store {
@@ -150,14 +150,17 @@ Deno.serve(async (req) => {
   if (!key) return json({ error: "SEMAS_API_KEY 또는 TOUR_API_KEY가 없습니다" }, 500);
 
   const body = await req.json().catch(() => ({}));
-  const names: string[] = Array.isArray(body.areas) && body.areas.length ? body.areas : Object.keys(AREAS);
+  // 무료 플랜의 계산 한도(WORKER_RESOURCE_LIMIT)를 넘지 않도록 한 번에 최대 2개 동네만 처리한다
+  const requested: string[] = Array.isArray(body.areas) && body.areas.length ? body.areas : Object.keys(AREAS);
+  const perCall = Math.min(Math.max(Number(body.perCall) || 2, 1), 4);
+  const names = requested.slice(0, perCall);
   const radius = Math.min(Number(body.radius) || 1000, 2000);
   const maxPages = Math.min(Number(body.maxPages) || 8, 20);
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
   const started = Date.now();
   const done: Record<string, unknown> = {};
-  const remaining: string[] = [];
+  const remaining: string[] = requested.slice(perCall);
 
   for (const name of names) {
     const center = AREAS[name.replace("서울 ", "")];
@@ -177,18 +180,31 @@ Deno.serve(async (req) => {
     const { data: existing } = await supabase.rpc("get_places_near_location", {
       lat, lng, radius_meters: radius + 200, category_filter: null,
     });
-    const known = (existing ?? []) as { name: string; latitude: number; longitude: number }[];
+    // 이전 실행에서 넣은 상가정보(SEMAS)는 upsert로 갱신되므로 비교 대상에서 뺀다
+    const known = ((existing ?? []) as { name: string; latitude: number; longitude: number; source: string }[])
+      .filter((k) => k.source !== "SEMAS")
+      .map((k) => ({ ...k, key: norm(k.name) }));
+
+    // 같은 상호가 반경 안에 2곳 이상이면 체인점으로 간주
+    const nameCount = new Map<string, number>();
+    for (const s of stores) {
+      const n = norm(s.bizesNm ?? "");
+      nameCount.set(n, (nameCount.get(n) ?? 0) + 1);
+    }
 
     const candidates: (Classified & { id: string; store: Store })[] = [];
     for (const s of stores) {
       const sLat = Number(s.lat), sLng = Number(s.lon);
       if (!s.bizesNm || !sLat || !sLng) continue;
-      if (s.brchNm || CHAINS.test(s.bizesNm)) continue;
+      const key = norm(s.bizesNm);
+      if (CHAINS.test(s.bizesNm) || (nameCount.get(key) ?? 0) > 1) continue;
       const c = classify(s);
       if (!c) continue;
+      // 좌표 차이로 먼저 거른 뒤(저렴) 거리·이름을 비교한다
       const dup = known.some((k) =>
+        Math.abs(k.latitude - sLat) < 0.001 && Math.abs(k.longitude - sLng) < 0.0012 &&
         metersBetween(k.latitude, k.longitude, sLat, sLng) < 80 &&
-        (norm(k.name).includes(norm(s.bizesNm)) || norm(s.bizesNm).includes(norm(k.name))));
+        (k.key.includes(key) || key.includes(k.key)));
       if (dup) continue;
       candidates.push({ ...c, id: s.bizesId, store: s });
     }
