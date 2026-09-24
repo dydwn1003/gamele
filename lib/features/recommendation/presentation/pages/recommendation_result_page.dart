@@ -149,7 +149,7 @@ class _ResultBody extends ConsumerWidget {
       notices.add(('☔', '비 소식(${r.rainProbability}%)이 있어 실내 위주로 골랐어요.'));
     }
     if (r.source == PlaceDataSource.mock && r.relocatedTo == null) {
-      notices.add(('🧪', '샘플 데이터로 추천 중이에요. 실제 영업 정보와 다를 수 있어요.'));
+      notices.add(('🗂️', '기기에 저장된 데이터로 추천 중이에요. 영업시간·가격은 실제와 다를 수 있어요.'));
     }
     return [
       for (final (emoji, text) in notices)

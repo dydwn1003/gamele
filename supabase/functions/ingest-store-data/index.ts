@@ -39,6 +39,8 @@ const daily = (open: string, close: string) => ({ daily: { open, close } });
 function classify(s: Store): Classified | null {
   const l = s.indsLclsNm ?? "", m = s.indsMclsNm ?? "", sc = s.indsSclsNm ?? "", name = s.bizesNm ?? "";
   const text = `${m} ${sc} ${name}`;
+  // 유흥·단란주점 등 성인 업소는 추천하지 않는다
+  if (/유흥|단란|무도|나이트|카바레|룸살롱|성인/.test(`${sc} ${name}`)) return null;
   const act = (sub: string, tags: string[], price: [number, number], duration: number): Classified =>
     ({ category: "ACTIVITY", sub, tags: ["FUN", ...tags], price, duration, hours: daily("11:00", "23:00") });
 
@@ -50,9 +52,10 @@ function classify(s: Store): Classified | null {
   if (/노래(방|연습장)/.test(text)) return act("노래방", ["GROUP", "CHEAP", "NIGHT"], [3000, 10000], 60);
   if (/클라이밍|암장|볼더링/.test(text)) return act("클라이밍", ["ACTIVE", "GROUP", "TRENDY"], [20000, 28000], 120);
   if (/스크린\s?(야구|골프)|야구연습|사격|양궁|VR|오락실|게임센터/.test(text)) return act("체험 오락", ["GROUP", "ACTIVE"], [10000, 20000], 60);
-  if (/공방|원데이|도자기|향수|캔들/.test(text)) return act("공방 체험", ["DATE", "ART", "ROMANTIC"], [30000, 50000], 120);
-  if (/셀프\s?사진|포토\s?부스|사진관|스튜디오/.test(text) && /사진|포토/.test(text)) return act("셀프사진", ["INSTAGRAM", "DATE"], [8000, 20000], 30);
-  if (/갤러리|화랑|미술관/.test(text)) {
+  if (!/음식/.test(l) && /공방|원데이|도자기|향수|캔들/.test(text)) return act("공방 체험", ["DATE", "ART", "ROMANTIC"], [30000, 50000], 120);
+  // 사진촬영업은 대부분 웨딩·프로필 스튜디오라 셀프사진관 이름일 때만 넣는다
+  if (/셀프|포토|인생네컷|네컷|부스|필름|photo/i.test(name) && /사진|포토/.test(text)) return act("셀프사진", ["INSTAGRAM", "DATE"], [8000, 20000], 30);
+  if (/갤러리|화랑|미술관|아트/.test(name) && /예술품|전시|미술|박물/.test(`${m} ${sc}`)) {
     return { category: "EXHIBITION", sub: "갤러리", tags: ["ART", "QUIET", "INSTAGRAM"], price: [0, 5000], duration: 40, hours: daily("11:00", "19:00") };
   }
 
@@ -60,7 +63,7 @@ function classify(s: Store): Classified | null {
   if (/구내식당|출장|케이터링|배달|도시락|급식/.test(text)) return null;
 
   // 카페·디저트
-  if (/카페|커피|제과|베이커리|빵|디저트|아이스크림|빙수|찻집|전통차|차 전문|도넛|케이크/.test(text)) {
+  if (!/주점/.test(sc) && /카페|커피|제과|베이커리|빵|디저트|아이스크림|빙수|찻집|전통차|차 전문|도넛|케이크/.test(text)) {
     const dessert = /제과|베이커리|빵|디저트|아이스크림|빙수|도넛|케이크/.test(text);
     return {
       category: "CAFE", sub: dessert ? "디저트" : "카페",
