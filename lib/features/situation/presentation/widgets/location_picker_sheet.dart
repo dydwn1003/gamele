@@ -96,7 +96,22 @@ class _LocationPickerSheet extends StatelessWidget {
                           ),
                           child: Row(
                             children: [
-                              Text(area.emoji, style: const TextStyle(fontSize: 22)),
+                              Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: currentName == area.name ? AppColors.primary : AppColors.background,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  Areas.shortName(area.name).characters.first,
+                                  style: AppTypography.bodyBold.copyWith(
+                                    fontSize: 14,
+                                    color: currentName == area.name ? Colors.white : AppColors.primary,
+                                  ),
+                                ),
+                              ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Column(

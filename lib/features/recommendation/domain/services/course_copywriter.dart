@@ -72,6 +72,6 @@ abstract final class CourseCopywriter {
   }
 
   static String travelLabel(TravelEstimate t) => t.mode == TravelMode.walk
-      ? '🚶 도보 ${t.minutes}분 (${Fmt.distance(t.distanceMeters)})'
-      : '🚌 대중교통 약 ${t.minutes}분 (${Fmt.distance(t.distanceMeters)})';
+      ? '도보 ${t.minutes}분 · ${Fmt.distance(t.distanceMeters)}'
+      : '대중교통 약 ${t.minutes}분 · ${Fmt.distance(t.distanceMeters)}';
 }

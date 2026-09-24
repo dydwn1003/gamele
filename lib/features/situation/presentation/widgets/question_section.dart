@@ -98,12 +98,21 @@ class _QuestionSectionState extends State<QuestionSection> with SingleTickerProv
                               color: widget.answered ? AppColors.primary : AppColors.primarySoft,
                               borderRadius: AppRadius.smallAll,
                             ),
-                            child: Text(
-                              widget.answered ? '✓ ${widget.label}' : 'Q${widget.step}. ${widget.label}',
-                              style: AppTypography.caption.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: widget.answered ? Colors.white : AppColors.primary,
-                              ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (widget.answered) ...[
+                                  const Icon(Icons.check_rounded, size: 13, color: Colors.white),
+                                  const SizedBox(width: 2),
+                                ],
+                                Text(
+                                  widget.answered ? widget.label : 'Q${widget.step}. ${widget.label}',
+                                  style: AppTypography.caption.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: widget.answered ? Colors.white : AppColors.primary,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],

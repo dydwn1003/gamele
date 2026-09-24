@@ -17,6 +17,7 @@ class GradientButton extends StatelessWidget {
     this.loading = false,
     this.height = 58,
     this.icon,
+    this.trailing,
   });
 
   final String label;
@@ -27,6 +28,9 @@ class GradientButton extends StatelessWidget {
   final bool loading;
   final double height;
   final Widget? icon;
+
+  /// 활성 상태일 때 글자 뒤에 붙는 아이콘
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -72,6 +76,7 @@ class GradientButton extends StatelessWidget {
                         color: enabled ? Colors.white : AppColors.textMuted,
                       ),
                     ),
+                    if (enabled && trailing != null) ...[const SizedBox(width: 6), trailing!],
                   ],
                 ),
         ),

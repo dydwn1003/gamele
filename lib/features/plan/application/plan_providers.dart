@@ -57,6 +57,25 @@ class SavedPlansNotifier extends Notifier<List<SavedPlan>> {
 
   Future<void> remove(String id) => _persist(state.where((p) => p.id != id).toList());
 
+  int indexOf(String id) => state.indexWhere((p) => p.id == id);
+
+  /// 전체 삭제 (되돌리기용으로 이전 목록을 돌려준다)
+  Future<List<SavedPlan>> clearAll() async {
+    final before = state;
+    await _persist(const []);
+    return before;
+  }
+
+  Future<void> restoreAll(List<SavedPlan> plans) => _persist(plans);
+
+  /// 삭제 되돌리기: 원래 자리에 다시 넣는다
+  Future<void> restore(SavedPlan plan, int index) async {
+    if (byId(plan.id) != null) return;
+    final next = [...state];
+    next.insert(index.clamp(0, next.length), plan);
+    await _persist(next);
+  }
+
   Future<void> submitFeedback(
     String id, {
     required FeedbackRating rating,

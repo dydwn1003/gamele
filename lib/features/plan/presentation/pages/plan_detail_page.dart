@@ -17,7 +17,9 @@ import '../../../situation/domain/situation.dart';
 import '../../../../core/constants/areas.dart';
 import '../../application/plan_providers.dart';
 import '../../domain/saved_plan.dart';
+import '../../../../shared_widgets/app_icons.dart';
 import '../widgets/course_map_view.dart';
+import '../widgets/delete_plan_sheet.dart';
 import '../widgets/feedback_sheet.dart';
 import '../widgets/navigation_launcher.dart';
 import '../widgets/timeline_widgets.dart';
@@ -41,7 +43,7 @@ class _PlanDetailPageState extends ConsumerState<PlanDetailPage> {
     if (!mounted) return;
     setState(() => _swapping = null);
     if (next == null) {
-      _toast('동선에 맞는 다른 장소가 아직 없어요 🥲');
+      _toast('동선에 맞는 다른 장소가 아직 없어요');
       return;
     }
     await ref.read(savedPlansProvider.notifier).updateCourse(next);
@@ -52,9 +54,9 @@ class _PlanDetailPageState extends ConsumerState<PlanDetailPage> {
 
   Future<void> _share(Course course) async {
     final lines = [
-      '🗓️ ${course.title}',
-      for (final s in course.stops) '${Fmt.hhmm(s.start)} ${s.place.category.emoji} ${s.place.name}',
-      '⏱️ ${Fmt.duration(course.totalMinutes)} · 💰 1인 ${Fmt.won(course.totalCost)}',
+      '[${course.title}]',
+      for (final s in course.stops) '${Fmt.hhmm(s.start)}  ${s.place.name} (${s.place.category.label})',
+      '총 ${Fmt.duration(course.totalMinutes)} · 1인 ${Fmt.won(course.totalCost)}',
       '— 뭐하지? 에서 만든 코스',
     ];
     await SharePlus.instance.share(ShareParams(text: lines.join('\n'), subject: course.title));
@@ -118,7 +120,15 @@ class _PlanDetailPageState extends ConsumerState<PlanDetailPage> {
             ),
             onPressed: () {
               ref.read(savedPlansProvider.notifier).toggleBookmark(course.id);
-              _toast(plan!.bookmarked ? '저장을 취소했어요' : 'My Plan에 저장했어요 🔖');
+              _toast(plan!.bookmarked ? '저장을 취소했어요' : 'My Plan에 저장했어요');
+            },
+          ),
+          IconButton(
+            tooltip: '삭제',
+            icon: const Icon(Icons.delete_outline_rounded),
+            onPressed: () async {
+              final deleted = await confirmAndDeletePlan(context, ref, plan!);
+              if (deleted && context.mounted) context.pop();
             },
           ),
           const SizedBox(width: 4),
@@ -135,27 +145,27 @@ class _PlanDetailPageState extends ConsumerState<PlanDetailPage> {
             children: [
               Expanded(
                 child: InfoBadge(
-                  emoji: '⏱️',
-                  label: '⏱️ 총 소요',
-                  showEmoji: false,
+                  icon: Icons.schedule_rounded,
+                  label: '총 소요',
+                  showIcon: false,
                   value: Fmt.duration(course.totalMinutes),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: InfoBadge(
-                  emoji: '💰',
-                  label: '💰 1인 비용',
-                  showEmoji: false,
+                  icon: Icons.payments_rounded,
+                  label: '1인 비용',
+                  showIcon: false,
                   value: Fmt.won(course.totalCost),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: InfoBadge(
-                  emoji: '🏠',
-                  label: '🏠 실내 비율',
-                  showEmoji: false,
+                  icon: Icons.roofing_rounded,
+                  label: '실내 비율',
+                  showIcon: false,
                   value: '${course.indoorPercent}%',
                 ),
               ),
@@ -242,7 +252,7 @@ class _FinishCard extends StatelessWidget {
         decoration: BoxDecoration(borderRadius: AppRadius.largeAll, color: AppColors.primarySoft),
         child: Row(
           children: [
-            Text(done ? feedback!.emoji : '🏁', style: const TextStyle(fontSize: 28)),
+            IconBubble(done ? feedback!.icon : Icons.flag_rounded, size: 44),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

@@ -17,6 +17,10 @@ class SituationNotifier extends Notifier<Situation> {
 
   void setLocation(UserLocation location) => state = state.copyWith(location: location);
 
+  /// null이면 '지금 출발'로 되돌린다
+  void setDepartAt(DateTime? at) =>
+      state = at == null ? state.copyWith(departNow: true) : state.copyWith(departAt: at);
+
   void selectArea(Area area) =>
       setLocation(UserLocation(point: area.center, areaName: area.name, source: LocationSource.manual));
 
@@ -40,7 +44,7 @@ class SituationNotifier extends Notifier<Situation> {
     return result.failure;
   }
 
-  void reset() => state = Situation(location: state.location);
+  void reset() => state = Situation(location: state.location, departAt: state.departAt);
 }
 
 final situationProvider = NotifierProvider<SituationNotifier, Situation>(SituationNotifier.new);

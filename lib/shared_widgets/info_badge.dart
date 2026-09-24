@@ -4,22 +4,24 @@ import '../core/theme/app_colors.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/app_typography.dart';
 
-/// 코스 요약 배지 (⏱️ 총 4시간 30분)
+/// 코스 요약 배지 (아이콘 + 라벨 + 값)
 class InfoBadge extends StatelessWidget {
   const InfoBadge({
     super.key,
-    required this.emoji,
+    required this.icon,
     required this.label,
     required this.value,
     this.background = AppColors.surface,
-    this.showEmoji = true,
+    this.showIcon = true,
+    this.color = AppColors.textSecondary,
   });
 
-  final String emoji;
+  final IconData icon;
   final String label;
   final String value;
   final Color background;
-  final bool showEmoji;
+  final bool showIcon;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -28,12 +30,17 @@ class InfoBadge extends StatelessWidget {
       decoration: BoxDecoration(color: background, borderRadius: AppRadius.mediumAll),
       child: Row(
         children: [
-          if (showEmoji) ...[Text(emoji, style: const TextStyle(fontSize: 18)), const SizedBox(width: 8)],
+          if (showIcon) ...[Icon(icon, size: 20, color: color), const SizedBox(width: 8)],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: AppTypography.caption.copyWith(fontSize: 11)),
+                Row(
+                  children: [
+                    if (!showIcon) ...[Icon(icon, size: 12, color: color), const SizedBox(width: 3)],
+                    Flexible(child: Text(label, style: AppTypography.caption.copyWith(fontSize: 11))),
+                  ],
+                ),
                 Text(
                   value,
                   maxLines: 1,
@@ -51,9 +58,10 @@ class InfoBadge extends StatelessWidget {
 
 /// 작은 태그 칩 (예약 필요, 무료 등)
 class TagChip extends StatelessWidget {
-  const TagChip(this.text, {super.key, this.color = AppColors.primary, this.filled = false});
+  const TagChip(this.text, {super.key, this.color = AppColors.primary, this.filled = false, this.icon});
 
   final String text;
+  final IconData? icon;
   final Color color;
   final bool filled;
 
@@ -65,13 +73,22 @@ class TagChip extends StatelessWidget {
         color: filled ? color : color.withValues(alpha: 0.1),
         borderRadius: AppRadius.smallAll,
       ),
-      child: Text(
-        text,
-        style: AppTypography.caption.copyWith(
-          color: filled ? Colors.white : color,
-          fontWeight: FontWeight.w700,
-          fontSize: 11,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 12, color: filled ? Colors.white : color),
+            const SizedBox(width: 3),
+          ],
+          Text(
+            text,
+            style: AppTypography.caption.copyWith(
+              color: filled ? Colors.white : color,
+              fontWeight: FontWeight.w700,
+              fontSize: 11,
+            ),
+          ),
+        ],
       ),
     );
   }

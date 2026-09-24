@@ -4,6 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../shared_widgets/pressable.dart';
+import '../../../../shared_widgets/app_icons.dart';
 import '../../domain/situation.dart';
 
 /// Q1 동행자 Grid Card Toggle
@@ -74,7 +75,16 @@ class _CompanionCard extends StatelessWidget {
                 duration: const Duration(milliseconds: 220),
                 curve: Curves.easeOutBack,
                 alignment: Alignment.centerLeft,
-                child: Text(companion.emoji, style: const TextStyle(fontSize: 30)),
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: selected ? Colors.white.withValues(alpha: 0.25) : AppColors.primarySoft,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(companion.icon, size: 24, color: selected ? Colors.white : AppColors.primary),
+                ),
               ),
               const Spacer(),
               Text(
@@ -107,7 +117,7 @@ class PillChoices<T> extends StatelessWidget {
     required this.selected,
     required this.onSelect,
     required this.labelOf,
-    this.emojiOf,
+    this.iconOf,
     this.subOf,
   });
 
@@ -115,7 +125,7 @@ class PillChoices<T> extends StatelessWidget {
   final T? selected;
   final ValueChanged<T> onSelect;
   final String Function(T) labelOf;
-  final String Function(T)? emojiOf;
+  final IconData Function(T)? iconOf;
   final String Function(T)? subOf;
 
   @override
@@ -127,7 +137,7 @@ class PillChoices<T> extends StatelessWidget {
         for (final o in options)
           _Pill(
             label: labelOf(o),
-            emoji: emojiOf?.call(o),
+            icon: iconOf?.call(o),
             sub: subOf?.call(o),
             selected: selected == o,
             onTap: () => onSelect(o),
@@ -138,10 +148,10 @@ class PillChoices<T> extends StatelessWidget {
 }
 
 class _Pill extends StatelessWidget {
-  const _Pill({required this.label, required this.selected, required this.onTap, this.emoji, this.sub});
+  const _Pill({required this.label, required this.selected, required this.onTap, this.icon, this.sub});
 
   final String label;
-  final String? emoji;
+  final IconData? icon;
   final String? sub;
   final bool selected;
   final VoidCallback onTap;
@@ -163,8 +173,8 @@ class _Pill extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (emoji != null) ...[
-              Text(emoji!, style: const TextStyle(fontSize: 16)),
+            if (icon != null) ...[
+              Icon(icon, size: 18, color: selected ? Colors.white : AppColors.primary),
               const SizedBox(width: 6),
             ],
             Column(

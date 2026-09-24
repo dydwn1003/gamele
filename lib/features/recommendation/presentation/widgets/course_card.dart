@@ -7,6 +7,7 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../shared_widgets/gradient_button.dart';
 import '../../../../shared_widgets/info_badge.dart';
 import '../../../../shared_widgets/place_cover.dart';
+import '../../../../shared_widgets/app_icons.dart';
 import '../../domain/models/course.dart';
 
 /// 결과 카드: 대표 이미지 슬라이더 + 타임라인 미리보기 + 요약 배지 + CTA
@@ -38,9 +39,13 @@ class CourseCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    TagChip('${course.type.emoji} ${course.type.label}'),
+                    TagChip(course.type.label, icon: course.type.icon),
                     const SizedBox(width: 6),
-                    TagChip('${Fmt.hhmm(course.startAt)} 출발', color: AppColors.secondary),
+                    TagChip(
+                      '${Fmt.hhmm(course.startAt)} 출발',
+                      color: AppColors.secondary,
+                      icon: Icons.schedule_rounded,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -50,7 +55,13 @@ class CourseCard extends StatelessWidget {
                 const SizedBox(height: 18),
                 _Badges(course: course),
                 const SizedBox(height: 18),
-                GradientButton(label: '이 플랜으로 진행하기 →', onTap: onProceed, loading: proceeding, height: 54),
+                GradientButton(
+                  label: '이 플랜으로 진행하기',
+                  onTap: onProceed,
+                  loading: proceeding,
+                  height: 54,
+                  trailing: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
+                ),
               ],
             ),
           ),
@@ -90,7 +101,7 @@ class _CoverSliderState extends State<_CoverSlider> {
             controller: _controller,
             itemCount: stops.length,
             onPageChanged: (i) => setState(() => _page = i),
-            itemBuilder: (_, i) => PlaceCover(place: stops[i].place, showLabel: false, emojiSize: 72),
+            itemBuilder: (_, i) => PlaceCover(place: stops[i].place, showLabel: false, iconSize: 72),
           ),
           // 하단 그라데이션 + 장소명
           Positioned(
@@ -186,9 +197,23 @@ class _TimelinePreview extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(color: AppColors.surface, borderRadius: AppRadius.smallAll),
-          child: Text(
-            '${stop.place.category.emoji} ${stop.place.name}${stop.place.isPopular ? ' 🔥' : ''}',
-            style: AppTypography.caption.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w700),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(stop.place.category.icon, size: 13, color: stop.place.category.tint),
+              const SizedBox(width: 4),
+              Text(
+                stop.place.name,
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (stop.place.isPopular) ...[
+                const SizedBox(width: 3),
+                const Icon(Icons.local_fire_department_rounded, size: 12, color: AppColors.primary),
+              ],
+            ],
           ),
         ),
       );
@@ -210,11 +235,19 @@ class _Badges extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: InfoBadge(emoji: '⏱️', label: '총 소요시간', value: Fmt.duration(course.totalMinutes)),
+              child: InfoBadge(
+                icon: Icons.schedule_rounded,
+                label: '총 소요시간',
+                value: Fmt.duration(course.totalMinutes),
+              ),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: InfoBadge(emoji: '💰', label: '1인 예상 비용', value: Fmt.won(course.totalCost)),
+              child: InfoBadge(
+                icon: Icons.payments_rounded,
+                label: '1인 예상 비용',
+                value: Fmt.won(course.totalCost),
+              ),
             ),
           ],
         ),
@@ -223,14 +256,18 @@ class _Badges extends StatelessWidget {
           children: [
             Expanded(
               child: InfoBadge(
-                emoji: course.usesTransit ? '🚌' : '🚶',
+                icon: course.usesTransit ? Icons.directions_bus_rounded : Icons.directions_walk_rounded,
                 label: '이동 ($moveLabel)',
                 value: '${course.travelMinutes}분 · ${Fmt.distance(course.totalDistanceMeters)}',
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: InfoBadge(emoji: '🏠', label: '실내 비율', value: '${course.indoorPercent}%'),
+              child: InfoBadge(
+                icon: Icons.roofing_rounded,
+                label: '실내 비율',
+                value: '${course.indoorPercent}%',
+              ),
             ),
           ],
         ),

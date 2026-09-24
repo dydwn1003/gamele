@@ -15,7 +15,9 @@ import '../../../recommendation/domain/models/course.dart';
 import '../../application/situation_notifier.dart';
 import '../../data/location_service.dart';
 import '../../domain/situation.dart';
+import '../../../../shared_widgets/app_icons.dart';
 import '../widgets/choice_widgets.dart';
+import '../widgets/depart_time_sheet.dart';
 import '../widgets/location_picker_sheet.dart';
 import '../widgets/question_section.dart';
 
@@ -62,6 +64,11 @@ class _SituationInputPageState extends ConsumerState<SituationInputPage> {
     LocationFailure.denied || LocationFailure.deniedForever => '위치 권한이 없어 현재 위치를 알 수 없어요. 동네를 직접 골라주세요.',
     LocationFailure.timeout => '현재 위치를 찾지 못했어요. 동네를 직접 골라주세요.',
   };
+
+  Future<void> _pickDepartTime() async {
+    final choice = await showDepartTimeSheet(context, current: ref.read(situationProvider).departAt);
+    if (choice != null) ref.read(situationProvider.notifier).setDepartAt(choice.at);
+  }
 
   Future<void> _pickLocation({String? message}) async {
     _askedManualLocation = true;
@@ -145,7 +152,23 @@ class _SituationInputPageState extends ConsumerState<SituationInputPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _LocationChip(location: s.location, loading: _locating, onTap: () => _pickLocation()),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _LocationChip(
+                              location: s.location,
+                              loading: _locating,
+                              onTap: () => _pickLocation(),
+                            ),
+                            _InfoChip(
+                              icon: Icons.schedule_rounded,
+                              label: departLabel(s.departAt),
+                              highlighted: s.departAt != null,
+                              onTap: _pickDepartTime,
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 18),
                         const _Greeting(),
                         const SizedBox(height: 22),
@@ -178,7 +201,7 @@ class _SituationInputPageState extends ConsumerState<SituationInputPage> {
                             options: TimeBudget.values,
                             selected: s.time,
                             labelOf: (v) => v.label,
-                            emojiOf: (v) => v.emoji,
+                            iconOf: (v) => v.icon,
                             subOf: (v) => v.sub,
                             onSelect: (v) {
                               n.selectTime(v);
@@ -216,7 +239,7 @@ class _SituationInputPageState extends ConsumerState<SituationInputPage> {
                             options: Mood.values,
                             selected: s.mood,
                             labelOf: (v) => v.label,
-                            emojiOf: (v) => v.emoji,
+                            iconOf: (v) => v.icon,
                             onSelect: (v) {
                               n.selectMood(v);
                               _afterSelect(3);
@@ -235,7 +258,7 @@ class _SituationInputPageState extends ConsumerState<SituationInputPage> {
                             options: TravelRange.values,
                             selected: s.range,
                             labelOf: (v) => v.label,
-                            emojiOf: (v) => v.emoji,
+                            iconOf: (v) => v.icon,
                             onSelect: n.selectRange,
                           ),
                         ),
@@ -361,10 +384,10 @@ class _LocationChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('📍', style: TextStyle(fontSize: 13)),
-            const SizedBox(width: 4),
+            const Icon(Icons.place_rounded, size: 15, color: Color(0xFF1E88C7)),
+            const SizedBox(width: 3),
             Text(
-              '${Fmt.date(DateTime.now())} · $label',
+              label,
               style: AppTypography.caption.copyWith(
                 color: const Color(0xFF1E88C7),
                 fontWeight: FontWeight.w700,
@@ -379,15 +402,62 @@ class _LocationChip extends StatelessWidget {
   }
 }
 
+/// 출발 시간 칩
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({required this.icon, required this.label, required this.onTap, this.highlighted = false});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool highlighted;
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = highlighted ? Colors.white : AppColors.textPrimary;
+    return Pressable(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: highlighted ? AppColors.textPrimary : AppColors.background,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: highlighted ? AppColors.textPrimary : AppColors.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 15, color: highlighted ? Colors.white : AppColors.primary),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: AppTypography.caption.copyWith(color: fg, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(width: 2),
+            Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: fg),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _Greeting extends StatelessWidget {
   const _Greeting();
 
   String _mood(DateTime now) {
     final h = now.hour;
-    if (h < 11) return '상쾌한 아침이에요 ☀️';
-    if (h < 17) return '햇살 좋은 오후예요 🌤️';
-    if (h < 21) return '노을 지는 저녁이에요 🌇';
-    return '포근한 밤이에요 🌙';
+    if (h < 11) return '상쾌한 아침이에요';
+    if (h < 17) return '햇살 좋은 오후예요';
+    if (h < 21) return '노을 지는 저녁이에요';
+    return '포근한 밤이에요';
+  }
+
+  IconData _moodIcon(DateTime now) {
+    final h = now.hour;
+    if (h < 17) return Icons.wb_sunny_rounded;
+    if (h < 21) return Icons.wb_twilight_rounded;
+    return Icons.nightlight_round;
   }
 
   @override
@@ -396,7 +466,16 @@ class _Greeting extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(_mood(now), style: AppTypography.body.copyWith(color: AppColors.textSecondary)),
+        Row(
+          children: [
+            Icon(_moodIcon(now), size: 18, color: AppColors.warning),
+            const SizedBox(width: 5),
+            Text(
+              '${Fmt.date(now)} · ${_mood(now)}',
+              style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+            ),
+          ],
+        ),
         const SizedBox(height: 6),
         RichText(
           text: TextSpan(
@@ -431,10 +510,16 @@ class _ReadyCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('좋아요, 이렇게 찾아볼게요 ✨', style: AppTypography.bodyBold),
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome_rounded, size: 18, color: AppColors.primary),
+              const SizedBox(width: 6),
+              Text('좋아요, 이렇게 찾아볼게요', style: AppTypography.bodyBold),
+            ],
+          ),
           const SizedBox(height: 10),
           Text(
-            '${s.companion!.emoji} ${s.companion!.label}와 ${s.time!.label}, '
+            '${s.companion!.label}와 ${departLabel(s.departAt).replaceAll(' 출발', '')}부터 ${s.time!.label}, '
             '1인 ${s.budget!.label} 안에서 ${s.mood!.label} 분위기로 '
             '${s.range!.label} 거리의 코스를 짜드릴게요.',
             style: AppTypography.body.copyWith(color: AppColors.textSecondary),
@@ -467,7 +552,8 @@ class _BottomCta extends StatelessWidget {
       ),
       child: GradientButton(
         enabled: enabled,
-        label: '오늘 코스 골라받기 🚀',
+        label: '오늘 코스 골라받기',
+        trailing: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
         disabledLabel: '상황을 입력해주세요',
         onTap: onTap,
         onDisabledTap: onDisabledTap,

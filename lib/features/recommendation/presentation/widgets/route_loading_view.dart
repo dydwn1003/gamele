@@ -79,7 +79,7 @@ class _RoutePainter extends CustomPainter {
 
   final double t;
 
-  static const _emojis = ['🌳', '🍽️', '☕'];
+  static const _icons = [Icons.park_rounded, Icons.restaurant_rounded, Icons.local_cafe_rounded];
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -129,8 +129,13 @@ class _RoutePainter extends CustomPainter {
       canvas.drawCircle(pos, 16, Paint()..color = reached ? AppColors.primarySoft : AppColors.surface);
       final tp = TextPainter(
         text: TextSpan(
-          text: _emojis[i],
-          style: TextStyle(fontSize: reached ? 16 : 13),
+          text: String.fromCharCode(_icons[i].codePoint),
+          style: TextStyle(
+            fontFamily: _icons[i].fontFamily,
+            package: _icons[i].fontPackage,
+            fontSize: reached ? 17 : 14,
+            color: reached ? AppColors.primary : AppColors.textMuted,
+          ),
         ),
         textDirection: TextDirection.ltr,
       )..layout();

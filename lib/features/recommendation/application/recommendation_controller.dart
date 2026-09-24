@@ -27,8 +27,13 @@ class RecommendationResult {
   bool get isEmpty => courses.isEmpty;
 }
 
-/// 코스 시작 시각: 지금부터 10분 단위 올림. 늦은 밤/이른 아침이면 11:00으로.
-DateTime planStartTime(DateTime now) {
+/// 코스 시작 시각.
+/// 사용자가 출발 시각을 정했으면 그대로(지난 시각이면 지금), 아니면
+/// 지금부터 10분 단위 올림 — 늦은 밤/이른 아침이면 11:00으로.
+DateTime planStartTime(DateTime now, [DateTime? departAt]) {
+  if (departAt != null) {
+    return departAt.isBefore(now) ? planStartTime(now) : departAt;
+  }
   final rounded = DateTime(now.year, now.month, now.day, now.hour, (now.minute ~/ 10 + 1) * 10);
   if (rounded.hour >= 21) {
     final t = now.add(const Duration(days: 1));
@@ -54,7 +59,7 @@ class RecommendationController extends AsyncNotifier<RecommendationResult?> {
     final situation = ref.read(situationProvider);
     if (!situation.isComplete) throw StateError('상황 입력이 완료되지 않았어요');
     final location = situation.location!;
-    final startAt = planStartTime(DateTime.now());
+    final startAt = planStartTime(DateTime.now(), situation.departAt);
     final radiusKm = situation.range!.radiusKm;
 
     // 계산 중 애니메이션을 충분히 보여주기 위한 최소 대기

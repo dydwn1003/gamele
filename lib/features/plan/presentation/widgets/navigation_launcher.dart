@@ -182,7 +182,11 @@ class _NavigationSheetState extends State<_NavigationSheet> {
                           style: AppTypography.bodyBold.copyWith(fontSize: 14),
                         ),
                       ),
-                      Text(walk ? '🚶' : '🚌'),
+                      Icon(
+                        walk ? Icons.directions_walk_rounded : Icons.directions_bus_rounded,
+                        size: 18,
+                        color: AppColors.textSecondary,
+                      ),
                       const SizedBox(width: 6),
                       const Icon(Icons.north_east_rounded, size: 18, color: AppColors.textMuted),
                     ],

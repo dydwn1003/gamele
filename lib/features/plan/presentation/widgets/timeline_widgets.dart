@@ -4,10 +4,12 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/geo_utils.dart';
 import '../../../../shared_widgets/info_badge.dart';
 import '../../../../shared_widgets/place_cover.dart';
 import '../../../recommendation/domain/models/course.dart';
 import '../../../recommendation/domain/services/course_copywriter.dart';
+import '../../../../shared_widgets/app_icons.dart';
 import '../../data/explanation_service.dart';
 
 const _timeColumnWidth = 52.0;
@@ -88,16 +90,21 @@ class TimelineNode extends StatelessWidget {
                     SizedBox(
                       height: 86,
                       width: double.infinity,
-                      child: PlaceCover(place: p, emojiSize: 40),
+                      child: PlaceCover(place: p, iconSize: 36),
                     ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            '${p.category.emoji} ${p.name}',
-                            style: AppTypography.bodyBold.copyWith(fontSize: 16),
+                          Row(
+                            children: [
+                              Icon(p.category.icon, size: 17, color: p.category.tint),
+                              const SizedBox(width: 5),
+                              Expanded(
+                                child: Text(p.name, style: AppTypography.bodyBold.copyWith(fontSize: 16)),
+                              ),
+                            ],
                           ),
                           if (p.description != null) ...[
                             const SizedBox(height: 2),
@@ -120,10 +127,24 @@ class TimelineNode extends StatelessWidget {
                               if (p.reservationRequired)
                                 GestureDetector(
                                   onTap: onReserve,
-                                  child: const TagChip('⚠️ 예약 필요 · 예약하기', color: AppColors.warning),
+                                  child: const TagChip(
+                                    '예약 필요 · 예약하기',
+                                    icon: Icons.event_available_rounded,
+                                    color: AppColors.warning,
+                                  ),
                                 ),
-                              if (p.isPopular) const TagChip('🔥 인기', color: AppColors.primary),
-                              if (p.isEvent) const TagChip('✨ 기간 한정', color: AppColors.primary),
+                              if (p.isPopular)
+                                const TagChip(
+                                  '인기',
+                                  icon: Icons.local_fire_department_rounded,
+                                  color: AppColors.primary,
+                                ),
+                              if (p.isEvent)
+                                const TagChip(
+                                  '기간 한정',
+                                  icon: Icons.auto_awesome_rounded,
+                                  color: AppColors.primary,
+                                ),
                               if (stop.cost == 0) const TagChip('무료', color: AppColors.success),
                               if (p.rating > 0)
                                 TagChip('★ ${p.rating.toStringAsFixed(1)}', color: AppColors.textSecondary),
@@ -182,7 +203,7 @@ class _SwapButton extends StatelessWidget {
   }
 }
 
-/// 이동 구간 커넥터 ("v 🚶 도보 8분 (550m)")
+/// 이동 구간 커넥터 (도보 8분 · 550m)
 class TravelConnector extends StatelessWidget {
   const TravelConnector({super.key, required this.stop});
 
@@ -201,12 +222,25 @@ class TravelConnector extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(color: AppColors.secondarySoft, borderRadius: BorderRadius.circular(20)),
-          child: Text(
-            CourseCopywriter.travelLabel(stop.travel),
-            style: AppTypography.caption.copyWith(
-              color: const Color(0xFF1E88C7),
-              fontWeight: FontWeight.w700,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                stop.travel.mode == TravelMode.walk
+                    ? Icons.directions_walk_rounded
+                    : Icons.directions_bus_rounded,
+                size: 14,
+                color: const Color(0xFF1E88C7),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                CourseCopywriter.travelLabel(stop.travel),
+                style: AppTypography.caption.copyWith(
+                  color: const Color(0xFF1E88C7),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -238,9 +272,16 @@ class AiSummaryCard extends StatelessWidget {
               children: [
                 ShaderMask(
                   shaderCallback: AppColors.aiGradient.createShader,
-                  child: Text(
-                    '✨ AI 코스 노트',
-                    style: AppTypography.bodyBold.copyWith(color: Colors.white, fontSize: 14),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.auto_awesome_rounded, size: 16, color: Colors.white),
+                      const SizedBox(width: 4),
+                      Text(
+                        'AI 코스 노트',
+                        style: AppTypography.bodyBold.copyWith(color: Colors.white, fontSize: 14),
+                      ),
+                    ],
                   ),
                 ),
                 const Spacer(),

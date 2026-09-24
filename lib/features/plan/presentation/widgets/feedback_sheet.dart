@@ -6,6 +6,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../shared_widgets/gradient_button.dart';
 import '../../../../shared_widgets/pressable.dart';
+import '../../../../shared_widgets/app_icons.dart';
 import '../../../recommendation/domain/models/place.dart';
 import '../../application/plan_providers.dart';
 import '../../domain/saved_plan.dart';
@@ -41,7 +42,7 @@ class _FeedbackSheetState extends ConsumerState<_FeedbackSheet> {
         .submitFeedback(widget.plan.id, rating: _rating!, bestPlace: _best, next: _next);
     if (!mounted) return;
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('소중한 후기 고마워요! 다음 코스에 반영할게요 💌')));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('소중한 후기 고마워요! 다음 코스에 반영할게요')));
   }
 
   @override
@@ -79,7 +80,11 @@ class _FeedbackSheetState extends ConsumerState<_FeedbackSheet> {
                               scale: _rating == r ? 1.25 : 1,
                               duration: const Duration(milliseconds: 350),
                               curve: Curves.elasticOut,
-                              child: Text(r.emoji, style: const TextStyle(fontSize: 30)),
+                              child: Icon(
+                                r.icon,
+                                size: 34,
+                                color: _rating == r ? AppColors.primary : AppColors.textMuted,
+                              ),
                             ),
                             const SizedBox(height: 6),
                             Text(r.label, style: AppTypography.bodyBold.copyWith(fontSize: 13)),
@@ -108,7 +113,12 @@ class _FeedbackSheetState extends ConsumerState<_FeedbackSheet> {
                           children: [
                             for (final p in places)
                               ChoiceChip(
-                                label: Text('${p.category.emoji} ${p.name}'),
+                                avatar: Icon(
+                                  p.category.icon,
+                                  size: 16,
+                                  color: _best == p ? Colors.white : p.category.tint,
+                                ),
+                                label: Text(p.name),
                                 selected: _best == p,
                                 onSelected: (_) => setState(() => _best = _best == p ? null : p),
                                 showCheckmark: false,

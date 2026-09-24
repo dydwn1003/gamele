@@ -6,10 +6,11 @@ import '../../../../core/constants/areas.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../core/utils/formatters.dart';
 import '../../../../shared_widgets/pressable.dart';
 import '../../../plan/application/plan_providers.dart';
 import '../../../situation/application/situation_notifier.dart';
+import '../../../../shared_widgets/app_icons.dart';
+import '../../../situation/presentation/widgets/depart_time_sheet.dart';
 import '../../application/recommendation_controller.dart';
 import '../../data/repositories/place_repository.dart';
 import '../../domain/models/course.dart';
@@ -49,7 +50,7 @@ class _RecommendationResultPageState extends ConsumerState<RecommendationResultP
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('$area · ${Fmt.dayPart(startAt)}', style: AppTypography.subtitle.copyWith(fontSize: 17)),
+            Text('$area · ${departLabel(startAt)}', style: AppTypography.subtitle.copyWith(fontSize: 17)),
             Text(situation.chipsSummary, style: AppTypography.caption),
           ],
         ),
@@ -59,7 +60,7 @@ class _RecommendationResultPageState extends ConsumerState<RecommendationResultP
           : async.when(
               loading: () => RouteLoadingView(areaShortName: '${Areas.shortName(area)}동'),
               error: (e, _) => _MessageView(
-                emoji: '🥲',
+                icon: Icons.sentiment_dissatisfied_rounded,
                 title: '코스를 만들지 못했어요',
                 body: '잠시 후 다시 시도해주세요.\n($e)',
                 primaryLabel: '다시 시도',
@@ -71,7 +72,7 @@ class _RecommendationResultPageState extends ConsumerState<RecommendationResultP
                 }
                 if (result.isEmpty) {
                   return _MessageView(
-                    emoji: '🔍',
+                    icon: Icons.search_off_rounded,
                     title: '조건에 맞는 장소를 찾지 못했어요',
                     body: '선택하신 예산/시간 조건에 맞는 장소를 찾지 못했습니다.\n예산을 늘리거나 이동 범위를 넓혀보세요.',
                     primaryLabel: '조건 변경하기',
@@ -102,7 +103,7 @@ class _ResultBody extends ConsumerWidget {
       children: [
         _PlanTabs(selected: selected, onSelect: ref.read(selectedPlanTypeProvider.notifier).select),
         const SizedBox(height: 14),
-        ..._notices(result),
+        ..._notices(result, departChosen: ref.watch(situationProvider).departAt != null),
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 350),
           switchInCurve: Curves.easeOutCubic,
@@ -130,7 +131,7 @@ class _ResultBody extends ConsumerWidget {
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: () => ref.read(recommendationProvider.notifier).generate(regenerate: true),
-                icon: const Text('🎲'),
+                icon: const Icon(Icons.refresh_rounded, size: 18),
                 label: const Text('다른 코스 생성'),
               ),
             ),
@@ -140,26 +141,33 @@ class _ResultBody extends ConsumerWidget {
     );
   }
 
-  List<Widget> _notices(RecommendationResult r) {
-    final notices = <(String, String)>[];
+  List<Widget> _notices(RecommendationResult r, {required bool departChosen}) {
+    final notices = <(IconData, String)>[];
+    final now = DateTime.now();
+    if (!departChosen && !DateUtils.isSameDay(r.startAt, now)) {
+      notices.add((
+        Icons.nightlight_round,
+        '늦은 시간이라 ${departLabel(r.startAt)} 코스로 짰어요. 출발 시간은 홈에서 바꿀 수 있어요.',
+      ));
+    }
     if (r.relocatedTo != null) {
-      notices.add(('🧭', '근처 데이터가 아직 부족해서 ${r.relocatedTo} 코스로 보여드려요.'));
+      notices.add((Icons.explore_rounded, '근처 데이터가 아직 부족해서 ${r.relocatedTo} 코스로 보여드려요.'));
     }
     if (r.rainProbability > 50) {
-      notices.add(('☔', '비 소식(${r.rainProbability}%)이 있어 실내 위주로 골랐어요.'));
+      notices.add((Icons.umbrella_rounded, '비 소식(${r.rainProbability}%)이 있어 실내 위주로 골랐어요.'));
     }
     if (r.source == PlaceDataSource.mock && r.relocatedTo == null) {
-      notices.add(('🗂️', '기기에 저장된 데이터로 추천 중이에요. 영업시간·가격은 실제와 다를 수 있어요.'));
+      notices.add((Icons.folder_rounded, '기기에 저장된 데이터로 추천 중이에요. 영업시간·가격은 실제와 다를 수 있어요.'));
     }
     return [
-      for (final (emoji, text) in notices)
+      for (final (icon, text) in notices)
         Container(
           margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(color: AppColors.surface, borderRadius: AppRadius.mediumAll),
           child: Row(
             children: [
-              Text(emoji),
+              Icon(icon, size: 18, color: AppColors.textSecondary),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(text, style: AppTypography.caption.copyWith(color: AppColors.textPrimary)),
@@ -212,13 +220,28 @@ class _PlanTabs extends StatelessWidget {
                       child: Pressable(
                         onTap: () => onSelect(t),
                         child: Center(
-                          child: AnimatedDefaultTextStyle(
-                            duration: const Duration(milliseconds: 200),
-                            style: AppTypography.bodyBold.copyWith(
-                              fontSize: 13.5,
-                              color: t == selected ? AppColors.textPrimary : AppColors.textMuted,
-                            ),
-                            child: Text('${t.emoji} ${t.label}'),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 200),
+                                child: Icon(
+                                  t.icon,
+                                  key: ValueKey(t == selected),
+                                  size: 17,
+                                  color: t == selected ? AppColors.primary : AppColors.textMuted,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              AnimatedDefaultTextStyle(
+                                duration: const Duration(milliseconds: 200),
+                                style: AppTypography.bodyBold.copyWith(
+                                  fontSize: 13.5,
+                                  color: t == selected ? AppColors.textPrimary : AppColors.textMuted,
+                                ),
+                                child: Text(t.label),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -235,14 +258,14 @@ class _PlanTabs extends StatelessWidget {
 
 class _MessageView extends StatelessWidget {
   const _MessageView({
-    required this.emoji,
+    required this.icon,
     required this.title,
     required this.body,
     required this.primaryLabel,
     required this.onPrimary,
   });
 
-  final String emoji;
+  final IconData icon;
   final String title;
   final String body;
   final String primaryLabel;
@@ -256,7 +279,7 @@ class _MessageView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 56)),
+            IconBubble(icon, size: 72, color: AppColors.textSecondary),
             const SizedBox(height: 16),
             Text(title, style: AppTypography.subtitle, textAlign: TextAlign.center),
             const SizedBox(height: 8),

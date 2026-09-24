@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/theme/app_typography.dart';
 import '../features/recommendation/domain/models/place.dart';
+import 'app_icons.dart';
 
 /// 카테고리별 감성 그라데이션 팔레트
 List<Color> categoryPalette(PlaceCategory c) => switch (c) {
@@ -16,15 +17,15 @@ List<Color> categoryPalette(PlaceCategory c) => switch (c) {
 
 /// 장소 대표 이미지. 사진이 없거나 로딩 실패 시 카테고리 일러스트 커버로 대체.
 class PlaceCover extends StatelessWidget {
-  const PlaceCover({super.key, required this.place, this.showLabel = true, this.emojiSize = 64});
+  const PlaceCover({super.key, required this.place, this.showLabel = true, this.iconSize = 64});
 
   final Place place;
   final bool showLabel;
-  final double emojiSize;
+  final double iconSize;
 
   @override
   Widget build(BuildContext context) {
-    final art = _IllustratedCover(place: place, showLabel: showLabel, emojiSize: emojiSize);
+    final art = _IllustratedCover(place: place, showLabel: showLabel, iconSize: iconSize);
     if (place.imageUrls.isEmpty) return art;
     return Stack(
       fit: StackFit.expand,
@@ -46,11 +47,11 @@ class PlaceCover extends StatelessWidget {
 }
 
 class _IllustratedCover extends StatelessWidget {
-  const _IllustratedCover({required this.place, required this.showLabel, required this.emojiSize});
+  const _IllustratedCover({required this.place, required this.showLabel, required this.iconSize});
 
   final Place place;
   final bool showLabel;
-  final double emojiSize;
+  final double iconSize;
 
   @override
   Widget build(BuildContext context) {
@@ -82,13 +83,25 @@ class _IllustratedCover extends StatelessWidget {
                 bottom: h * 0.15,
                 child: _Orb(size: h * 0.12, color: Colors.white.withValues(alpha: 0.5)),
               ),
+              // 반투명 유리 원 위의 카테고리 아이콘
               Center(
-                child: Text(
-                  place.category.emoji,
-                  style: TextStyle(
-                    fontSize: emojiSize,
-                    shadows: const [Shadow(color: Color(0x33000000), blurRadius: 20, offset: Offset(0, 8))],
+                child: Container(
+                  width: iconSize * 1.25,
+                  height: iconSize * 1.25,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.22),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.45), width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: colors.last.withValues(alpha: 0.35),
+                        blurRadius: 24,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
                   ),
+                  alignment: Alignment.center,
+                  child: Icon(place.category.icon, size: iconSize * 0.62, color: Colors.white),
                 ),
               ),
               if (showLabel)

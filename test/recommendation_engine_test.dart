@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mwohaji/core/constants/areas.dart';
 import 'package:mwohaji/core/utils/geo_utils.dart';
+import 'package:mwohaji/features/recommendation/application/recommendation_controller.dart';
 import 'package:mwohaji/features/recommendation/domain/models/course.dart';
 import 'package:mwohaji/features/recommendation/domain/models/place.dart';
 import 'package:mwohaji/features/recommendation/domain/services/course_copywriter.dart';
@@ -53,6 +54,20 @@ Map<PlanType, Course> _run(Situation s, {DateTime? start}) => const Recommendati
 );
 
 void main() {
+  group('planStartTime', () {
+    test('uses the chosen departure time', () {
+      final now = DateTime(2026, 9, 24, 14, 3);
+      expect(planStartTime(now, DateTime(2026, 9, 25, 11)), DateTime(2026, 9, 25, 11));
+    });
+    test('past departure falls back to now', () {
+      final now = DateTime(2026, 9, 24, 14, 3);
+      expect(planStartTime(now, DateTime(2026, 9, 24, 9)), DateTime(2026, 9, 24, 14, 10));
+    });
+    test('late night without a choice moves to 11:00 next day', () {
+      expect(planStartTime(DateTime(2026, 9, 24, 22, 30)), DateTime(2026, 9, 25, 11));
+    });
+  });
+
   group('ScoringService (명세 3.2)', () {
     const s = ScoringService();
 

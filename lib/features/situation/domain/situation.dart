@@ -115,7 +115,15 @@ class UserLocation {
 
 /// 사용자 상황 입력 전체 상태
 class Situation {
-  const Situation({this.companion, this.time, this.budget, this.mood, this.range, this.location});
+  const Situation({
+    this.companion,
+    this.time,
+    this.budget,
+    this.mood,
+    this.range,
+    this.location,
+    this.departAt,
+  });
 
   final Companion? companion;
   final TimeBudget? time;
@@ -123,6 +131,9 @@ class Situation {
   final Mood? mood;
   final TravelRange? range;
   final UserLocation? location;
+
+  /// 출발 시각. null이면 '지금 출발'
+  final DateTime? departAt;
 
   static const totalSteps = 5;
 
@@ -144,6 +155,8 @@ class Situation {
     Mood? mood,
     TravelRange? range,
     UserLocation? location,
+    DateTime? departAt,
+    bool departNow = false,
   }) => Situation(
     companion: companion ?? this.companion,
     time: time ?? this.time,
@@ -151,5 +164,6 @@ class Situation {
     mood: mood ?? this.mood,
     range: range ?? this.range,
     location: location ?? this.location,
+    departAt: departNow ? null : (departAt ?? this.departAt),
   );
 }
