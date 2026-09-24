@@ -34,7 +34,8 @@ lib/
 supabase/
   migrations/      00001 스키마·RLS·RPC(get_places_near_location), 00002 신선도 정리(pg_cron)
   seed.sql         샘플 장소
-  functions/       generate-plan-explanation (Claude), ingest-tour-data (TourAPI + 서울시)
+  functions/       generate-plan-explanation (Claude), ingest-tour-data (TourAPI + 서울시),
+                   ingest-store-data (소상공인 상가정보: 동네별 카페·맛집·술집·놀거리)
 ```
 
 ## 추천 알고리즘 (명세 3장)
@@ -57,7 +58,11 @@ psql "$DB_URL" -f supabase/seed.sql    # (선택) 샘플 데이터
 supabase secrets set ANTHROPIC_API_KEY=... TOUR_API_KEY=... SEOUL_API_KEY=... INGEST_SECRET=...
 supabase functions deploy generate-plan-explanation
 supabase functions deploy ingest-tour-data --no-verify-jwt
+supabase functions deploy ingest-store-data --no-verify-jwt   # 공공데이터포털에서 '소상공인시장진흥공단_상가(상권)정보' 활용신청 필요
 ```
+
+`ingest-store-data`는 동네마다 반경 1km 안의 가게를 받아 체인점(지점명이 있는 업소 포함)을 빼고, 카페·디저트 / 식당 / 술집 / 놀거리(방탈출·보드게임·볼링·노래방·공방 등) / 갤러리로 분류해 동네당 최대 490곳을 저장합니다.
+실행 시간 제한에 걸리지 않도록 약 100초가 지나면 멈추고, 남은 동네를 `remaining`으로 돌려줍니다.
 
 - 비회원 플랜은 앱이 보내는 `x-session-id` 헤더와 일치하는 행만 읽을 수 있도록 RLS를 강화했습니다.
 - `plan_items`는 `places` FK가 있어서 DB 장소로만 이루어진 코스만 저장되고, 샘플 데이터 코스는 기기에만 저장됩니다.

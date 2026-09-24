@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.generate-plan-explanation]
 verify_jwt = true
+
+[functions.ingest-store-data]
+verify_jwt = false
