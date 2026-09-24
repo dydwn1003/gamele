@@ -47,11 +47,14 @@ const KEYWORDS: [string, Category][] = [
   ["와인바", "BAR"], ["칵테일바", "BAR"], ["이자카야", "BAR"], ["술집", "BAR"], ["포차", "BAR"], ["루프탑바", "BAR"],
   ["방탈출", "ACTIVITY"], ["보드게임카페", "ACTIVITY"], ["공방", "ACTIVITY"], ["원데이클래스", "ACTIVITY"],
   ["셀프사진관", "ACTIVITY"], ["볼링장", "ACTIVITY"], ["노래방", "ACTIVITY"], ["클라이밍", "ACTIVITY"], ["만화카페", "ACTIVITY"],
-  ["전시", "EXHIBITION"], ["미술관", "EXHIBITION"], ["갤러리", "EXHIBITION"], ["팝업스토어", "POPUP"],
+  ["전시", "EXHIBITION"], ["미술관", "EXHIBITION"], ["갤러리", "EXHIBITION"], 
   ["공원", "PARK"], ["산책", "PARK"], ["가볼만한곳", "PARK"],
 ];
 
 const ADULT = /유흥|단란|룸살롱|룸싸롱|나이트|카바레|호스트|노래주점|성인/;
+
+/** '리뷰 많은 순' 상위를 차지하는 대형 프랜차이즈는 제외 */
+export const CHAINS = /스타벅스|이디야|투썸|메가(엠지씨|MGC)?커피|빽다방|컴포즈|할리스|파스쿠찌|커피빈|엔제리너스|탐앤탐스|폴바셋|배스킨|던킨|파리바게|뚜레쥬르|맥도날드|버거킹|롯데리아|KFC|맘스터치|서브웨이|써브웨이|도미노|피자헛|파파존스|BBQ|비비큐|BHC|교촌|굽네|네네치킨|처갓집|김밥천국|본죽|이삭토스트|홍콩반점|새마을식당|역전할머니|한신포차|아웃백|빕스|애슐리|공차|설빙|쥬씨|요거프레소|더벤티|매머드|드롭탑|카페베네|커피나무|달콤커피|하삼동|텐퍼센트|블루샥|벌툰|코인노래|수퍼스타코인|럭키코인/i;
 
 interface NaverItem {
   title: string; link: string; category: string; description: string;
@@ -69,8 +72,16 @@ interface Classified {
 export function classify(naverCategory: string, name: string, fallback: Category): Classified | null {
   const c = naverCategory;
   const sub = c.split(">").pop()?.trim() || c;
-  const has = (re: RegExp) => re.test(c) || re.test(name);
+  // 이름으로도 놀거리를 판단하되, 음식점·쇼핑 분류면 분류만 본다 (예: 이름에 "향수"가 든 마라탕집)
+  const has = (re: RegExp) => re.test(c) || (!/음식점|한식|양식|일식|중식|카페,디저트|술집|쇼핑|유통|화장품/.test(c) && re.test(name));
   if (ADULT.test(c) || ADULT.test(name)) return null;
+  if (CHAINS.test(name)) return null;
+  // 기간 정보가 없어 이미 끝난 팝업이 섞이므로 팝업은 수집하지 않는다
+  if (/팝업/.test(c) || /팝업|pop-?up/i.test(name)) return null;
+  // PC방·용품점·체육센터는 코스 장소가 아니다
+  if (/PC방|용품|체육센터|헬스|피트니스|세탁|부동산|병원|의원|약국|학원/.test(c)) return null;
+  if (/체육관/.test(c) && !/클라이밍|볼더링|암장/.test(name)) return null;
+  const isFoodOrShop = /음식점|한식|양식|일식|중식|카페,디저트|술집|쇼핑|유통|화장품/.test(c);
 
   const act = (tags: string[], price: [number, number], duration: number): Classified =>
     ({ category: "ACTIVITY", sub, tags: ["FUN", ...tags], price, duration, io: "INDOOR", hours: daily("11:00", "23:00") });
@@ -80,15 +91,15 @@ export function classify(naverCategory: string, name: string, fallback: Category
   if (has(/볼링/)) return act(["GROUP", "ACTIVE"], [8000, 12000], 90);
   if (has(/노래방|노래연습장|코인노래/)) return act(["GROUP", "CHEAP", "NIGHT"], [3000, 10000], 60);
   if (has(/클라이밍|볼더링/)) return act(["ACTIVE", "GROUP", "TRENDY"], [20000, 28000], 120);
-  if (has(/공방|공예|원데이클래스|도자기|향수|캔들/)) return act(["DATE", "ART", "ROMANTIC"], [30000, 50000], 120);
+  // 쇼핑 분류(도자기·향수 가게)는 이름에 '공방/클래스'가 있을 때만 체험으로 본다
+  if (isFoodOrShop ? /공방|클래스/.test(name) && !/음식점|카페|술집/.test(c) : /공방|공예|원데이클래스|도자기|향수|캔들/.test(`${c} ${name}`)) {
+    return act(["DATE", "ART", "ROMANTIC"], [30000, 50000], 120);
+  }
   if (has(/셀프사진|포토부스|사진관|포토스튜디오/)) return act(["INSTAGRAM", "DATE"], [8000, 20000], 30);
   if (/스포츠|오락|레저|체험/.test(c)) return act(["ACTIVE"], [10000, 25000], 90);
 
-  if (/미술관|갤러리|전시|박물관|기념관|문화,예술/.test(c)) {
+  if (!isFoodOrShop && /미술관|갤러리|전시|박물관|기념관|문화,예술/.test(c)) {
     return { category: "EXHIBITION", sub, tags: ["ART", "QUIET", "INSTAGRAM"], price: [0, 15000], duration: 70, io: "INDOOR", hours: daily("10:00", "19:00") };
-  }
-  if (/팝업/.test(c) || /팝업/.test(name)) {
-    return { category: "POPUP", sub: "팝업스토어", tags: ["TRENDY", "INSTAGRAM", "FUN"], price: [0, 15000], duration: 50, io: "INDOOR", hours: daily("11:00", "20:00") };
   }
   if (/공원|숲|산책|하천|호수|한강|정원|둘레길|궁|명소|관광|전망/.test(c)) {
     return { category: "PARK", sub, tags: ["HEALING", "NATURE", "SPACIOUS", "VIEW"], price: [0, 0], duration: 60, io: "OUTDOOR", hours: daily("00:00", "24:00") };
@@ -163,7 +174,8 @@ async function search(api: { url: string; headers: Record<string, string> }, que
 }
 
 const toDeg = (v: string) => { const n = Number(v); return Math.abs(n) > 1000 ? n / 1e7 : n; };
-const stripTags = (s: string) => s.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
+const stripTags = (s: string) =>
+  s.replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&").trim();
 const norm = (s: string) => s.replace(/[\s·()\-_.,&'"]/g, "").toLowerCase();
 
 function metersBetween(aLat: number, aLng: number, bLat: number, bLng: number): number {
@@ -226,8 +238,8 @@ Deno.serve(async (req) => {
       const cls = classify(c.item.category ?? "", c.name, c.fallback);
       if (!cls) continue;
       counts[cls.category] = (counts[cls.category] ?? 0) + 1;
-      // 여러 검색어에 등장했거나 1~2위에 오른 곳은 인기 표시
-      const popular = c.hits >= 2 || c.bestRank <= 2;
+      // 검색어 하나에서 1위였거나 3개 이상의 검색어에 등장한 곳만 인기 표시
+      const popular = c.bestRank === 1 || c.hits >= 3;
       rows.push({
         name: c.name,
         category: cls.category,
