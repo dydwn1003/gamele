@@ -187,7 +187,7 @@ class _TimelinePreview extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(color: AppColors.surface, borderRadius: AppRadius.smallAll),
           child: Text(
-            '${stop.place.category.emoji} ${stop.place.name}',
+            '${stop.place.category.emoji} ${stop.place.name}${stop.place.isPopular ? ' 🔥' : ''}',
             style: AppTypography.caption.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w700),
           ),
         ),

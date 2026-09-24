@@ -164,7 +164,7 @@ class ScoringService {
       budget: budgetScore(cost ?? p.avgCost, ctx.budgetPerSlot),
       companion: companionScore(p.tags, ctx.preferenceTags),
       weather: weatherScore(p.indoorOutdoor, ctx.rainProbability),
-      popularity: popularityScore(p.rating, p.reviewCount),
+      popularity: p.isPopular ? 1.0 : popularityScore(p.rating, p.reviewCount),
       novelty: noveltyScore(p.isEvent, p.reviewCount),
     );
   }

@@ -118,6 +118,7 @@ class TimelineNode extends StatelessWidget {
                                   onTap: onReserve,
                                   child: const TagChip('⚠️ 예약 필요 · 예약하기', color: AppColors.warning),
                                 ),
+                              if (p.isPopular) const TagChip('🔥 인기', color: AppColors.primary),
                               if (p.isEvent) const TagChip('✨ 기간 한정', color: AppColors.primary),
                               if (stop.cost == 0) const TagChip('무료', color: AppColors.success),
                               if (p.rating > 0)

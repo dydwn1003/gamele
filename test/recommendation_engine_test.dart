@@ -181,9 +181,48 @@ void main() {
             ),
           );
           expect(result, isNotEmpty, reason: '${area.name} / ${time.label}');
-          print('${area.name} ${time.label}: ${result[PlanType.best]!.stops.map((e) => e.place.name).join(' → ')}');
+          print(
+            '${area.name} ${time.label}: ${result[PlanType.best]!.stops.map((e) => e.place.name).join(' → ')}',
+          );
         }
       }
+    });
+
+    test('popular places are preferred', () {
+      final s = _situation();
+      final base = _mockCandidates(5);
+      final plain = _run(s)[PlanType.best]!;
+      final foodIds = base
+          .where((c) => c.place.category == PlaceCategory.food)
+          .map((c) => c.place.id)
+          .toList();
+      final target = foodIds.firstWhere(
+        (id) =>
+            !plain.stops.any((st) => st.place.id == id) &&
+            base.firstWhere((c) => c.place.id == id).distanceKm < 1,
+      );
+      final boosted = [
+        for (final c in base)
+          c.place.id == target
+              ? PlaceWithDistance(
+                  Place.fromJson({
+                    ...c.place.toJson(),
+                    'tags': [...c.place.tags, 'POPULAR'],
+                  }),
+                  c.distanceKm,
+                )
+              : c,
+      ];
+      final result = const RecommendationEngine().recommend(
+        EngineRequest(
+          situation: s,
+          candidates: boosted,
+          areaName: '서울 성수',
+          startAt: DateTime(2026, 9, 26, 14, 30),
+          maxDistanceKm: 5,
+        ),
+      );
+      expect(result.values.any((c) => c.stops.any((st) => st.place.id == target)), isTrue);
     });
 
     test('Course json round trip', () {

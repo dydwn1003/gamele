@@ -166,6 +166,8 @@ class RouteCombinator {
   double _placeValue(PlaceScore s, CombinatorInput input) {
     var v = s.total(input.weights);
     if (input.avoidPlaceIds.contains(s.place.id)) v -= 0.12;
+    // 검증된 인기 가게는 코스 조합에서도 우선한다
+    if (s.place.isPopular) v += 0.08;
     return v;
   }
 

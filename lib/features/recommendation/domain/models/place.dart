@@ -132,6 +132,9 @@ class Place {
 
   LatLng get point => LatLng(lat, lng);
 
+  /// 네이버 '리뷰 많은 순' 검색에 나온 인기 가게 (ingest-naver-popular)
+  bool get isPopular => tags.contains('POPULAR');
+
   /// 장소 평균 비용 C_i (1인)
   int get avgCost => ((priceMin + priceMax) / 2).round();
 

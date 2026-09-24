@@ -8,3 +8,6 @@ verify_jwt = true
 
 [functions.ingest-store-data]
 verify_jwt = false
+
+[functions.ingest-naver-popular]
+verify_jwt = false

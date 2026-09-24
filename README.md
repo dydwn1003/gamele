@@ -35,7 +35,8 @@ supabase/
   migrations/      00001 스키마·RLS·RPC(get_places_near_location), 00002 신선도 정리(pg_cron)
   seed.sql         샘플 장소
   functions/       generate-plan-explanation (Claude), ingest-tour-data (TourAPI + 서울시),
-                   ingest-store-data (소상공인 상가정보: 동네별 카페·맛집·술집·놀거리)
+                   ingest-store-data (소상공인 상가정보: 동네별 카페·맛집·술집·놀거리),
+                   ingest-naver-popular (네이버 지역검색 '리뷰 많은 순'으로 인기 가게 표시)
 ```
 
 ## 추천 알고리즘 (명세 3장)
@@ -66,6 +67,18 @@ supabase functions deploy ingest-store-data --no-verify-jwt   # 공공데이터�
 
 - 비회원 플랜은 앱이 보내는 `x-session-id` 헤더와 일치하는 행만 읽을 수 있도록 RLS를 강화했습니다.
 - `plan_items`는 `places` FK가 있어서 DB 장소로만 이루어진 코스만 저장되고, 샘플 데이터 코스는 기기에만 저장됩니다.
+
+## 인기 가게 표시
+
+공공데이터에는 평점이 없어 괜찮은 가게를 구분할 수 없습니다. `ingest-naver-popular`는 동네 이름 × 업종 검색어(약 23개)로
+네이버 지역검색을 '리뷰 많은 순'으로 조회하고, 결과와 위치(120m 이내)·이름이 일치하는 **우리 DB의 기존 장소에 `POPULAR` 태그만** 붙입니다.
+네이버 검색 결과 자체(상호·주소·링크)는 저장하지 않습니다. 추천 엔진은 `POPULAR` 장소의 인기 점수를 1.0으로 두고 코스 조합에서 가산점을 줍니다.
+
+```bash
+supabase secrets set NAVER_CLIENT_ID=... NAVER_CLIENT_SECRET=...     # 기존 개발자센터 키 (2027-06-30까지)
+# 또는 NAVER API HUB: supabase secrets set NCP_APIGW_API_KEY_ID=... NCP_APIGW_API_KEY=...
+supabase functions deploy ingest-naver-popular --no-verify-jwt
+```
 
 ## 명세와 다르게 구현한 부분
 
