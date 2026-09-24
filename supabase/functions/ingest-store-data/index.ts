@@ -199,6 +199,8 @@ Deno.serve(async (req) => {
     for (const s of stores) {
       const sLat = Number(s.lat), sLng = Number(s.lon);
       if (!s.bizesNm || !sLat || !sLng) continue;
+      // 상호 미등록('업소명없음')·숫자뿐인 이름·한 글자 이름은 제외
+      if (/없음|미상/.test(s.bizesNm) || /^[\d\s\-]+$/.test(s.bizesNm) || s.bizesNm.trim().length < 2) continue;
       const key = norm(s.bizesNm);
       if (CHAINS.test(s.bizesNm) || (nameCount.get(key) ?? 0) > 1) continue;
       const c = classify(s);
