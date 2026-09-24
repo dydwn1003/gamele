@@ -65,7 +65,15 @@ class PlaceRepository {
           PlaceWithDistance(p, GeoUtils.distanceKm(anchor, p.point)),
     ];
 
-    // DB 데이터에 샘플 데이터를 보강한다. 같은 장소(80m 이내 + 이름 포함 관계)는 DB 쪽만 남긴다.
+    // DB(네이버 수집 데이터)가 충분하면 DB 데이터만 쓴다
+    if (remote.length >= AppConfig.minRemoteCandidates) {
+      final nearby = within(remote, at);
+      if (nearby.length >= AppConfig.minRemoteCandidates) {
+        return CandidateResult(places: nearby, anchor: at, source: PlaceDataSource.remote);
+      }
+    }
+
+    // DB 연결 실패·데이터 부족 시에만 기기에 저장된 샘플 데이터를 보강한다
     final mock = await _mock.loadAll();
     final extra = mock.where((m) => !remote.any((r) => _samePlace(r, m))).toList();
     final nearby = within([...remote, ...extra], at);

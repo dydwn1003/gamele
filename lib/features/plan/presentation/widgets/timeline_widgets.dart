@@ -22,6 +22,7 @@ class TimelineNode extends StatelessWidget {
     required this.isLast,
     required this.onSwap,
     required this.onReserve,
+    this.onOpenMap,
     this.swapping = false,
   });
 
@@ -31,6 +32,9 @@ class TimelineNode extends StatelessWidget {
   final bool swapping;
   final VoidCallback onSwap;
   final VoidCallback? onReserve;
+
+  /// 네이버 지도에서 장소 보기
+  final VoidCallback? onOpenMap;
 
   @override
   Widget build(BuildContext context) {
@@ -123,6 +127,11 @@ class TimelineNode extends StatelessWidget {
                               if (stop.cost == 0) const TagChip('무료', color: AppColors.success),
                               if (p.rating > 0)
                                 TagChip('★ ${p.rating.toStringAsFixed(1)}', color: AppColors.textSecondary),
+                              if (onOpenMap != null)
+                                GestureDetector(
+                                  onTap: onOpenMap,
+                                  child: const TagChip('N 지도에서 보기', color: Color(0xFF03C75A)),
+                                ),
                               _SwapButton(onTap: onSwap, loading: swapping),
                             ],
                           ),

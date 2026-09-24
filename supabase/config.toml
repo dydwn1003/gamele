@@ -9,5 +9,5 @@ verify_jwt = true
 [functions.ingest-store-data]
 verify_jwt = false
 
-[functions.ingest-naver-popular]
+[functions.ingest-naver-places]
 verify_jwt = false

@@ -67,6 +67,12 @@ class _PlanDetailPageState extends ConsumerState<PlanDetailPage> {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
+  Future<void> _openNaverMap(String name, String address) async {
+    final area = address.split(' ').take(3).join(' ');
+    final query = Uri.encodeComponent('$name $area'.trim());
+    await launchUrl(Uri.parse('https://map.naver.com/p/search/$query'), mode: LaunchMode.externalApplication);
+  }
+
   @override
   Widget build(BuildContext context) {
     final plans = ref.watch(savedPlansProvider);
@@ -173,6 +179,7 @@ class _PlanDetailPageState extends ConsumerState<PlanDetailPage> {
               swapping: _swapping == i,
               onSwap: () => _swap(course, i),
               onReserve: () => _reserve(stop.place.websiteUrl, stop.place.name),
+              onOpenMap: () => _openNaverMap(stop.place.name, stop.place.address),
             ),
           ],
           const SizedBox(height: 20),
@@ -182,8 +189,16 @@ class _PlanDetailPageState extends ConsumerState<PlanDetailPage> {
             onTap: () => showFeedbackSheet(context, plan!),
           ),
           const SizedBox(height: 10),
+          if (course.stops.any((s) => s.place.fromNaver))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                '장소 정보 출처: 네이버 지역검색',
+                style: AppTypography.caption.copyWith(color: AppColors.textMuted),
+              ),
+            ),
           Text(
-            '* 영업시간·가격은 변동될 수 있어요. 방문 전 한 번 더 확인해주세요.',
+            '* 영업시간·가격은 업종별 예상값이에요. 방문 전 한 번 더 확인해주세요.',
             style: AppTypography.caption.copyWith(color: AppColors.textMuted),
           ),
         ],

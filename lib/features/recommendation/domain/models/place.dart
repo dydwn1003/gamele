@@ -99,6 +99,7 @@ class Place {
     this.reservationRequired = false,
     this.isEvent = false,
     this.fromRemote = false,
+    this.source,
   });
 
   final String id;
@@ -129,6 +130,11 @@ class Place {
 
   /// Supabase에서 온 데이터인지 (plan_items FK 저장 가능 여부)
   final bool fromRemote;
+
+  /// 데이터 출처 (NAVER, TOUR_API, SEMAS, MANUAL …)
+  final String? source;
+
+  bool get fromNaver => source == 'NAVER';
 
   LatLng get point => LatLng(lat, lng);
 
@@ -182,6 +188,7 @@ class Place {
       reservationRequired: json['reservation_required'] as bool? ?? false,
       isEvent: json['is_event'] as bool? ?? false,
       fromRemote: fromRemote || (json['from_remote'] as bool? ?? false),
+      source: json['source'] as String?,
     );
   }
 
@@ -208,6 +215,7 @@ class Place {
     'reservation_required': reservationRequired,
     'is_event': isEvent,
     'from_remote': fromRemote,
+    'source': source,
   };
 
   @override
