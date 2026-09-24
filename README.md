@@ -12,15 +12,14 @@ flutter run -d chrome             # 웹
 flutter test                      # 추천 엔진 단위 테스트 + 입력 폼 위젯 테스트
 ```
 
-Supabase를 연결하려면:
+기본으로 뭐하지 Supabase 프로젝트(`lib/core/constants/app_config.dart`)에 연결됩니다. 다른 프로젝트를 쓰거나 샘플 데이터로만 실행하려면:
 
 ```bash
-flutter run \
-  --dart-define=SUPABASE_URL=https://<project>.supabase.co \
-  --dart-define=SUPABASE_ANON_KEY=<anon-or-publishable-key>
+flutter run --dart-define=SUPABASE_URL=https://<project>.supabase.co --dart-define=SUPABASE_ANON_KEY=<anon-key>
+flutter run --dart-define=SUPABASE_URL=     # 샘플 데이터만
 ```
 
-값이 없거나 DB 연결에 실패하면 `assets/mock/places.json`(서울 17개 동네, 샘플 175곳)으로 자동 전환됩니다.
+DB 데이터에는 샘플 데이터가 항상 보강되고(같은 장소는 DB 쪽만 사용), DB 연결에 실패하면 `assets/mock/places.json`(서울 17개 동네, 샘플 175곳)으로 자동 전환됩니다.
 
 ## 구조
 

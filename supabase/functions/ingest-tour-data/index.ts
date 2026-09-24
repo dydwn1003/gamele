@@ -109,7 +109,8 @@ export function similarity(a: string, b: string): number {
 // ── Fetchers ────────────────────────────────────────────────────────
 async function fetchTourApi(key: string, areaCode: number, pages: number): Promise<NormalizedPlace[]> {
   const out: NormalizedPlace[] = [];
-  for (const contentTypeId of ["12", "14", "15", "28", "39"]) {
+  // 축제/행사(15)는 날짜가 있어야 하므로 fetchTourFestivals에서 따로 가져온다
+  for (const contentTypeId of ["12", "14", "28", "39"]) {
     for (let page = 1; page <= pages; page++) {
       const url = new URL("https://apis.data.go.kr/B551011/KorService2/areaBasedList2");
       url.search = new URLSearchParams({
@@ -139,6 +140,62 @@ async function fetchTourApi(key: string, areaCode: number, pages: number): Promi
           source_id: String(it.contentid),
         }));
       }
+    }
+  }
+  return out;
+}
+
+/** "20260924" → KST 기준 ISO 문자열 */
+function kstIso(yyyymmdd: string, endOfDay = false): string {
+  const d = `${yyyymmdd.slice(0, 4)}-${yyyymmdd.slice(4, 6)}-${yyyymmdd.slice(6, 8)}`;
+  return `${d}T${endOfDay ? "23:59:59" : "00:00:00"}+09:00`;
+}
+
+function todayKst(): string {
+  const now = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  return now.toISOString().slice(0, 10).replaceAll("-", "");
+}
+
+interface TourFestival { place: NormalizedPlace; title: string; start: string; end: string; image: string | null; }
+
+/** TourAPI 행사정보조회(searchFestival2): 오늘 이후 끝나는 축제/공연/행사만 */
+async function fetchTourFestivals(key: string, areaCode: number, pages: number): Promise<TourFestival[]> {
+  const today = todayKst();
+  const out: TourFestival[] = [];
+  for (let page = 1; page <= pages; page++) {
+    const url = new URL("https://apis.data.go.kr/B551011/KorService2/searchFestival2");
+    url.search = new URLSearchParams({
+      serviceKey: key, MobileOS: "ETC", MobileApp: "mwohaji", _type: "json",
+      areaCode: String(areaCode), eventStartDate: today, numOfRows: "100", pageNo: String(page), arrange: "Q",
+    }).toString();
+    const res = await fetch(url);
+    if (!res.ok) break;
+    const body = await res.json().catch(() => null);
+    const items = body?.response?.body?.items?.item;
+    if (!Array.isArray(items) || items.length === 0) break;
+    for (const it of items) {
+      const lat = Number(it.mapy), lng = Number(it.mapx);
+      const start = String(it.eventstartdate ?? ""), end = String(it.eventenddate ?? "");
+      if (!lat || !lng || !it.title || start.length !== 8 || end.length !== 8 || end < today) continue;
+      out.push({
+        place: normalize({
+          name: String(it.title).trim(),
+          category: "POPUP",
+          description: `${start.slice(4, 6)}.${start.slice(6)} ~ ${end.slice(4, 6)}.${end.slice(6)} 진행`,
+          address: [it.addr1, it.addr2].filter(Boolean).join(" "),
+          latitude: lat,
+          longitude: lng,
+          phone: it.tel || null,
+          website_url: null,
+          image_urls: [it.firstimage, it.firstimage2].filter(Boolean),
+          source: "TOUR_API",
+          source_id: String(it.contentid),
+        }, { indoor_outdoor: "MIXED" }),
+        title: String(it.title).trim(),
+        start: kstIso(start),
+        end: kstIso(end, true),
+        image: it.firstimage || null,
+      });
     }
   }
   return out;
@@ -198,8 +255,9 @@ Deno.serve(async (req) => {
   const tourKey = Deno.env.get("TOUR_API_KEY");
   const seoulKey = Deno.env.get("SEOUL_API_KEY");
   const places = tourKey ? await fetchTourApi(tourKey, areaCode, pages) : [];
+  const festivals = tourKey ? await fetchTourFestivals(tourKey, areaCode, pages) : [];
   const events = seoulKey ? await fetchSeoulEvents(seoulKey) : [];
-  stats.fetched = places.length + events.length;
+  stats.fetched = places.length + festivals.length + events.length;
 
   /** 중복이면 기존 id 반환(last_verified_at 갱신), 아니면 upsert 후 id 반환 */
   async function upsertPlace(p: NormalizedPlace): Promise<string | null> {
@@ -226,6 +284,26 @@ Deno.serve(async (req) => {
   }
 
   for (const p of places) await upsertPlace(p);
+
+  // 관광공사 축제: 기간이 지난 축제가 추천되지 않도록 먼저 모두 끄고, 진행 중/예정인 것만 다시 켠다
+  if (tourKey) {
+    await supabase.from("places").update({ is_active: false }).eq("source", "TOUR_API").eq("category", "POPUP");
+  }
+  for (const f of festivals) {
+    const placeId = await upsertPlace(f.place);
+    if (!placeId) continue;
+    const { error } = await supabase.from("events").upsert({
+      place_id: placeId,
+      title: f.title,
+      start_at: f.start,
+      end_at: f.end,
+      price: f.place.price_min,
+      image_url: f.image,
+      source: "TOUR_API",
+      source_id: `festival:${f.place.source_id}`,
+    }, { onConflict: "source,source_id" });
+    if (error) stats.errors++; else stats.events++;
+  }
 
   for (const e of events) {
     const placeId = await upsertPlace(e.place);

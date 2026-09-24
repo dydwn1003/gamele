@@ -65,18 +65,20 @@ class PlaceRepository {
           PlaceWithDistance(p, GeoUtils.distanceKm(anchor, p.point)),
     ];
 
-    if (remote.length >= AppConfig.minRemoteCandidates) {
-      return CandidateResult(places: within(remote, at), anchor: at, source: PlaceDataSource.remote);
-    }
-
+    // DB 데이터에 샘플 데이터를 보강한다. 같은 장소(80m 이내 + 이름 포함 관계)는 DB 쪽만 남긴다.
     final mock = await _mock.loadAll();
-    final merged = {...remote, ...mock}.toList();
-    final nearby = within(merged, at);
+    final extra = mock.where((m) => !remote.any((r) => _samePlace(r, m))).toList();
+    final nearby = within([...remote, ...extra], at);
+    final usedMock = nearby.any((c) => !c.place.fromRemote);
     if (nearby.length >= AppConfig.minRemoteCandidates) {
       return CandidateResult(
         places: nearby,
         anchor: at,
-        source: remote.isEmpty ? PlaceDataSource.mock : PlaceDataSource.mixed,
+        source: !usedMock
+            ? PlaceDataSource.remote
+            : remote.isEmpty
+            ? PlaceDataSource.mock
+            : PlaceDataSource.mixed,
       );
     }
 
@@ -89,6 +91,14 @@ class PlaceRepository {
       source: PlaceDataSource.mock,
       relocatedTo: area.name,
     );
+  }
+
+  static String _norm(String name) => name.replaceAll(RegExp(r'[\s·()]'), '').toLowerCase();
+
+  static bool _samePlace(Place a, Place b) {
+    if (GeoUtils.distanceKm(a.point, b.point) > 0.08) return false;
+    final x = _norm(a.name), y = _norm(b.name);
+    return x.contains(y) || y.contains(x);
   }
 
   /// 코스의 한 장소를 대체할 후보 (같은 카테고리, 가까운 순)
