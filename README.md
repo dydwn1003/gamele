@@ -1,57 +1,76 @@
-# 영웅 키우기 (gamele)
+# 뭐하지? (What To Do Today)
 
-자동전투 방치형 RPG. 솔로 플레이 + Google 로그인 기반 랭킹.
+누구와, 얼마나, 얼마로, 어떤 기분으로 — 다섯 가지 질문에 답하면 **지금 바로 갈 수 있는 코스 3개**를 골라주는 결정형 추천 앱.
+추천은 AI가 아닌 순수 알고리즘(점수 공식 + 동선 조합)으로 만들고, AI는 확정된 코스를 두 문장으로 **설명만** 합니다.
 
-## 스택
-
-- Expo (React Native, TypeScript) — 모바일 앱(Android/iOS), 향후 EAS Build로 스토어 배포
-- Zustand + AsyncStorage — 로컬 게임 저장(재화, 레벨, 장비, 스테이지 진행도)
-- Firebase Auth(Google 로그인) + Firestore(랭킹) — `src/services/firebase.ts`, `src/services/googleAuth.ts`, `src/services/leaderboard.ts`
-
-## 게임 루프
-
-- `src/game/`: 스테이지 60개(`stages.ts`), 캐릭터 성장 공식(`hero.ts`), 자동전투 시뮬레이션(`combat.ts`), 장비 등급/스탯(`equipment.ts`), 뽑기 확률(`gacha.ts`)
-- `src/state/useGameStore.ts`: 전투 실행, 뽑기, 장착, 오프라인(자리비움) 보상 계산 등 핵심 액션
-- 화면: 홈 / 전투(자동전투 토글) / 뽑기(장비 가챠) / 랭킹 — `src/screens/`
-
-## 실행하기
+## 실행
 
 ```bash
-npm install
-npx expo start
+flutter pub get
+flutter run                       # 기기/에뮬레이터 (Mock 데이터 모드)
+flutter run -d chrome             # 웹
+flutter test                      # 추천 엔진 단위 테스트 + 입력 폼 위젯 테스트
 ```
 
-- `w`를 눌러 웹으로 빠르게 UI 확인 가능 (실제 배포 타깃은 모바일)
-- 실기기/에뮬레이터 테스트는 Expo Go 또는 `npx expo run:android` / `run:ios` (Mac 필요) 사용
+Supabase를 연결하려면:
 
-## 실서비스 전 반드시 채워야 할 것
+```bash
+flutter run \
+  --dart-define=SUPABASE_URL=https://<project>.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=<anon-or-publishable-key>
+```
 
-`app.json`의 `expo.extra` 값은 전부 `REPLACE_ME` 플레이스홀더입니다. 이 값들이 없으면
-로그인/랭킹 화면이 "설정 필요" 안내만 보여주고 동작하지 않습니다.
+값이 없거나 DB 연결에 실패하면 `assets/mock/places.json`(성수·연남 샘플 38곳)으로 자동 전환됩니다.
 
-1. **Firebase 프로젝트 생성** → Authentication에서 Google 로그인 활성화, Firestore 생성
-   - `app.json` → `expo.extra.firebase`에 프로젝트 설정값 입력
-2. **Google Cloud OAuth 클라이언트** (Firebase 콘솔의 Google 로그인 활성화 시 자동 생성되는
-   웹 클라이언트 ID 포함, 안드로이드/iOS용 클라이언트는 Google Cloud Console에서 별도 생성)
-   - `app.json` → `expo.extra.googleAuth`에 각 플랫폼 client ID 입력
-   - 안드로이드는 SHA-1 지문 등록 필요 (`eas credentials`로 확인 가능)
-3. **Firestore 보안 규칙**: `leaderboard` 컬렉션은 문서 소유자(uid)만 자신의 랭킹을
-   쓸 수 있도록 규칙을 설정하세요 (현재 코드는 클라이언트에서 자기 점수만 `setDoc`).
+## 구조
 
-## 아직 스텁(Stub)인 기능
+```
+lib/
+  core/            theme(디자인 토큰) · constants · utils(Haversine, 포맷) · network(Supabase, 날씨) · router
+  features/
+    situation/     화면 1 — 대화형 상황 입력 (Progressive Form, 위치 권한/직접 선택)
+    recommendation/화면 2 — 점수 엔진 · 코스 조합기 · 결과 리스트
+    plan/          화면 3 — 타임라인 · 지도 · 길안내 딥링크 · 저장/피드백 · AI 총평
+  shared_widgets/  Pressable, GradientButton, InfoBadge, PlaceCover
+supabase/
+  migrations/      00001 스키마·RLS·RPC(get_places_near_location), 00002 신선도 정리(pg_cron)
+  seed.sql         샘플 장소
+  functions/       generate-plan-explanation (Claude), ingest-tour-data (TourAPI + 서울시)
+```
 
-결제/광고는 실제 계정·심사가 필요해 지금은 껍데기만 만들어뒀습니다. 실제 연동 전까지는
-버튼을 눌러도 콘솔 경고만 뜨고 즉시 보상을 지급하는 목업입니다.
+## 추천 알고리즘 (명세 3장)
 
-- `src/services/ads.ts` — 리워드 광고. `react-native-google-mobile-ads` + AdMob 앱/광고 단위 ID 필요
-- `src/services/iap.ts` — 젬 패키지 구매. RevenueCat 또는 `react-native-iap` + 스토어 인앱상품 등록 필요
+1. **Hard Filter** — 반경(d_max), 방문 시간대 영업 여부, 1인 예산, 동행자 제약(가족 → 바 제외)
+2. **Scoring** — `S = 0.25·거리 + 0.20·예산 + 0.20·동행 + 0.15·날씨 + 0.10·인기 + 0.10·참신성`
+3. **Route Combinator** — 카테고리 플로우(공원/전시/팝업 → 식당 → 카페, 액티비티 → 식당 → 카페/바)를
+   DFS로 조합하고 `Σ체류 + Σ이동 ≤ T_user`, `Σ비용 ≤ 예산`, 영업시간을 모두 만족하는 코스만 남김
+4. **Top 3** — 베스트(기본 가중치) · 색다르게(참신성 0.40) · 가성비(예산 0.45 + 최저가)
 
-두 기능 모두 네이티브 모듈이라 Expo Go에서는 동작하지 않고, EAS 개발 빌드(dev client)부터
-테스트 가능합니다.
+시간에 따라 2곳(1~2시간) / 3곳(반나절) / 4곳(하루종일) 코스를 만들고, 체류시간은 최대 25%까지 줄여 시간에 맞춥니다.
 
-## 다음 단계 제안
+## Supabase 배포
 
-- EAS Build로 개발 클라이언트 만들어서 실기기에서 로그인/전투 루프 확인
-- AdMob·IAP 연동 후 실제 보상 지급 로직 연결
-- 장비 강화/합성처럼 "돈 쓸 이유"를 늘리는 시스템 추가
-- 친구 초대 보상 등 바이럴 유도 기능
+```bash
+supabase link --project-ref <ref>
+supabase db push                       # 스키마 + RLS + RPC
+psql "$DB_URL" -f supabase/seed.sql    # (선택) 샘플 데이터
+
+supabase secrets set ANTHROPIC_API_KEY=... TOUR_API_KEY=... SEOUL_API_KEY=... INGEST_SECRET=...
+supabase functions deploy generate-plan-explanation
+supabase functions deploy ingest-tour-data --no-verify-jwt
+```
+
+- 비회원 플랜은 앱이 보내는 `x-session-id` 헤더와 일치하는 행만 읽을 수 있도록 RLS를 강화했습니다.
+- `plan_items`는 `places` FK가 있어서 DB 장소로만 이루어진 코스만 저장되고, 샘플 데이터 코스는 기기에만 저장됩니다.
+
+## 명세와 다르게 구현한 부분
+
+| 명세 | 구현 | 이유 |
+|---|---|---|
+| Freezed / json_serializable | 직접 작성한 불변 모델 + `fromJson/toJson` | 코드 생성 단계 없이 바로 빌드 |
+| Riverpod `StateNotifier` | Riverpod 3 `Notifier` / `AsyncNotifier` | StateNotifier는 Riverpod 3에서 legacy |
+| google_maps_flutter | flutter_map + CARTO 타일 | API 키 없이 동작, 오프라인이면 종이 지도 배경으로 표시 |
+| Lottie 로딩 | CustomPainter 동선 애니메이션 | 별도 애니메이션 파일 없이 동일한 연출 |
+| S_pop 미정의 | `평점/5 × min(1, log10(리뷰+1)/4)` | 리뷰가 적은 고평점 장소 과대평가 방지 |
+
+샘플 데이터의 장소·가격·영업시간은 데모용이며 실제 정보와 다를 수 있습니다.

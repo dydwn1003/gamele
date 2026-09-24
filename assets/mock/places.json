@@ -1,0 +1,1229 @@
+[
+ {
+  "id": "ss-01",
+  "name": "서울숲 산책",
+  "category": "PARK",
+  "subcategory": "공원",
+  "description": "은행나무길과 사슴 방사장이 있는 도심 속 숲",
+  "address": "서울 성동구 뚝섬로 273",
+  "latitude": 37.5444,
+  "longitude": 127.0374,
+  "price_min": 0,
+  "price_max": 0,
+  "duration_minutes": 70,
+  "indoor_outdoor": "OUTDOOR",
+  "tags": [
+   "HEALING",
+   "NATURE",
+   "ROMANTIC",
+   "DATE",
+   "KIDS",
+   "SPACIOUS",
+   "QUIET",
+   "VIEW"
+  ],
+  "rating": 4.7,
+  "review_count": 18200,
+  "opening_hours": {
+   "daily": {
+    "open": "00:00",
+    "close": "24:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "ss-02",
+  "name": "디뮤지엄 전시 관람",
+  "category": "EXHIBITION",
+  "subcategory": "전시",
+  "description": "감각적인 기획전으로 유명한 성수의 대표 미술관",
+  "address": "서울 성동구 왕십리로 83-21",
+  "latitude": 37.5458,
+  "longitude": 127.0442,
+  "price_min": 15000,
+  "price_max": 20000,
+  "duration_minutes": 90,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "ART",
+   "INSTAGRAM",
+   "DATE",
+   "TRENDY",
+   "SOLO_FRIENDLY",
+   "QUIET"
+  ],
+  "rating": 4.5,
+  "review_count": 6400,
+  "opening_hours": {
+   "daily": {
+    "open": "10:00",
+    "close": "19:00"
+   }
+  },
+  "reservation_required": true,
+  "website_url": "https://www.daelimmuseum.org",
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "ss-03",
+  "name": "언더스탠드에비뉴",
+  "category": "POPUP",
+  "subcategory": "복합문화공간",
+  "description": "컨테이너 박스로 만든 서울숲 앞 문화 스트리트",
+  "address": "서울 성동구 왕십리로 63",
+  "latitude": 37.5449,
+  "longitude": 127.0426,
+  "price_min": 0,
+  "price_max": 5000,
+  "duration_minutes": 40,
+  "indoor_outdoor": "MIXED",
+  "tags": [
+   "TRENDY",
+   "INSTAGRAM",
+   "KIDS",
+   "FUN",
+   "SPACIOUS"
+  ],
+  "rating": 4.2,
+  "review_count": 2100,
+  "opening_hours": {
+   "daily": {
+    "open": "11:00",
+    "close": "21:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "ss-04",
+  "name": "성수 연무장길 팝업스토어",
+  "category": "POPUP",
+  "subcategory": "팝업",
+  "description": "이번 주 성수에서만 열리는 브랜드 팝업",
+  "address": "서울 성동구 연무장길 일대",
+  "latitude": 37.5431,
+  "longitude": 127.0567,
+  "price_min": 0,
+  "price_max": 10000,
+  "duration_minutes": 60,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "TRENDY",
+   "INSTAGRAM",
+   "FUN",
+   "GROUP",
+   "DATE"
+  ],
+  "rating": 4.4,
+  "review_count": 320,
+  "opening_hours": {
+   "daily": {
+    "open": "11:00",
+    "close": "20:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": true,
+  "image_urls": []
+ },
+ {
+  "id": "ss-05",
+  "name": "포인트오브뷰 문구 편집숍",
+  "category": "POPUP",
+  "subcategory": "편집숍",
+  "description": "창작자를 위한 문구와 오브제가 가득한 3층 편집숍",
+  "address": "서울 성동구 연무장길 18",
+  "latitude": 37.5436,
+  "longitude": 127.0558,
+  "price_min": 0,
+  "price_max": 15000,
+  "duration_minutes": 40,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "ART",
+   "SOLO_FRIENDLY",
+   "INSTAGRAM",
+   "QUIET",
+   "TRENDY"
+  ],
+  "rating": 4.6,
+  "review_count": 1500,
+  "opening_hours": {
+   "daily": {
+    "open": "12:00",
+    "close": "20:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "ss-06",
+  "name": "아모레 성수 뷰티 체험",
+  "category": "EXHIBITION",
+  "subcategory": "체험전시",
+  "description": "자동차 공업소를 개조한 뷰티 라이브러리",
+  "address": "서울 성동구 아차산로11길 7",
+  "latitude": 37.5433,
+  "longitude": 127.0571,
+  "price_min": 0,
+  "price_max": 0,
+  "duration_minutes": 50,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "INSTAGRAM",
+   "DATE",
+   "TRENDY",
+   "QUIET"
+  ],
+  "rating": 4.4,
+  "review_count": 2800,
+  "opening_hours": {
+   "daily": {
+    "open": "10:30",
+    "close": "20:30"
+   }
+  },
+  "reservation_required": true,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "ss-07",
+  "name": "뚝섬한강공원 피크닉",
+  "category": "PARK",
+  "subcategory": "한강",
+  "description": "노을 맛집, 돗자리 피크닉과 수변 산책",
+  "address": "서울 광진구 강변북로 139",
+  "latitude": 37.5294,
+  "longitude": 127.0698,
+  "price_min": 0,
+  "price_max": 5000,
+  "duration_minutes": 80,
+  "indoor_outdoor": "OUTDOOR",
+  "tags": [
+   "HEALING",
+   "NATURE",
+   "VIEW",
+   "ROMANTIC",
+   "GROUP",
+   "KIDS",
+   "SPACIOUS"
+  ],
+  "rating": 4.6,
+  "review_count": 9800,
+  "opening_hours": {
+   "daily": {
+    "open": "00:00",
+    "close": "24:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "ss-08",
+  "name": "서울숲 곤충식물원",
+  "category": "EXHIBITION",
+  "subcategory": "생태관",
+  "description": "아이와 함께 보기 좋은 온실 식물원",
+  "address": "서울 성동구 뚝섬로 273",
+  "latitude": 37.5438,
+  "longitude": 127.0395,
+  "price_min": 0,
+  "price_max": 0,
+  "duration_minutes": 45,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "KIDS",
+   "NATURE",
+   "HEALING",
+   "QUIET",
+   "SPACIOUS"
+  ],
+  "rating": 4.3,
+  "review_count": 1900,
+  "opening_hours": {
+   "daily": {
+    "open": "10:00",
+    "close": "17:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "ss-09",
+  "name": "더클라임 클라이밍 성수",
+  "category": "ACTIVITY",
+  "subcategory": "클라이밍",
+  "description": "초보도 강습 받고 즐기는 실내 볼더링",
+  "address": "서울 성동구 아차산로 17",
+  "latitude": 37.5465,
+  "longitude": 127.0584,
+  "price_min": 22000,
+  "price_max": 28000,
+  "duration_minutes": 120,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "ACTIVE",
+   "FUN",
+   "GROUP",
+   "TRENDY"
+  ],
+  "rating": 4.6,
+  "review_count": 3100,
+  "opening_hours": {
+   "daily": {
+    "open": "10:00",
+    "close": "23:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "ss-10",
+  "name": "성수 향수공방 원데이클래스",
+  "category": "ACTIVITY",
+  "subcategory": "공방",
+  "description": "나만의 시그니처 향을 만드는 90분 클래스",
+  "address": "서울 성동구 성수이로 88",
+  "latitude": 37.5418,
+  "longitude": 127.0548,
+  "price_min": 35000,
+  "price_max": 45000,
+  "duration_minutes": 90,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "DATE",
+   "ROMANTIC",
+   "ART",
+   "QUIET",
+   "FUN"
+  ],
+  "rating": 4.8,
+  "review_count": 820,
+  "opening_hours": {
+   "daily": {
+    "open": "11:00",
+    "close": "21:00"
+   }
+  },
+  "reservation_required": true,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "ss-11",
+  "name": "성수 방탈출 카페",
+  "category": "ACTIVITY",
+  "subcategory": "방탈출",
+  "description": "스토리 몰입감 좋은 테마 방탈출",
+  "address": "서울 성동구 성수이로 113",
+  "latitude": 37.5445,
+  "longitude": 127.0561,
+  "price_min": 22000,
+  "price_max": 25000,
+  "duration_minutes": 80,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "FUN",
+   "GROUP",
+   "ACTIVE",
+   "DATE"
+  ],
+  "rating": 4.5,
+  "review_count": 2400,
+  "opening_hours": {
+   "daily": {
+    "open": "10:00",
+    "close": "24:00"
+   }
+  },
+  "reservation_required": true,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "ss-12",
+  "name": "보드게임카페 성수",
+  "category": "ACTIVITY",
+  "subcategory": "보드게임",
+  "description": "수백 종 보드게임과 음료 무제한",
+  "address": "서울 성동구 아차산로 110",
+  "latitude": 37.5441,
+  "longitude": 127.059,
+  "price_min": 9000,
+  "price_max": 12000,
+  "duration_minutes": 90,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "FUN",
+   "GROUP",
+   "KIDS",
+   "CHEAP"
+  ],
+  "rating": 4.3,
+  "review_count": 1100,
+  "opening_hours": {
+   "daily": {
+    "open": "12:00",
+    "close": "24:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "ss-13",
+  "name": "제스티살룬 성수",
+  "category": "FOOD",
+  "subcategory": "버거",
+  "description": "육즙 가득한 수제버거와 감자튀김",
+  "address": "서울 성동구 연무장길 12",
+  "latitude": 37.5445,
+  "longitude": 127.0556,
+  "price_min": 16000,
+  "price_max": 20000,
+  "duration_minutes": 60,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "FOODIE",
+   "TRENDY",
+   "GROUP",
+   "DATE"
+  ],
+  "rating": 4.4,
+  "review_count": 5200,
+  "opening_hours": {
+   "daily": {
+    "open": "11:00",
+    "close": "21:30"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "ss-14",
+  "name": "소문난성수감자탕",
+  "category": "FOOD",
+  "subcategory": "한식",
+  "description": "성수 토박이들이 줄 서는 뼈해장국 노포",
+  "address": "서울 성동구 연무장길 45",
+  "latitude": 37.5427,
+  "longitude": 127.0578,
+  "price_min": 11000,
+  "price_max": 13000,
+  "duration_minutes": 50,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "FOODIE",
+   "LOCAL",
+   "GROUP",
+   "CHEAP"
+  ],
+  "rating": 4.5,
+  "review_count": 8800,
+  "opening_hours": {
+   "daily": {
+    "open": "00:00",
+    "close": "24:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "ss-15",
+  "name": "쵸리상경",
+  "category": "FOOD",
+  "subcategory": "퓨전한식",
+  "description": "한옥 감성의 정갈한 솥밥 한 상",
+  "address": "서울 성동구 성수이로7길 41",
+  "latitude": 37.5449,
+  "longitude": 127.0551,
+  "price_min": 19000,
+  "price_max": 26000,
+  "duration_minutes": 70,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "FOODIE",
+   "DATE",
+   "ROMANTIC",
+   "INSTAGRAM",
+   "QUIET"
+  ],
+  "rating": 4.6,
+  "review_count": 3900,
+  "opening_hours": {
+   "daily": {
+    "open": "11:30",
+    "close": "21:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "ss-16",
+  "name": "뚝도시장 먹거리 투어",
+  "category": "FOOD",
+  "subcategory": "시장",
+  "description": "떡볶이·전·순대, 정감 있는 전통시장",
+  "address": "서울 성동구 서울숲2길 18",
+  "latitude": 37.5383,
+  "longitude": 127.0503,
+  "price_min": 5000,
+  "price_max": 12000,
+  "duration_minutes": 50,
+  "indoor_outdoor": "MIXED",
+  "tags": [
+   "LOCAL",
+   "FOODIE",
+   "CHEAP",
+   "KIDS",
+   "GROUP"
+  ],
+  "rating": 4.2,
+  "review_count": 1300,
+  "opening_hours": {
+   "daily": {
+    "open": "09:00",
+    "close": "20:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "ss-17",
+  "name": "성수 파스타 비스트로",
+  "category": "FOOD",
+  "subcategory": "양식",
+  "description": "생면 파스타와 내추럴 와인 한 잔",
+  "address": "서울 성동구 서울숲4길 17",
+  "latitude": 37.547,
+  "longitude": 127.0418,
+  "price_min": 22000,
+  "price_max": 32000,
+  "duration_minutes": 70,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "DATE",
+   "ROMANTIC",
+   "FOODIE",
+   "INSTAGRAM"
+  ],
+  "rating": 4.5,
+  "review_count": 2600,
+  "opening_hours": {
+   "daily": {
+    "open": "11:30",
+    "close": "22:00"
+   }
+  },
+  "reservation_required": true,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "ss-18",
+  "name": "성수 돈카츠 전문점",
+  "category": "FOOD",
+  "subcategory": "일식",
+  "description": "두툼한 안심카츠와 카레",
+  "address": "서울 성동구 성수이로 70",
+  "latitude": 37.5412,
+  "longitude": 127.0561,
+  "price_min": 13000,
+  "price_max": 17000,
+  "duration_minutes": 50,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "FOODIE",
+   "SOLO_FRIENDLY",
+   "KIDS"
+  ],
+  "rating": 4.4,
+  "review_count": 3300,
+  "opening_hours": {
+   "daily": {
+    "open": "11:00",
+    "close": "21:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "ss-19",
+  "name": "어니언 성수",
+  "category": "CAFE",
+  "subcategory": "베이커리카페",
+  "description": "폐공장을 개조한 성수 감성 카페의 원조",
+  "address": "서울 성동구 아차산로9길 8",
+  "latitude": 37.5448,
+  "longitude": 127.0582,
+  "price_min": 7000,
+  "price_max": 11000,
+  "duration_minutes": 50,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "INSTAGRAM",
+   "TRENDY",
+   "DATE",
+   "SPACIOUS"
+  ],
+  "rating": 4.4,
+  "review_count": 15400,
+  "opening_hours": {
+   "daily": {
+    "open": "08:00",
+    "close": "22:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "ss-20",
+  "name": "블루보틀 성수",
+  "category": "CAFE",
+  "subcategory": "스페셜티",
+  "description": "미니멀한 공간에서 즐기는 핸드드립",
+  "address": "서울 성동구 아차산로 7",
+  "latitude": 37.548,
+  "longitude": 127.0453,
+  "price_min": 6000,
+  "price_max": 9000,
+  "duration_minutes": 40,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "QUIET",
+   "SOLO_FRIENDLY",
+   "TRENDY"
+  ],
+  "rating": 4.3,
+  "review_count": 7100,
+  "opening_hours": {
+   "daily": {
+    "open": "08:00",
+    "close": "20:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "ss-21",
+  "name": "대림창고 갤러리 카페",
+  "category": "CAFE",
+  "subcategory": "갤러리카페",
+  "description": "높은 층고와 전시가 함께하는 창고형 카페",
+  "address": "서울 성동구 성수이로 78",
+  "latitude": 37.5418,
+  "longitude": 127.0567,
+  "price_min": 9000,
+  "price_max": 12000,
+  "duration_minutes": 50,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "ART",
+   "INSTAGRAM",
+   "SPACIOUS",
+   "GROUP"
+  ],
+  "rating": 4.3,
+  "review_count": 9900,
+  "opening_hours": {
+   "daily": {
+    "open": "11:00",
+    "close": "22:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "ss-22",
+  "name": "누데이크 성수",
+  "category": "CAFE",
+  "subcategory": "디저트",
+  "description": "조형물 같은 디저트로 유명한 카페",
+  "address": "서울 성동구 연무장5가길 7",
+  "latitude": 37.5446,
+  "longitude": 127.0551,
+  "price_min": 10000,
+  "price_max": 15000,
+  "duration_minutes": 40,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "INSTAGRAM",
+   "TRENDY",
+   "DATE",
+   "ART"
+  ],
+  "rating": 4.2,
+  "review_count": 4200,
+  "opening_hours": {
+   "daily": {
+    "open": "11:00",
+    "close": "21:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "ss-23",
+  "name": "할아버지공장",
+  "category": "CAFE",
+  "subcategory": "대형카페",
+  "description": "공장 마당과 온실이 있는 대형 카페",
+  "address": "서울 성동구 성수이로7길 9",
+  "latitude": 37.5432,
+  "longitude": 127.0552,
+  "price_min": 8000,
+  "price_max": 11000,
+  "duration_minutes": 50,
+  "indoor_outdoor": "MIXED",
+  "tags": [
+   "SPACIOUS",
+   "KIDS",
+   "HEALING",
+   "GROUP"
+  ],
+  "rating": 4.2,
+  "review_count": 6800,
+  "opening_hours": {
+   "daily": {
+    "open": "11:00",
+    "close": "23:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "ss-24",
+  "name": "서울숲 루프탑 티하우스",
+  "category": "CAFE",
+  "subcategory": "티룸",
+  "description": "서울숲이 내려다보이는 조용한 찻집",
+  "address": "서울 성동구 서울숲2길 44",
+  "latitude": 37.5462,
+  "longitude": 127.0409,
+  "price_min": 8000,
+  "price_max": 12000,
+  "duration_minutes": 50,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "QUIET",
+   "VIEW",
+   "HEALING",
+   "ROMANTIC",
+   "SOLO_FRIENDLY"
+  ],
+  "rating": 4.6,
+  "review_count": 900,
+  "opening_hours": {
+   "daily": {
+    "open": "12:00",
+    "close": "21:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "ss-25",
+  "name": "성수 LP 바",
+  "category": "BAR",
+  "subcategory": "LP바",
+  "description": "턴테이블 음악과 칵테일, 성수의 밤",
+  "address": "서울 성동구 연무장7길 10",
+  "latitude": 37.5423,
+  "longitude": 127.0584,
+  "price_min": 15000,
+  "price_max": 25000,
+  "duration_minutes": 70,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "ROMANTIC",
+   "DATE",
+   "NIGHT",
+   "QUIET"
+  ],
+  "rating": 4.5,
+  "review_count": 1200,
+  "opening_hours": {
+   "daily": {
+    "open": "18:00",
+    "close": "02:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "ss-26",
+  "name": "성수 수제맥주 펍",
+  "category": "BAR",
+  "subcategory": "펍",
+  "description": "양조장 직영 크래프트 비어",
+  "address": "서울 성동구 성수이로 97",
+  "latitude": 37.5437,
+  "longitude": 127.0543,
+  "price_min": 14000,
+  "price_max": 22000,
+  "duration_minutes": 70,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "GROUP",
+   "FUN",
+   "NIGHT",
+   "TRENDY"
+  ],
+  "rating": 4.3,
+  "review_count": 2000,
+  "opening_hours": {
+   "daily": {
+    "open": "16:00",
+    "close": "01:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "yn-01",
+  "name": "경의선숲길 연트럴파크",
+  "category": "PARK",
+  "subcategory": "공원",
+  "description": "기찻길 위에 만든 연남동의 초록 산책로",
+  "address": "서울 마포구 연남동 일대",
+  "latitude": 37.5601,
+  "longitude": 126.9236,
+  "price_min": 0,
+  "price_max": 0,
+  "duration_minutes": 50,
+  "indoor_outdoor": "OUTDOOR",
+  "tags": [
+   "HEALING",
+   "NATURE",
+   "ROMANTIC",
+   "DATE",
+   "SPACIOUS",
+   "KIDS"
+  ],
+  "rating": 4.6,
+  "review_count": 11000,
+  "opening_hours": {
+   "daily": {
+    "open": "00:00",
+    "close": "24:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "yn-02",
+  "name": "KT&G 상상마당 전시",
+  "category": "EXHIBITION",
+  "subcategory": "전시",
+  "description": "독립 예술과 디자인 굿즈의 홍대 문화 아지트",
+  "address": "서울 마포구 어울마당로 65",
+  "latitude": 37.551,
+  "longitude": 126.9214,
+  "price_min": 0,
+  "price_max": 8000,
+  "duration_minutes": 60,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "ART",
+   "TRENDY",
+   "SOLO_FRIENDLY",
+   "INSTAGRAM"
+  ],
+  "rating": 4.4,
+  "review_count": 3000,
+  "opening_hours": {
+   "daily": {
+    "open": "12:00",
+    "close": "21:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "yn-03",
+  "name": "홍대 걷고싶은거리 버스킹",
+  "category": "POPUP",
+  "subcategory": "공연",
+  "description": "주말 저녁 거리 공연과 플리마켓",
+  "address": "서울 마포구 어울마당로 일대",
+  "latitude": 37.5545,
+  "longitude": 126.9225,
+  "price_min": 0,
+  "price_max": 0,
+  "duration_minutes": 40,
+  "indoor_outdoor": "OUTDOOR",
+  "tags": [
+   "FUN",
+   "GROUP",
+   "TRENDY"
+  ],
+  "rating": 4.1,
+  "review_count": 900,
+  "opening_hours": {
+   "daily": {
+    "open": "14:00",
+    "close": "22:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": true,
+  "image_urls": []
+ },
+ {
+  "id": "yn-04",
+  "name": "홍대 볼더링짐",
+  "category": "ACTIVITY",
+  "subcategory": "클라이밍",
+  "description": "루트 세팅이 재밌는 실내 암장",
+  "address": "서울 마포구 와우산로 94",
+  "latitude": 37.552,
+  "longitude": 126.9245,
+  "price_min": 20000,
+  "price_max": 25000,
+  "duration_minutes": 110,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "ACTIVE",
+   "FUN",
+   "GROUP"
+  ],
+  "rating": 4.5,
+  "review_count": 1400,
+  "opening_hours": {
+   "daily": {
+    "open": "10:00",
+    "close": "23:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "yn-05",
+  "name": "연남 방탈출",
+  "category": "ACTIVITY",
+  "subcategory": "방탈출",
+  "description": "연인·친구와 함께하는 추리 테마",
+  "address": "서울 마포구 동교로 250",
+  "latitude": 37.5605,
+  "longitude": 126.9255,
+  "price_min": 20000,
+  "price_max": 24000,
+  "duration_minutes": 80,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "FUN",
+   "GROUP",
+   "DATE"
+  ],
+  "rating": 4.4,
+  "review_count": 1700,
+  "opening_hours": {
+   "daily": {
+    "open": "10:00",
+    "close": "24:00"
+   }
+  },
+  "reservation_required": true,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "yn-06",
+  "name": "향미 연남",
+  "category": "FOOD",
+  "subcategory": "중식",
+  "description": "연남동 대표 대만식 우육면",
+  "address": "서울 마포구 성미산로 190",
+  "latitude": 37.562,
+  "longitude": 126.9245,
+  "price_min": 10000,
+  "price_max": 15000,
+  "duration_minutes": 50,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "FOODIE",
+   "LOCAL"
+  ],
+  "rating": 4.4,
+  "review_count": 6200,
+  "opening_hours": {
+   "daily": {
+    "open": "11:30",
+    "close": "21:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "yn-07",
+  "name": "툭툭누들타이",
+  "category": "FOOD",
+  "subcategory": "태국",
+  "description": "현지 맛 그대로의 태국 쌀국수",
+  "address": "서울 마포구 연희로1길 32",
+  "latitude": 37.5613,
+  "longitude": 126.9243,
+  "price_min": 13000,
+  "price_max": 18000,
+  "duration_minutes": 60,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "FOODIE",
+   "TRENDY",
+   "GROUP",
+   "DATE"
+  ],
+  "rating": 4.5,
+  "review_count": 7300,
+  "opening_hours": {
+   "daily": {
+    "open": "11:30",
+    "close": "22:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "yn-08",
+  "name": "연남 수제 파스타",
+  "category": "FOOD",
+  "subcategory": "양식",
+  "description": "골목 안 작은 파스타 식당",
+  "address": "서울 마포구 성미산로29길 20",
+  "latitude": 37.5632,
+  "longitude": 126.923,
+  "price_min": 17000,
+  "price_max": 24000,
+  "duration_minutes": 60,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "DATE",
+   "ROMANTIC",
+   "QUIET",
+   "FOODIE"
+  ],
+  "rating": 4.5,
+  "review_count": 1500,
+  "opening_hours": {
+   "daily": {
+    "open": "11:30",
+    "close": "21:30"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "yn-09",
+  "name": "얼스어스",
+  "category": "CAFE",
+  "subcategory": "디저트",
+  "description": "제로웨이스트 디저트 카페",
+  "address": "서울 마포구 성미산로 150",
+  "latitude": 37.5621,
+  "longitude": 126.9223,
+  "price_min": 8000,
+  "price_max": 12000,
+  "duration_minutes": 40,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "QUIET",
+   "TRENDY",
+   "INSTAGRAM",
+   "HEALING"
+  ],
+  "rating": 4.6,
+  "review_count": 3600,
+  "opening_hours": {
+   "daily": {
+    "open": "12:00",
+    "close": "21:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "yn-10",
+  "name": "커피리브레 연남",
+  "category": "CAFE",
+  "subcategory": "스페셜티",
+  "description": "스페셜티 커피 1세대 로스터리",
+  "address": "서울 마포구 성미산로 198",
+  "latitude": 37.5627,
+  "longitude": 126.9245,
+  "price_min": 5000,
+  "price_max": 7000,
+  "duration_minutes": 40,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "QUIET",
+   "SOLO_FRIENDLY",
+   "LOCAL"
+  ],
+  "rating": 4.6,
+  "review_count": 4100,
+  "opening_hours": {
+   "daily": {
+    "open": "10:00",
+    "close": "20:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ },
+ {
+  "id": "yn-11",
+  "name": "동진시장 플리마켓",
+  "category": "POPUP",
+  "subcategory": "마켓",
+  "description": "주말 핸드메이드 마켓과 소품",
+  "address": "서울 마포구 성미산로 198",
+  "latitude": 37.5627,
+  "longitude": 126.9238,
+  "price_min": 0,
+  "price_max": 15000,
+  "duration_minutes": 40,
+  "indoor_outdoor": "MIXED",
+  "tags": [
+   "INSTAGRAM",
+   "LOCAL",
+   "TRENDY",
+   "DATE"
+  ],
+  "rating": 4.2,
+  "review_count": 800,
+  "opening_hours": {
+   "daily": {
+    "open": "12:00",
+    "close": "20:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": true,
+  "image_urls": []
+ },
+ {
+  "id": "yn-12",
+  "name": "연남 와인바",
+  "category": "BAR",
+  "subcategory": "와인바",
+  "description": "골목 끝 작은 내추럴 와인바",
+  "address": "서울 마포구 연남로 45",
+  "latitude": 37.564,
+  "longitude": 126.922,
+  "price_min": 18000,
+  "price_max": 30000,
+  "duration_minutes": 70,
+  "indoor_outdoor": "INDOOR",
+  "tags": [
+   "ROMANTIC",
+   "DATE",
+   "NIGHT",
+   "QUIET"
+  ],
+  "rating": 4.6,
+  "review_count": 700,
+  "opening_hours": {
+   "daily": {
+    "open": "18:00",
+    "close": "01:00"
+   }
+  },
+  "reservation_required": false,
+  "website_url": null,
+  "is_event": false,
+  "image_urls": []
+ }
+]

@@ -1,0 +1,7 @@
+project_id = "mwohaji"
+
+[functions.ingest-tour-data]
+verify_jwt = false
+
+[functions.generate-plan-explanation]
+verify_jwt = true
