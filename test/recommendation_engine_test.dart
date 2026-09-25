@@ -68,6 +68,48 @@ void main() {
     });
   });
 
+  group('Place.hoursLabel', () {
+    Place place(Map<String, dynamic> hours) => Place.fromJson({
+      'id': 'x',
+      'name': 'x',
+      'category': 'CAFE',
+      'latitude': 37.5,
+      'longitude': 127.0,
+      'opening_hours': hours,
+    });
+    final sat = DateTime(2026, 9, 26);
+
+    test('daily window', () {
+      expect(
+        place({
+          'daily': {'open': '10:00', 'close': '22:00'},
+        }).hoursLabel(sat),
+        '10:00–22:00',
+      );
+      expect(
+        place({
+          'daily': {'open': '18:00', 'close': '02:00'},
+        }).hoursLabel(sat),
+        '18:00–02:00',
+      );
+    });
+    test('24h, closed day, unknown', () {
+      expect(
+        place({
+          'daily': {'open': '00:00', 'close': '24:00'},
+        }).hoursLabel(sat),
+        '24시간',
+      );
+      expect(
+        place({
+          'mon': {'open': '10:00', 'close': '18:00'},
+        }).hoursLabel(sat),
+        '휴무',
+      );
+      expect(place({}).hoursLabel(sat), isNull);
+    });
+  });
+
   group('ScoringService (명세 3.2)', () {
     const s = ScoringService();
 

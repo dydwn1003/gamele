@@ -200,7 +200,7 @@ class _TimelinePreview extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(stop.place.category.icon, size: 13, color: stop.place.category.tint),
+              Icon(stop.place.icon, size: 13, color: stop.place.category.tint),
               const SizedBox(width: 4),
               Text(
                 stop.place.name,

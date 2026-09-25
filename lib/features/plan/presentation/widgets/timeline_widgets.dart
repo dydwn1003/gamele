@@ -99,7 +99,7 @@ class TimelineNode extends StatelessWidget {
                         children: [
                           Row(
                             children: [
-                              Icon(p.category.icon, size: 17, color: p.category.tint),
+                              Icon(p.icon, size: 17, color: p.category.tint),
                               const SizedBox(width: 5),
                               Expanded(
                                 child: Text(p.name, style: AppTypography.bodyBold.copyWith(fontSize: 16)),
@@ -118,6 +118,21 @@ class TimelineNode extends StatelessWidget {
                               color: AppColors.textSecondary,
                             ),
                           ),
+                          if (p.hoursLabel(stop.start) case final hours?) ...[
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(Icons.schedule_rounded, size: 14, color: AppColors.textMuted),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    '예상 영업 $hours · 방문 전 확인해주세요',
+                                    style: AppTypography.caption.copyWith(fontSize: 12),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                           const SizedBox(height: 10),
                           Wrap(
                             spacing: 6,

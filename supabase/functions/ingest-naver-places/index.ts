@@ -68,6 +68,35 @@ interface Classified {
   duration: number; io: "INDOOR" | "OUTDOOR" | "MIXED"; hours: Record<string, unknown>;
 }
 
+/**
+ * 세부 업종별 '보통' 영업시간. 네이버 검색 API는 영업시간을 주지 않으므로 추정치다.
+ * 위에서부터 처음 맞는 규칙을 쓴다. (migrations/00009와 같은 규칙)
+ */
+const TYPICAL_HOURS: [Category, RegExp, string, string][] = [
+  ["FOOD", /브런치/, "09:00", "17:00"],
+  ["FOOD", /오마카세|스시|초밥/, "12:00", "22:00"],
+  ["FOOD", /고기|육류|삼겹|갈비|곱창|구이/, "11:30", "23:00"],
+  ["CAFE", /베이커리|제과|베이글|도넛/, "08:00", "21:00"],
+  ["BAR", /와인|칵테일|위스키|바\(BAR\)/, "18:00", "02:00"],
+  ["BAR", /이자카야|포장마차|포차|호프|요리주점/, "17:00", "02:00"],
+  ["ACTIVITY", /방탈출/, "10:00", "24:00"],
+  ["ACTIVITY", /보드게임|보드카페|만화카페|만화방/, "11:00", "24:00"],
+  ["ACTIVITY", /노래/, "13:00", "02:00"],
+  ["ACTIVITY", /셀프사진|포토부스|스티커사진/, "10:00", "24:00"],
+  ["ACTIVITY", /사진관|포토스튜디오/, "11:00", "20:00"],
+  ["ACTIVITY", /공방|공예|클래스|도자기|향수|캔들/, "11:00", "21:00"],
+  ["ACTIVITY", /볼링/, "11:00", "24:00"],
+  ["ACTIVITY", /클라이밍|볼더링/, "10:00", "23:00"],
+  ["EXHIBITION", /미술관|박물관|기념관/, "10:00", "18:00"],
+  ["EXHIBITION", /갤러리/, "11:00", "19:00"],
+];
+
+export function typicalHours(cls: Classified, naverCategory: string, name: string): Record<string, unknown> {
+  const text = `${naverCategory} ${name}`;
+  const rule = TYPICAL_HOURS.find(([cat, re]) => cat === cls.category && re.test(text));
+  return rule ? daily(rule[2], rule[3]) : cls.hours;
+}
+
 /** 네이버 분류("음식점>이탈리아음식", "카페,디저트>베이커리" 등) → 내부 카테고리 */
 export function classify(naverCategory: string, name: string, fallback: Category): Classified | null {
   const c = naverCategory;
@@ -256,7 +285,7 @@ Deno.serve(async (req) => {
         duration_minutes: cls.duration,
         indoor_outdoor: cls.io,
         tags: popular ? [...cls.tags, "POPULAR"] : cls.tags,
-        opening_hours: cls.hours,
+        opening_hours: typicalHours(cls, c.item.category ?? "", c.name),
         source: "NAVER",
         source_id: key.slice(0, 250),
         is_active: true,

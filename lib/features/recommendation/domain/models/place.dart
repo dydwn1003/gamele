@@ -163,6 +163,20 @@ class Place {
     return window.covers(startMin, endMin);
   }
 
+  /// 표시용 영업시간: "10:00–22:00", "24시간", "휴무". 정보가 없으면 null.
+  /// 네이버 수집 장소는 업종별 추정치다.
+  String? hoursLabel(DateTime day) {
+    if (openingHours.isEmpty) return null;
+    final raw = openingHours[_dayKeys[day.weekday - 1]] ?? openingHours['daily'];
+    if (raw == null) return _dayKeys.any(openingHours.containsKey) ? '휴무' : null;
+    if (raw == 'closed') return '휴무';
+    final w = OpeningWindow.fromJson(raw);
+    if (w == null) return null;
+    if (w.openMinute == 0 && w.closeMinute >= 24 * 60) return '24시간';
+    String hhmm(int m) => '${(m ~/ 60).toString().padLeft(2, '0')}:${(m % 60).toString().padLeft(2, '0')}';
+    return '${hhmm(w.openMinute)}–${hhmm(w.closeMinute)}';
+  }
+
   factory Place.fromJson(Map<String, dynamic> json, {bool fromRemote = false}) {
     List<String> strList(Object? v) => v is List ? v.map((e) => e.toString()).toList() : const [];
     return Place(

@@ -114,7 +114,7 @@ class _FeedbackSheetState extends ConsumerState<_FeedbackSheet> {
                             for (final p in places)
                               ChoiceChip(
                                 avatar: Icon(
-                                  p.category.icon,
+                                  p.icon,
                                   size: 16,
                                   color: _best == p ? Colors.white : p.category.tint,
                                 ),

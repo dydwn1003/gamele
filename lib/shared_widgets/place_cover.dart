@@ -101,7 +101,7 @@ class _IllustratedCover extends StatelessWidget {
                     ],
                   ),
                   alignment: Alignment.center,
-                  child: Icon(place.category.icon, size: iconSize * 0.62, color: Colors.white),
+                  child: Icon(place.icon, size: iconSize * 0.62, color: Colors.white),
                 ),
               ),
               if (showLabel)
