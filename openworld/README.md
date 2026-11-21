@@ -24,10 +24,20 @@ openworld/tools/run_playtest.sh
 - 테스트 내용은 `tools/playtest.gd`에서 바꿀 수 있습니다.
 
 ## 휴대폰에서 실행하기 (안드로이드)
-1. Godot 메뉴에서 **편집기 → 편집기 설정 → 내보내기 → Android**를 열고 Java SDK와 Android SDK 경로를 지정합니다.
-   ([공식 문서](https://docs.godotengine.org/en/stable/tutorials/export/exporting_for_android.html) 참고)
-2. **프로젝트 → 내보내기 템플릿 관리**에서 템플릿을 내려받습니다.
-3. **프로젝트 → 내보내기 → 추가 → Android**를 선택한 뒤, USB로 연결한 휴대폰을 골라 바로 실행하거나 APK로 내보냅니다.
+### APK 만들기
+```bash
+openworld/tools/build_apk.sh      # → openworld/build/everin.apk
+```
+- Android SDK나 Android Studio가 없어도 됩니다.
+- 필요한 것(Godot, 내보내기 템플릿, 서명 도구)은 처음 한 번만 `~/.cache/godot`에 받습니다. 템플릿이 약 1.3GB라 처음에는 오래 걸립니다.
+- 서명 키도 `~/.cache/godot/everin.keystore`에 처음 한 번 만듭니다. 키가 바뀌면 폰에서 기존 앱을 지운 뒤 새로 설치해야 합니다.
+
+### 폰에 설치하기
+1. `everin.apk`를 폰으로 옮깁니다. 카카오톡 나에게 보내기, 구글 드라이브, USB 중 편한 방법을 쓰면 됩니다.
+2. 폰에서 파일을 누르면 "출처를 알 수 없는 앱" 경고가 뜹니다. **설정 → 이 출처 허용**을 켭니다.
+3. 설치를 누릅니다. Play 프로텍트 경고가 뜨면 **무시하고 설치**를 누릅니다. 직접 만든 앱이라 뜨는 경고입니다.
+
+Godot 에디터에서 직접 내보내려면 **편집기 설정 → 내보내기 → Android**에 실제 Android SDK 경로를 지정하고, **프로젝트 → 내보내기 → Android**를 사용하면 됩니다.
 
 iOS는 Mac과 Xcode가 있어야 합니다.
 
