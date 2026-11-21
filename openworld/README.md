@@ -13,6 +13,16 @@
 PC에서는 마우스로 터치를 흉내 냅니다. 화면 왼쪽을 드래그하면 이동, 오른쪽을 드래그하면 카메라가 돌아가고, 버튼은 클릭하면 됩니다.
 키보드도 쓸 수 있습니다: WASD 이동, Space 점프/활공, J 공격, K 구르기, Shift 질주, E 상호작용.
 
+## 자동 플레이 테스트 (Claude Code / 리눅스)
+```bash
+openworld/tools/run_playtest.sh
+```
+- Godot이 없으면 `~/.cache/godot`에 공식 빌드를 내려받습니다.
+- 먼저 스크립트 오류를 검사합니다.
+- 그다음 가상 화면에서 게임을 자동으로 플레이하고 장면별 스크린샷을 `openworld/.playtest/`에 저장합니다.
+- 자동 플레이 순서: 시작 → 카엘 클로즈업 → 봉화 이동 → 골렘 전투 → 봉화 점화 → 활공
+- 테스트 내용은 `tools/playtest.gd`에서 바꿀 수 있습니다.
+
 ## 휴대폰에서 실행하기 (안드로이드)
 1. Godot 메뉴에서 **편집기 → 편집기 설정 → 내보내기 → Android**를 열고 Java SDK와 Android SDK 경로를 지정합니다.
    ([공식 문서](https://docs.godotengine.org/en/stable/tutorials/export/exporting_for_android.html) 참고)

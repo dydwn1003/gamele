@@ -110,7 +110,7 @@ func _ignite(announce: bool) -> void:
 	bm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	bm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	bm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	bm.albedo_color = Color(1.0, 0.6, 0.25, 0.35)
+	bm.albedo_color = Color(1.0, 0.5, 0.15, 0.16)
 	bm.cull_mode = BaseMaterial3D.CULL_DISABLED
 	_beam.material_override = bm
 	_beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -137,7 +137,7 @@ func _physics_process(_delta: float) -> void:
 			guardian = null
 
 	# 상호작용
-	var near := dist < 7.0 and not lit and not player.dead
+	var near: bool = dist < 7.0 and not lit and not player.dead
 	if near:
 		if guardian_alive:
 			Controls.interact_hint = "수호자를 먼저 쓰러뜨려야 한다"
@@ -154,7 +154,8 @@ func _physics_process(_delta: float) -> void:
 
 func _spawn_guardian() -> void:
 	var g := Enemy.new()
-	var lvl := 1 + int(Vector2(position.x, position.z).length() / 260.0) + 1
+	# 수호자 레벨은 거리 대신 "몇 번째 봉화인지"로 정한다 → 어느 봉화부터 가도 난이도가 차례로 오른다
+	var lvl := 2 + GameState.lit_beacons.size() * 2
 	g.setup("golem", lvl, player)
 	var x := position.x + 9.0
 	var z := position.z + 4.0

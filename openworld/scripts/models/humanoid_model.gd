@@ -303,8 +303,8 @@ func animate(delta: float, state: String, speed_ratio: float, progress := 0.0) -
 			tl = -0.25
 			tr = -0.3
 			torso_x = -0.35
-			cape_x = -1.35
-			cape_sx = 2.4
+			cape_x = -1.05
+			cape_sx = 2.2
 		"swim":
 			_phase += delta * 5.0
 			al = 2.6 + sin(_phase) * 0.6

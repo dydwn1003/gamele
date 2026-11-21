@@ -55,8 +55,11 @@ func _ready() -> void:
 		beacons.append(b)
 	# 첫 화면에서 가장 가까운 봉화 쪽을 바라보게
 	if not GameState.has_last_position:
-		var first: Vector3 = sites[0]
-		var d := first - spawn
+		var nearest: Vector3 = sites[0]
+		for s in sites:
+			if s.distance_to(spawn) < nearest.distance_to(spawn):
+				nearest = s
+		var d := nearest - spawn
 		rig.yaw = atan2(-d.x, -d.z)
 
 	var spawner := EnemySpawner.new()

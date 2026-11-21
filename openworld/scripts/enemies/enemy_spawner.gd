@@ -33,8 +33,8 @@ func _process(delta: float) -> void:
 func _try_spawn() -> void:
 	var a := randf() * TAU
 	var r := randf_range(45.0, 85.0)
-	var x := player.global_position.x + cos(a) * r
-	var z := player.global_position.z + sin(a) * r
+	var x: float = player.global_position.x + cos(a) * r
+	var z: float = player.global_position.z + sin(a) * r
 	var h := Terrain.height(x, z)
 	if h < 1.5 or h > 65.0 or Terrain.slope(x, z) > 0.6:
 		return
@@ -46,8 +46,8 @@ func _try_spawn() -> void:
 	var kind := "wolf" if randf() < forest * 0.8 else "goblin"
 	var pack := randi_range(2, 3) if kind == "goblin" else randi_range(1, 3)
 	for i in pack:
-		var ox := x + randf_range(-4.0, 4.0)
-		var oz := z + randf_range(-4.0, 4.0)
+		var ox: float = x + randf_range(-4.0, 4.0)
+		var oz: float = z + randf_range(-4.0, 4.0)
 		var e := Enemy.new()
 		e.setup(kind, lvl, player)
 		e.position = Vector3(ox, Terrain.height(ox, oz) + 0.5, oz)

@@ -25,7 +25,7 @@ var _msg_tween: Tween
 
 func _ready() -> void:
 	_root = Control.new()
-	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var theme := Theme.new()
 	theme.default_font = Fx.font()
@@ -85,7 +85,7 @@ func _ready() -> void:
 	_root.add_child(_hint)
 
 	_death = _label("쓰러졌다…\n마지막으로 밝힌 봉화에서 다시 일어난다", 34)
-	_death.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_death.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_death.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_death.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_death.modulate = Color(1, 0.7, 0.65)

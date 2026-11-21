@@ -14,7 +14,7 @@ const TYPES := {
 	"wolf": {"name": "잿빛 늑대", "hp": 32.0, "dmg": 7.0, "speed": 7.2, "range": 1.9,
 		"windup": 0.4, "cooldown": 1.1, "aggro": 20.0, "xp": 10, "gold": 1, "scale": 1.0,
 		"radius": 0.5, "attack_kind": 0},
-	"golem": {"name": "봉화의 수호자", "hp": 420.0, "dmg": 24.0, "speed": 3.0, "range": 3.4,
+	"golem": {"name": "봉화의 수호자", "hp": 260.0, "dmg": 24.0, "speed": 3.0, "range": 3.4,
 		"windup": 0.95, "cooldown": 1.8, "aggro": 22.0, "xp": 150, "gold": 40, "scale": 2.0,
 		"radius": 1.2, "attack_kind": 3},
 }
