@@ -13,15 +13,19 @@ var _attack_len := 0.4
 var _base_scale := 1.0
 
 
-func setup(_style := "wolf") -> void:
-	var fur := Color(0.45, 0.45, 0.48)
-	var fur_d := Color(0.3, 0.3, 0.33)
-	var belly := Color(0.72, 0.7, 0.66)
+func setup(style := "wolf") -> void:
+	var boar := style == "boar"
+	var fur := Color(0.45, 0.45, 0.48) if not boar else Color(0.42, 0.3, 0.2)
+	var fur_d := Color(0.3, 0.3, 0.33) if not boar else Color(0.28, 0.2, 0.14)
+	var belly := Color(0.72, 0.7, 0.66) if not boar else Color(0.5, 0.38, 0.28)
 	body = Node3D.new()
 	body.position = Vector3(0, 0.62, 0)
 	add_child(body)
 
 	var b := LowPoly.new()
+	if boar:
+		b.sphere(Vector3(0, 0.02, 0), 0.5, fur, Vector3(0.95, 0.85, 1.15), 3, 7)
+		b.box(Vector3(0, 0.3, -0.1), Vector3(0.1, 0.16, 0.8), fur_d)  # 등 갈기
 	b.box(Vector3(0, 0, 0), Vector3(0.42, 0.38, 0.95), fur)
 	b.box(Vector3(0, 0.06, -0.38), Vector3(0.48, 0.46, 0.4), fur_d)  # 갈기
 	b.box(Vector3(0, -0.17, 0.05), Vector3(0.34, 0.06, 0.7), belly)
@@ -36,6 +40,11 @@ func setup(_style := "wolf") -> void:
 	h.box(Vector3(0, -0.01, -0.45), Vector3(0.07, 0.06, 0.03), Color(0.1, 0.1, 0.1))
 	h.cylinder(Vector3(0.1, 0.14, -0.02), 0.06, 0.0, 0.16, 4, fur_d)
 	h.cylinder(Vector3(-0.1, 0.14, -0.02), 0.06, 0.0, 0.16, 4, fur_d)
+	if boar:  # 엄니와 둥근 코
+		var ivory := Color(0.95, 0.92, 0.8)
+		h.cylinder(Vector3(0.1, -0.1, -0.36), 0.035, 0.0, 0.2, 4, ivory, Transform3D(Basis(Vector3.RIGHT, -0.5), Vector3.ZERO))
+		h.cylinder(Vector3(-0.1, -0.1, -0.36), 0.035, 0.0, 0.2, 4, ivory, Transform3D(Basis(Vector3.RIGHT, -0.5), Vector3.ZERO))
+		h.box(Vector3(0, -0.04, -0.46), Vector3(0.16, 0.12, 0.04), Color(0.75, 0.5, 0.45))
 	h.box(Vector3(0.08, 0.06, -0.255), Vector3(0.05, 0.03, 0.02), Color(1.0, 0.55, 0.15))
 	h.box(Vector3(-0.08, 0.06, -0.255), Vector3(0.05, 0.03, 0.02), Color(1.0, 0.55, 0.15))
 	head.add_child(h.instance())
@@ -56,6 +65,8 @@ func setup(_style := "wolf") -> void:
 		l.box(Vector3(0, -0.47, -0.03), Vector3(0.11, 0.06, 0.16), fur_d)
 		leg.add_child(l.instance())
 		legs.append(leg)
+	if boar:
+		tail.scale = Vector3(0.6, 0.6, 0.4)
 	_base_scale = scale.x
 
 

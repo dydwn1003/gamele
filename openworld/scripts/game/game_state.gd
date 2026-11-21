@@ -45,6 +45,8 @@ var tracked_quest := ""
 
 # 일시 효과 (저장 안 함): 이름 -> 남은 초
 var buffs := {}
+# 이번 접속에서 채집한 지점 (저장 안 함 → 다시 켜면 다시 자라남)
+var harvested := {}
 
 # 설정
 var settings := {"sensitivity": 1.0, "view": 1, "shadows": true, "music": 0.7, "sfx": 0.9, "show_fps": false}
@@ -415,6 +417,8 @@ func npc_marker(npc: String) -> String:
 	for id in Quests.QUESTS:
 		var q: Dictionary = Quests.QUESTS[id]
 		if q.get("giver", "") == npc and quest_state(id) == "available" and not q.get("main", false):
+			return "!"
+		if q.get("type", "") == "talk" and q.get("target", "") == npc and quest_state(id) == "active":
 			return "!"
 	return ""
 

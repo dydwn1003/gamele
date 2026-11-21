@@ -3,7 +3,7 @@ extends Node
 ## 터치 HUD(가상 조이스틱/버튼)와 키보드 입력을 하나로 합쳐서
 ## 플레이어·카메라·봉화가 같은 방식으로 읽을 수 있게 한다.
 
-const ACTIONS := ["jump", "attack", "dodge", "sprint", "interact"]
+const ACTIONS := ["jump", "attack", "dodge", "sprint", "interact", "potion"]
 
 ## 가상 조이스틱 값 (-1..1). y가 +면 뒤쪽(화면 아래)
 var move_touch := Vector2.ZERO
@@ -28,6 +28,9 @@ func _ready() -> void:
 	_add_keys("dodge", [KEY_K, KEY_CTRL])
 	_add_keys("sprint", [KEY_SHIFT])
 	_add_keys("interact", [KEY_E, KEY_F])
+	_add_keys("potion", [KEY_Q])
+	_add_keys("menu", [KEY_ESCAPE, KEY_TAB, KEY_I])
+	_add_keys("map", [KEY_M])
 
 
 func _add_keys(action: String, keys: Array) -> void:

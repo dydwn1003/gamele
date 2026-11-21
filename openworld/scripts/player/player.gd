@@ -2,11 +2,13 @@ extends CharacterBody3D
 ## 주인공 카엘. 이동·질주·점프·망토 활공·구르기·3단 콤보·수영.
 
 signal died
+signal hurt(amount: float)
 
 const HumanoidModel = preload("res://scripts/models/humanoid_model.gd")
 const Terrain = preload("res://scripts/world/terrain.gd")
 const Fx = preload("res://scripts/game/fx.gd")
 const CameraRig = preload("res://scripts/player/camera_rig.gd")
+const Items = preload("res://scripts/game/items.gd")
 
 const RUN_SPEED := 7.5
 const SPRINT_SPEED := 12.0
@@ -45,6 +47,7 @@ var _last_level := 1
 var _facing := Vector3.FORWARD
 var _speed_ratio := 0.0
 var _last_safe := Vector3.ZERO
+var _potion_cd := 0.0
 
 
 func _ready() -> void:
@@ -60,17 +63,37 @@ func _ready() -> void:
 	col.shape = cap
 	col.position.y = 0.9
 	add_child(col)
-	model = HumanoidModel.new()
-	add_child(model)
-	model.setup("hero")
+	refresh_model()
 	hp = GameState.max_hp()
 	stamina = GameState.max_stamina()
 	_last_level = GameState.level
 	_last_safe = global_position
 	GameState.stats_changed.connect(_on_stats_changed)
+	GameState.equipment_changed.connect(refresh_model)
+
+
+## 장비에 맞춰 겉모습(튜닉 색, 판금, 칼날 색·길이)을 다시 만든다
+func refresh_model() -> void:
+	var yaw := 0.0
+	if model:
+		yaw = model.rotation.y
+		model.queue_free()
+	var weapon := Items.get_item(GameState.equipment["weapon"])
+	var armor := Items.get_item(GameState.equipment["armor"])
+	var opts := {
+		"tint": armor.get("tint", Color(0.55, 0.12, 0.12)),
+		"plate": armor.get("plate", false),
+		"blade": weapon.get("blade", Color(0.78, 0.8, 0.84)),
+		"blade_len": weapon.get("len", 0.9),
+	}
+	model = HumanoidModel.new()
+	add_child(model)
+	model.setup("hero", opts)
+	model.rotation.y = yaw
 
 
 func _on_stats_changed() -> void:
+	hp = minf(hp, GameState.max_hp())
 	if GameState.level > _last_level:
 		_last_level = GameState.level
 		hp = GameState.max_hp()
@@ -80,6 +103,7 @@ func _on_stats_changed() -> void:
 
 func _physics_process(delta: float) -> void:
 	_invuln = maxf(0.0, _invuln - delta)
+	_potion_cd = maxf(0.0, _potion_cd - delta)
 	if dead:
 		velocity.x = 0
 		velocity.z = 0
@@ -104,6 +128,8 @@ func _physics_process(delta: float) -> void:
 	sprinting = Controls.held("sprint") and mag > 0.1 and stamina > 1.0 and (on_floor or swimming)
 
 	# --- 입력 처리
+	if Controls.consume("potion"):
+		use_quick_potion()
 	if Controls.consume("dodge") and _dodge_t < 0.0 and on_floor and stamina >= 20.0:
 		_start_dodge(dir if mag > 0.1 else _facing)
 	if Controls.consume("attack") and on_floor and _dodge_t < 0.0:
@@ -194,8 +220,28 @@ func _snap_face(dir: Vector3) -> void:
 	model.rotation.y = atan2(-_facing.x, -_facing.z)
 
 
+func use_quick_potion() -> void:
+	if _potion_cd > 0.0 or dead:
+		return
+	var id := GameState.best_heal_item(GameState.max_hp() - hp)
+	if id == "":
+		GameState.message.emit("회복 아이템이 없다")
+		Sfx.play("error")
+		return
+	if hp >= GameState.max_hp():
+		GameState.message.emit("체력이 가득 차 있다")
+		return
+	var msg := GameState.use_item(id, self)
+	if msg != "":
+		_potion_cd = 1.0
+		Fx.popup(get_parent(), global_position + Vector3(0, 2.2, 0), "+HP", Color(0.4, 1.0, 0.5), 60)
+
+
 func _update_stamina(delta: float) -> void:
 	var cap := GameState.max_stamina()
+	if GameState.buffs.has("stamina"):
+		stamina = cap
+		return
 	var using := false
 	if sprinting:
 		stamina -= 14.0 * delta
@@ -226,8 +272,10 @@ func _start_dodge(d: Vector3) -> void:
 	_dodge_dir = d.normalized()
 	_snap_face(_dodge_dir)
 	_invuln = 0.4
-	stamina -= 20.0
+	if not GameState.buffs.has("stamina"):
+		stamina -= 20.0
 	_stamina_delay = 0.8
+	Sfx.play("dodge")
 
 
 func _start_attack(i: int) -> void:
@@ -241,6 +289,7 @@ func _start_attack(i: int) -> void:
 		_snap_face(target.global_position - global_position)
 	var spec: Array = COMBO[i]
 	model.play_attack(i, spec[0])
+	Sfx.play("swing", 0.12)
 	# 살짝 앞으로 내딛기
 	velocity.x = _facing.x * 5.0
 	velocity.z = _facing.z * 5.0
@@ -272,7 +321,7 @@ func _deal_damage(reach: float, min_dot: float, mult: float) -> void:
 			continue
 		if d > 0.3 and _facing.dot(to / d) < min_dot:
 			continue
-		var crit := randf() < 0.12
+		var crit := randf() < GameState.crit_chance()
 		var dmg := GameState.attack_power() * mult * randf_range(0.9, 1.1) * (1.8 if crit else 1.0)
 		e.take_damage(dmg, global_position, crit)
 		hit_any = true
@@ -306,8 +355,12 @@ func _nearest_enemy(max_dist: float) -> Node3D:
 func take_damage(amount: float, from: Vector3, silent := false) -> void:
 	if dead or (_invuln > 0.0 and not silent):
 		return
+	if not silent:
+		amount = GameState.reduce_damage(amount)
 	hp -= amount
 	if not silent:
+		Sfx.play("hurt")
+		hurt.emit(amount)
 		_invuln = 0.35
 		model.flash()
 		Fx.popup(get_parent(), global_position + Vector3(0, 2.0, 0), str(roundi(amount)), Color(1, 0.35, 0.3))
@@ -323,6 +376,10 @@ func take_damage(amount: float, from: Vector3, silent := false) -> void:
 		hp = 0.0
 		dead = true
 		gliding = false
+		var lost := GameState.gold / 10
+		if lost > 0:
+			GameState.add_gold(-lost)
+			GameState.message.emit("골드를 %dG 잃었다" % lost)
 		died.emit()
 
 

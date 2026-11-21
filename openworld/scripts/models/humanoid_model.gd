@@ -25,15 +25,22 @@ var _attack_kind := 0
 var _base_scale := 1.0
 
 
-func setup(p_style: String) -> void:
+## opts (주인공): tint 튜닉 색, plate 판금 여부, blade 칼날 색, blade_len 칼날 길이
+func setup(p_style: String, opts := {}) -> void:
 	style = p_style
 	match style:
 		"hero":
-			_build_hero()
-		"goblin":
-			_build_goblin()
+			_build_hero(opts)
+		"goblin", "goblin_chief":
+			_build_goblin(style == "goblin_chief")
 		"golem":
 			_build_golem()
+		"skeleton":
+			_build_skeleton()
+		"ogre":
+			_build_ogre()
+		"elder", "merchant", "smith", "guard":
+			_build_villager(style)
 	_base_scale = scale.x
 
 
@@ -64,10 +71,13 @@ func _skeleton(hip_h: float, shoulder: Vector3, hip_off: float, neck_y: float) -
 # ---------------------------------------------------------------- 카엘 (주인공)
 # 떠돌이 기사. 붉은 망토, 가죽 갑옷, 은빛 견갑, 장검. 갈색 머리에 흉터 하나.
 
-func _build_hero() -> void:
+func _build_hero(opts: Dictionary) -> void:
 	var skin := Color(0.93, 0.76, 0.62)
 	var hair := Color(0.36, 0.22, 0.13)
-	var tunic := Color(0.55, 0.12, 0.12)
+	var tunic: Color = opts.get("tint", Color(0.55, 0.12, 0.12))
+	var plate: bool = opts.get("plate", false)
+	var blade: Color = opts.get("blade", Color(0.78, 0.80, 0.84))
+	var blade_len: float = opts.get("blade_len", 0.9)
 	var leather := Color(0.45, 0.30, 0.18)
 	var dark := Color(0.22, 0.15, 0.10)
 	var steel := Color(0.78, 0.80, 0.84)
@@ -83,7 +93,11 @@ func _build_hero() -> void:
 
 	var t := LowPoly.new()
 	t.box(Vector3(0, 0.26, 0), Vector3(0.44, 0.44, 0.26), tunic)
-	t.box(Vector3(0, 0.24, -0.02), Vector3(0.46, 0.36, 0.25), leather)  # 가죽 흉갑
+	if plate:
+		t.box(Vector3(0, 0.26, -0.02), Vector3(0.48, 0.4, 0.27), steel)  # 판금 흉갑
+		t.box(Vector3(0, 0.3, -0.15), Vector3(0.12, 0.12, 0.02), tunic.lightened(0.3))  # 문장
+	else:
+		t.box(Vector3(0, 0.24, -0.02), Vector3(0.46, 0.36, 0.25), leather)  # 가죽 흉갑
 	t.box(Vector3(0, 0.03, 0), Vector3(0.46, 0.07, 0.28), dark)  # 벨트
 	t.box(Vector3(0, 0.03, -0.145), Vector3(0.09, 0.08, 0.02), gold)  # 버클
 	t.box(Vector3(0.06, 0.28, -0.14), Vector3(0.05, 0.4, 0.02), dark)  # 어깨끈
@@ -127,7 +141,7 @@ func _build_hero() -> void:
 	# 붉은 망토 (등 뒤 피벗에서 아래로)
 	cape = _pivot(torso, Vector3(0, 0.46, 0.14))
 	var c := LowPoly.new()
-	c.box(Vector3(0, -0.42, 0.02), Vector3(0.5, 0.84, 0.03), Color(0.68, 0.1, 0.1))
+	c.box(Vector3(0, -0.42, 0.02), Vector3(0.5, 0.84, 0.03), tunic.lightened(0.12))
 	c.box(Vector3(0, -0.85, 0.02), Vector3(0.5, 0.05, 0.035), gold)
 	_attach(cape, c)
 
@@ -137,16 +151,16 @@ func _build_hero() -> void:
 	s.box(Vector3(0, 0, 0.06), Vector3(0.04, 0.04, 0.2), dark)  # 손잡이
 	s.sphere(Vector3(0, 0, 0.17), 0.035, gold, Vector3.ONE, 2, 5)  # 폼멜
 	s.box(Vector3(0, 0, -0.06), Vector3(0.26, 0.05, 0.05), gold)  # 가드
-	s.box(Vector3(0, 0, -0.55), Vector3(0.07, 0.02, 0.9), steel)  # 칼날
-	s.box(Vector3(0, 0, -0.55), Vector3(0.015, 0.03, 0.88), Color(0.6, 0.62, 0.68))  # 홈
+	s.box(Vector3(0, 0, -0.08 - blade_len * 0.5), Vector3(0.07, 0.02, blade_len), blade)  # 칼날
+	s.box(Vector3(0, 0, -0.08 - blade_len * 0.5), Vector3(0.015, 0.03, blade_len - 0.02), blade.darkened(0.25))  # 홈
 	_attach(weapon, s)
 
 
 # ---------------------------------------------------------------- 고블린 약탈자
 # 작고 등이 굽은 초록 피부. 큰 귀, 노란 눈, 누더기 천, 가시 박힌 몽둥이.
 
-func _build_goblin() -> void:
-	var skin := Color(0.42, 0.6, 0.25)
+func _build_goblin(chief := false) -> void:
+	var skin := Color(0.42, 0.6, 0.25) if not chief else Color(0.33, 0.5, 0.22)
 	var rag := Color(0.42, 0.33, 0.22)
 	var dark := Color(0.2, 0.16, 0.12)
 	_skeleton(0.62, Vector3(0.22, 0.3, 0), 0.09, 0.36)
@@ -171,7 +185,17 @@ func _build_goblin() -> void:
 	h.box(Vector3(-0.07, 0.18, -0.16), Vector3(0.06, 0.035, 0.02), Color(1.0, 0.85, 0.2))
 	h.box(Vector3(0.07, 0.18, -0.16), Vector3(0.06, 0.035, 0.02), Color(1.0, 0.85, 0.2))
 	h.box(Vector3(0, 0.05, -0.15), Vector3(0.14, 0.02, 0.02), dark)
+	if chief:  # 우두머리: 뿔 투구와 해골 견갑
+		h.cylinder(Vector3(0, 0.26, 0), 0.17, 0.12, 0.08, 6, Color(0.5, 0.45, 0.4))
+		h.cylinder(Vector3(0.1, 0.3, 0), 0.04, 0.0, 0.2, 4, Color(0.9, 0.88, 0.8))
+		h.cylinder(Vector3(-0.1, 0.3, 0), 0.04, 0.0, 0.2, 4, Color(0.9, 0.88, 0.8))
 	_attach(head, h)
+	if chief:
+		var sp := LowPoly.new()
+		sp.sphere(Vector3(0.22, 0.3, 0), 0.09, Color(0.9, 0.88, 0.8), Vector3.ONE, 2, 5)
+		sp.sphere(Vector3(-0.22, 0.3, 0), 0.09, Color(0.9, 0.88, 0.8), Vector3.ONE, 2, 5)
+		sp.box(Vector3(0, 0.15, 0.12), Vector3(0.3, 0.3, 0.04), Color(0.55, 0.15, 0.12))
+		_attach(torso, sp)
 
 	for side in [-1.0, 1.0]:
 		var arm: Node3D = arm_l if side < 0 else arm_r
@@ -240,6 +264,186 @@ func _build_golem() -> void:
 		_attach(leg, l)
 
 
+# ---------------------------------------------------------------- 해골 전사 (밤에만 등장)
+
+func _build_skeleton() -> void:
+	var bone := Color(0.9, 0.88, 0.8)
+	var bone_d := Color(0.7, 0.68, 0.6)
+	var rust := Color(0.55, 0.35, 0.25)
+	_skeleton(0.92, Vector3(0.24, 0.42, 0), 0.1, 0.5)
+	var p := LowPoly.new()
+	p.box(Vector3(0, 0, 0), Vector3(0.3, 0.1, 0.16), bone_d)
+	p.box(Vector3(0, -0.15, -0.09), Vector3(0.26, 0.24, 0.02), Color(0.3, 0.22, 0.2))  # 누더기
+	_attach(hips, p)
+	var t := LowPoly.new()
+	t.box(Vector3(0, 0.22, 0), Vector3(0.06, 0.45, 0.06), bone)  # 척추
+	for i in 4:
+		t.box(Vector3(0, 0.12 + i * 0.09, -0.02), Vector3(0.32 - i * 0.02, 0.03, 0.18), bone)  # 갈비뼈
+	t.box(Vector3(0, 0.45, 0), Vector3(0.44, 0.06, 0.1), bone_d)  # 쇄골
+	_attach(torso, t)
+	var h := LowPoly.new()
+	h.sphere(Vector3(0, 0.15, 0), 0.15, bone, Vector3(0.95, 1.05, 1.0), 3, 6)
+	h.box(Vector3(0, 0.03, -0.06), Vector3(0.16, 0.06, 0.14), bone_d)  # 턱
+	h.box(Vector3(-0.055, 0.16, -0.135), Vector3(0.06, 0.06, 0.03), Color(0.05, 0.05, 0.08))
+	h.box(Vector3(0.055, 0.16, -0.135), Vector3(0.06, 0.06, 0.03), Color(0.05, 0.05, 0.08))
+	h.box(Vector3(-0.055, 0.16, -0.15), Vector3(0.025, 0.025, 0.01), Color(0.4, 0.9, 1.0))  # 푸른 안광
+	h.box(Vector3(0.055, 0.16, -0.15), Vector3(0.025, 0.025, 0.01), Color(0.4, 0.9, 1.0))
+	h.cylinder(Vector3(0, 0.24, 0), 0.17, 0.13, 0.1, 6, rust)  # 녹슨 투구
+	_attach(head, h)
+	for side in [-1.0, 1.0]:
+		var arm: Node3D = arm_l if side < 0 else arm_r
+		var a := LowPoly.new()
+		a.box(Vector3(0, -0.15, 0), Vector3(0.05, 0.3, 0.05), bone)
+		a.box(Vector3(0, -0.42, 0), Vector3(0.045, 0.26, 0.045), bone)
+		a.sphere(Vector3(0, -0.58, 0), 0.05, bone_d, Vector3.ONE, 2, 5)
+		_attach(arm, a)
+		var leg: Node3D = leg_l if side < 0 else leg_r
+		var l := LowPoly.new()
+		l.box(Vector3(0, -0.2, 0), Vector3(0.06, 0.4, 0.06), bone)
+		l.box(Vector3(0, -0.6, 0), Vector3(0.055, 0.38, 0.055), bone)
+		l.box(Vector3(0, -0.82, -0.05), Vector3(0.09, 0.05, 0.18), bone_d)
+		_attach(leg, l)
+	weapon = _pivot(arm_r, Vector3(0, -0.58, 0))
+	var w := LowPoly.new()
+	w.box(Vector3(0, 0, 0.05), Vector3(0.04, 0.04, 0.14), Color(0.3, 0.2, 0.15))
+	w.box(Vector3(0, 0, -0.04), Vector3(0.2, 0.04, 0.04), rust)
+	w.box(Vector3(0, 0, -0.42), Vector3(0.07, 0.02, 0.72), rust.lightened(0.2))
+	_attach(weapon, w)
+	var sh := LowPoly.new()  # 방패
+	sh.cylinder(Vector3(0, -0.45, -0.08), 0.22, 0.22, 0.04, 6, Color(0.45, 0.32, 0.2),
+		Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3.ZERO))
+	_attach(arm_l, sh)
+
+
+# ---------------------------------------------------------------- 오우거 족장 (산의 보스)
+
+func _build_ogre() -> void:
+	var skin := Color(0.62, 0.5, 0.4)
+	var fur := Color(0.35, 0.25, 0.18)
+	var dark := Color(0.2, 0.15, 0.12)
+	_skeleton(0.9, Vector3(0.42, 0.5, 0), 0.17, 0.62)
+	torso.position.y = 0.05
+	var p := LowPoly.new()
+	p.box(Vector3(0, 0, 0), Vector3(0.6, 0.3, 0.42), fur)
+	p.box(Vector3(0, -0.2, -0.2), Vector3(0.4, 0.3, 0.04), fur)
+	_attach(hips, p)
+	var t := LowPoly.new()
+	t.sphere(Vector3(0, 0.3, 0.02), 0.42, skin, Vector3(1.15, 0.9, 0.85), 3, 7)
+	t.sphere(Vector3(0, 0.12, -0.12), 0.3, skin.darkened(0.05), Vector3(1.1, 0.9, 0.9), 3, 6)  # 배
+	t.box(Vector3(0.1, 0.32, -0.3), Vector3(0.08, 0.6, 0.04), dark, Transform3D(Basis(Vector3.BACK, 0.5), Vector3.ZERO))
+	t.sphere(Vector3(0.38, 0.5, 0.05), 0.2, fur, Vector3(1, 0.6, 1), 2, 6)
+	t.sphere(Vector3(-0.38, 0.5, 0.05), 0.2, fur, Vector3(1, 0.6, 1), 2, 6)
+	_attach(torso, t)
+	var h := LowPoly.new()
+	h.sphere(Vector3(0, 0.12, -0.04), 0.2, skin, Vector3(1.1, 0.95, 1.0), 3, 6)
+	h.box(Vector3(0, 0.02, -0.2), Vector3(0.24, 0.1, 0.08), skin.darkened(0.1))  # 턱
+	h.cylinder(Vector3(0.07, 0.07, -0.24), 0.025, 0.0, 0.08, 4, Color(0.95, 0.92, 0.8))  # 송곳니
+	h.cylinder(Vector3(-0.07, 0.07, -0.24), 0.025, 0.0, 0.08, 4, Color(0.95, 0.92, 0.8))
+	h.box(Vector3(-0.07, 0.16, -0.21), Vector3(0.05, 0.03, 0.02), Color(0.95, 0.3, 0.1))
+	h.box(Vector3(0.07, 0.16, -0.21), Vector3(0.05, 0.03, 0.02), Color(0.95, 0.3, 0.1))
+	h.cylinder(Vector3(0.13, 0.25, 0), 0.05, 0.0, 0.22, 5, Color(0.75, 0.6, 0.45), Transform3D(Basis(Vector3.BACK, -0.5), Vector3.ZERO))
+	h.cylinder(Vector3(-0.13, 0.25, 0), 0.05, 0.0, 0.22, 5, Color(0.75, 0.6, 0.45), Transform3D(Basis(Vector3.BACK, 0.5), Vector3.ZERO))
+	_attach(head, h)
+	for side in [-1.0, 1.0]:
+		var arm: Node3D = arm_l if side < 0 else arm_r
+		var a := LowPoly.new()
+		a.sphere(Vector3(0, -0.2, 0), 0.16, skin, Vector3(1, 1.5, 1), 3, 6)
+		a.sphere(Vector3(0, -0.6, 0), 0.15, skin, Vector3(1, 1.5, 1), 3, 6)
+		a.box(Vector3(0, -0.55, 0), Vector3(0.24, 0.12, 0.24), dark)  # 팔찌
+		a.sphere(Vector3(0, -0.85, 0), 0.14, skin, Vector3.ONE, 2, 6)
+		_attach(arm, a)
+		var leg: Node3D = leg_l if side < 0 else leg_r
+		var l := LowPoly.new()
+		l.sphere(Vector3(0, -0.22, 0), 0.17, fur, Vector3(1, 1.3, 1), 3, 6)
+		l.box(Vector3(0, -0.6, 0), Vector3(0.24, 0.34, 0.26), skin)
+		l.box(Vector3(0, -0.8, -0.06), Vector3(0.26, 0.1, 0.36), dark)
+		_attach(leg, l)
+	weapon = _pivot(arm_r, Vector3(0, -0.85, 0))
+	var w := LowPoly.new()  # 거대한 대검
+	w.box(Vector3(0, 0, 0.08), Vector3(0.06, 0.06, 0.3), dark)
+	w.box(Vector3(0, 0, -0.08), Vector3(0.36, 0.08, 0.08), Color(0.45, 0.4, 0.35))
+	w.box(Vector3(0, 0, -0.75), Vector3(0.2, 0.04, 1.3), Color(0.55, 0.45, 0.4))
+	_attach(weapon, w)
+
+
+# ---------------------------------------------------------------- 마을 사람들
+
+func _build_villager(kind: String) -> void:
+	var skin := Color(0.92, 0.75, 0.6) if kind != "smith" else Color(0.8, 0.6, 0.45)
+	var shirt := {"elder": Color(0.35, 0.3, 0.5), "merchant": Color(0.2, 0.5, 0.45),
+		"smith": Color(0.35, 0.3, 0.25), "guard": Color(0.25, 0.3, 0.45)}[kind] as Color
+	var pants := Color(0.3, 0.25, 0.2)
+	var hair := {"elder": Color(0.88, 0.88, 0.86), "merchant": Color(0.55, 0.25, 0.12),
+		"smith": Color(0.15, 0.1, 0.08), "guard": Color(0.4, 0.3, 0.2)}[kind] as Color
+	var steel := Color(0.75, 0.77, 0.8)
+	_skeleton(0.9, Vector3(0.27, 0.42, 0), 0.1, 0.5)
+	if kind == "elder":
+		torso.rotation.x = -0.15
+	var p := LowPoly.new()
+	p.box(Vector3(0, 0, 0), Vector3(0.36, 0.2, 0.22), pants)
+	if kind == "elder" or kind == "merchant":  # 긴 옷자락
+		p.cylinder(Vector3(0, -0.75, 0), 0.3, 0.2, 0.75, 6, shirt.darkened(0.1))
+	_attach(hips, p)
+	var t := LowPoly.new()
+	t.box(Vector3(0, 0.24, 0), Vector3(0.42, 0.46, 0.25), shirt)
+	t.box(Vector3(0, 0.03, 0), Vector3(0.44, 0.06, 0.27), Color(0.3, 0.2, 0.12))
+	match kind:
+		"smith":
+			t.box(Vector3(0, 0.15, -0.135), Vector3(0.36, 0.5, 0.02), Color(0.45, 0.3, 0.18))  # 앞치마
+		"guard":
+			t.box(Vector3(0, 0.26, -0.01), Vector3(0.46, 0.4, 0.27), steel)
+			t.box(Vector3(0, 0.3, -0.145), Vector3(0.14, 0.16, 0.02), Color(0.85, 0.65, 0.2))
+			t.sphere(Vector3(0.27, 0.44, 0), 0.12, steel, Vector3(1.1, 0.7, 1.1), 2, 6)
+			t.sphere(Vector3(-0.27, 0.44, 0), 0.12, steel, Vector3(1.1, 0.7, 1.1), 2, 6)
+		"merchant":
+			t.box(Vector3(0.12, 0.05, -0.13), Vector3(0.12, 0.12, 0.06), Color(0.75, 0.55, 0.25))  # 돈주머니
+	_attach(torso, t)
+	var h := LowPoly.new()
+	h.sphere(Vector3(0, 0.16, 0), 0.16, skin, Vector3(0.95, 1.05, 1.0), 3, 6)
+	h.sphere(Vector3(0, 0.22, 0.03), 0.17, hair, Vector3(1.02, 0.75, 1.02), 3, 6)
+	h.box(Vector3(-0.06, 0.16, -0.15), Vector3(0.035, 0.04, 0.02), Color(0.1, 0.1, 0.1))
+	h.box(Vector3(0.06, 0.16, -0.15), Vector3(0.035, 0.04, 0.02), Color(0.1, 0.1, 0.1))
+	match kind:
+		"elder":  # 흰 수염
+			h.cylinder(Vector3(0, -0.12, -0.08), 0.02, 0.12, 0.2, 5, hair, Transform3D(Basis(Vector3.RIGHT, PI), Vector3(0, 0.1, 0)))
+		"smith":
+			h.box(Vector3(0, 0.04, -0.13), Vector3(0.2, 0.1, 0.06), hair)  # 턱수염
+		"merchant":  # 넓은 모자
+			h.cylinder(Vector3(0, 0.28, 0), 0.3, 0.3, 0.03, 8, Color(0.6, 0.45, 0.25))
+			h.cylinder(Vector3(0, 0.3, 0), 0.15, 0.12, 0.12, 8, Color(0.6, 0.45, 0.25))
+		"guard":  # 투구
+			h.cylinder(Vector3(0, 0.18, 0), 0.19, 0.15, 0.16, 7, steel)
+			h.box(Vector3(0, 0.36, 0), Vector3(0.04, 0.08, 0.24), Color(0.7, 0.15, 0.15))
+	_attach(head, h)
+	for side in [-1.0, 1.0]:
+		var arm: Node3D = arm_l if side < 0 else arm_r
+		var a := LowPoly.new()
+		a.box(Vector3(0, -0.15, 0), Vector3(0.11, 0.3, 0.11), shirt)
+		a.box(Vector3(0, -0.42, 0), Vector3(0.1, 0.26, 0.1), skin if kind == "smith" else shirt.darkened(0.1))
+		a.sphere(Vector3(0, -0.58, 0), 0.06, skin, Vector3.ONE, 2, 5)
+		_attach(arm, a)
+		var leg: Node3D = leg_l if side < 0 else leg_r
+		var l := LowPoly.new()
+		l.box(Vector3(0, -0.2, 0), Vector3(0.14, 0.4, 0.15), pants)
+		l.box(Vector3(0, -0.6, 0), Vector3(0.14, 0.36, 0.16), Color(0.25, 0.18, 0.12))
+		l.box(Vector3(0, -0.82, -0.05), Vector3(0.15, 0.08, 0.24), Color(0.2, 0.14, 0.1))
+		_attach(leg, l)
+	if kind == "elder" or kind == "guard" or kind == "smith":
+		weapon = _pivot(arm_r, Vector3(0, -0.58, 0))
+		var w := LowPoly.new()
+		match kind:
+			"elder":  # 지팡이
+				w.cylinder(Vector3(0, -0.6, 0), 0.03, 0.03, 1.5, 5, Color(0.45, 0.3, 0.18))
+				w.sphere(Vector3(0, 0.92, 0), 0.06, Color(1.0, 0.7, 0.3), Vector3.ONE, 2, 5)
+			"guard":  # 창
+				w.cylinder(Vector3(0, -0.8, 0), 0.025, 0.025, 2.1, 5, Color(0.45, 0.3, 0.18))
+				w.cylinder(Vector3(0, 1.3, 0), 0.06, 0.0, 0.25, 4, steel)
+			"smith":  # 망치
+				w.cylinder(Vector3(0, -0.05, 0), 0.025, 0.025, 0.4, 5, Color(0.45, 0.3, 0.18))
+				w.box(Vector3(0, 0.38, 0), Vector3(0.18, 0.1, 0.1), Color(0.35, 0.35, 0.38))
+		_attach(weapon, w)
+
+
 # ---------------------------------------------------------------- 애니메이션
 
 func play_attack(kind: int, length: float) -> void:
@@ -265,7 +469,11 @@ func animate(delta: float, state: String, speed_ratio: float, progress := 0.0) -
 	var ar := 0.0
 	var al_z := 0.0  # 팔 벌리기
 	var ar_z := 0.0
-	var torso_x := -0.25 if style == "goblin" else 0.0
+	var torso_x := 0.0
+	if style == "goblin" or style == "goblin_chief":
+		torso_x = -0.25
+	elif style == "elder":
+		torso_x = -0.15
 	var torso_y := 0.0
 	var hip_y := _hip_height
 	var cape_x := 0.0

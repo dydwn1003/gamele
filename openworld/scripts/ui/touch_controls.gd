@@ -26,6 +26,7 @@ func _buttons() -> Array:
 		{"action": "dodge", "label": "구르기", "pos": Vector2(s.x - 120, s.y - 290), "r": 50.0, "color": Color(0.55, 0.45, 0.85)},
 		{"action": "sprint", "label": "질주", "pos": Vector2(s.x - 255, s.y - 225), "r": 44.0, "color": Color(0.35, 0.7, 0.4)},
 	]
+	list.append({"action": "potion", "label": "물약\n%d" % GameState.heal_item_total(), "pos": Vector2(s.x - 395, s.y - 80), "r": 42.0, "color": Color(0.75, 0.2, 0.3)})
 	if Controls.interact_hint != "":
 		list.append({"action": "interact", "label": "확인", "pos": Vector2(s.x - 330, s.y - 340), "r": 50.0, "color": Color(0.95, 0.7, 0.2)})
 	return list
@@ -38,10 +39,21 @@ func _button_at(p: Vector2) -> String:
 	return ""
 
 
+## HUD 의 메뉴 버튼 같은 UI 위를 누른 터치는 조이스틱/카메라로 쓰지 않는다
+func _blocked(p: Vector2) -> bool:
+	var list: Array = get_tree().get_nodes_in_group("touch_block")
+	for c in list:
+		if c.is_visible_in_tree() and c.get_global_rect().has_point(p):
+			return true
+	return false
+
+
 func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		var e: InputEventScreenTouch = make_input_local(event)
 		if e.pressed:
+			if _blocked(e.position):
+				return
 			var act := _button_at(e.position)
 			if act != "":
 				_button_touch[e.index] = act

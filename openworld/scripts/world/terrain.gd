@@ -11,6 +11,7 @@ static var _continent: FastNoiseLite
 static var _mountain: FastNoiseLite
 static var _detail: FastNoiseLite
 static var _forest: FastNoiseLite
+static var _beacon_cache: Array[Vector3] = []
 
 
 static func init(seed_value: int) -> void:
@@ -91,6 +92,8 @@ static func color_at(h: float, steep: float, x: float, z: float, jitter: float) 
 
 ## 봉화 7개의 위치: 섬을 고르게 둘러싸도록 각도별로 탐색한다
 static func beacon_sites(count: int) -> Array[Vector3]:
+	if _beacon_cache.size() == count:
+		return _beacon_cache
 	var sites: Array[Vector3] = []
 	for i in count:
 		var ang := TAU * float(i) / count + 0.35
@@ -113,4 +116,5 @@ static func beacon_sites(count: int) -> Array[Vector3]:
 			var z := sin(ang) * 200.0
 			chosen = Vector3(x, height(x, z), z)
 		sites.append(chosen)
+	_beacon_cache = sites
 	return sites

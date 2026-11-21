@@ -14,6 +14,7 @@ config/icon="res://icon.svg"
 
 GameState="*res://scripts/game/game_state.gd"
 Controls="*res://scripts/game/controls.gd"
+Sfx="*res://scripts/game/sfx.gd"
 
 [display]
 
@@ -26,7 +27,7 @@ window/handheld/orientation=0
 [input_devices]
 
 pointing/emulate_touch_from_mouse=true
-pointing/emulate_mouse_from_touch=false
+pointing/emulate_mouse_from_touch=true
 
 [physics]
 

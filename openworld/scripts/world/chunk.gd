@@ -4,6 +4,8 @@ extends StaticBody3D
 const LowPoly = preload("res://scripts/models/low_poly.gd")
 const Terrain = preload("res://scripts/world/terrain.gd")
 const Props = preload("res://scripts/world/props.gd")
+const ResourceNode = preload("res://scripts/world/resource_node.gd")
+const Camp = preload("res://scripts/world/camp.gd")
 
 const SIZE := 48.0
 const RES := 16  # 한 변 격자 수 → 3m 짜리 큰 삼각형으로 로우폴리 느낌
@@ -49,6 +51,7 @@ func build(c: Vector2i) -> void:
 	col.shape = mi.mesh.create_trimesh_shape()
 	add_child(col)
 	_scatter(rng)
+	_resources()
 
 
 func _terrain_tri(lp: LowPoly, a: Vector3, b: Vector3, c: Vector3, rng: RandomNumberGenerator) -> void:
@@ -61,8 +64,31 @@ func _terrain_tri(lp: LowPoly, a: Vector3, b: Vector3, c: Vector3, rng: RandomNu
 	lp.tri(a, b, c, col, center - Vector3.UP)
 
 
+## 거점·봉화 근처처럼 비워둬야 하는 원 (x, z, 반지름)
+func _clear_zones() -> Array:
+	var zones := []
+	var center := Vector2(position.x + SIZE * 0.5, position.z + SIZE * 0.5)
+	for s in Camp.sites():
+		var p := Vector2(s["pos"].x, s["pos"].z)
+		if p.distance_to(center) < SIZE + 20.0:
+			zones.append([p, 15.0])
+	for b in Terrain.beacon_sites(GameState.BEACON_COUNT):
+		var p := Vector2(b.x, b.z)
+		if p.distance_to(center) < SIZE + 20.0:
+			zones.append([p, 11.0])
+	return zones
+
+
+func _in_zone(zones: Array, x: float, z: float) -> bool:
+	for zn in zones:
+		if Vector2(x, z).distance_to(zn[0]) < float(zn[1]):
+			return true
+	return false
+
+
 func _scatter(rng: RandomNumberGenerator) -> void:
 	var groups := {}
+	var zones := _clear_zones()
 	for attempt in 70:
 		var lx := rng.randf() * SIZE
 		var lz := rng.randf() * SIZE
@@ -74,7 +100,7 @@ func _scatter(rng: RandomNumberGenerator) -> void:
 		if Terrain.slope(wx, wz) > 0.55:
 			continue
 		# 시작 지점 바로 주변은 비워둔다
-		if Vector2(wx, wz).length() < 18.0:
+		if Vector2(wx, wz).length() < 42.0 or _in_zone(zones, wx, wz):
 			continue
 		var f := Terrain.forest(wx, wz)
 		var r := rng.randf()
@@ -124,3 +150,30 @@ func _scatter(rng: RandomNumberGenerator) -> void:
 		if kind == "flowers" or kind == "bush":
 			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(mmi)
+
+
+## 약초·광맥 채집 지점
+func _resources() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(coord) + 99
+	for i in 3:
+		var lx := rng.randf_range(4.0, SIZE - 4.0)
+		var lz := rng.randf_range(4.0, SIZE - 4.0)
+		var wx := position.x + lx
+		var wz := position.z + lz
+		var h := Terrain.height(wx, wz)
+		var roll := rng.randf()
+		if Vector2(wx, wz).length() < 45.0 or Terrain.slope(wx, wz) > 0.6:
+			continue
+		var kind := ""
+		if h > 20.0 and h < 65.0 and roll < 0.3:
+			kind = "ore"
+		elif h > 2.0 and h < 30.0 and roll < 0.3:
+			kind = "herb"
+		if kind == "":
+			continue
+		var n := ResourceNode.new()
+		n.node_id = "%d_%d_%d" % [coord.x, coord.y, i]
+		n.kind = kind
+		n.position = Vector3(lx, h - position.y, lz)
+		add_child(n)

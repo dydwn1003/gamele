@@ -59,6 +59,11 @@ func update(pos: Vector3) -> void:
 			n += 1
 
 
+## 시야 거리 설정이 바뀌었을 때 청크 목록을 다시 계산
+func force_refresh() -> void:
+	_center = Vector2i(999999, 999999)
+
+
 func _in_range(c: Vector2i) -> bool:
 	var d := c - _center
 	return d.x * d.x + d.y * d.y <= view_radius * view_radius + 1

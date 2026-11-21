@@ -16,7 +16,6 @@ var lit := false
 var _fire: Node3D
 var _light: OmniLight3D
 var _beam: MeshInstance3D
-var _near := false
 
 
 func setup(p_index: int, pos: Vector3, p_player) -> void:
@@ -29,7 +28,12 @@ func display_name() -> String:
 	return NAMES[index % NAMES.size()]
 
 
+var interact_radius := 7.0
+
+
 func _ready() -> void:
+	add_to_group("interactable")
+	add_to_group("beacons")
 	var stone := Color(0.62, 0.6, 0.56)
 	var stone_d := Color(0.45, 0.44, 0.42)
 	var wood := Color(0.42, 0.28, 0.16)
@@ -136,20 +140,26 @@ func _physics_process(_delta: float) -> void:
 			guardian.queue_free()
 			guardian = null
 
-	# 상호작용
-	var near: bool = dist < 7.0 and not lit and not player.dead
-	if near:
-		if guardian_alive:
-			Controls.interact_hint = "수호자를 먼저 쓰러뜨려야 한다"
-		else:
-			Controls.interact_hint = "봉화 밝히기"
-			if Controls.consume("interact"):
-				_ignite(true)
-				Controls.interact_hint = ""
-		_near = true
-	elif _near:
-		_near = false
-		Controls.interact_hint = ""
+
+
+## ---- 상호작용 (interaction.gd 가 호출)
+func interact_text() -> String:
+	if lit:
+		return ""
+	if _guardian_alive():
+		return "수호자를 먼저 쓰러뜨려야 한다"
+	return "봉화 밝히기"
+
+
+func interact() -> void:
+	if lit or _guardian_alive():
+		Sfx.play("error")
+		return
+	_ignite(true)
+
+
+func _guardian_alive() -> bool:
+	return guardian != null and is_instance_valid(guardian) and not guardian.dead
 
 
 func _spawn_guardian() -> void:

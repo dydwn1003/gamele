@@ -11,7 +11,7 @@
 3. 오른쪽 위 ▶ 버튼(F5)을 누릅니다.
 
 PC에서는 마우스로 터치를 흉내 냅니다. 화면 왼쪽을 드래그하면 이동, 오른쪽을 드래그하면 카메라가 돌아가고, 버튼은 클릭하면 됩니다.
-키보드도 쓸 수 있습니다: WASD 이동, Space 점프/활공, J 공격, K 구르기, Shift 질주, E 상호작용.
+키보드도 쓸 수 있습니다: WASD 이동, Space 점프/활공, J 공격, K 구르기, Shift 질주, E 상호작용, Q 물약, Tab/I 메뉴, M 지도.
 
 ## 자동 플레이 테스트 (Claude Code / 리눅스)
 ```bash
@@ -46,12 +46,16 @@ iOS는 Mac과 Xcode가 있어야 합니다.
 openworld/
 ├─ project.godot              프로젝트 설정 (모바일 렌더러, 가로 화면)
 ├─ scenes/main.tscn           시작 씬 (main.gd 하나만 붙어 있음)
+├─ audio/                     효과음·배경음악 (tools/gen_audio.py 로 합성)
 ├─ docs/GAME_DESIGN.md        기획서 · 캐릭터 디자인
 └─ scripts/
    ├─ main.gd                 하늘·조명·낮밤·월드·플레이어·UI 조립, 부활 처리
    ├─ game/
-   │  ├─ game_state.gd        레벨·경험치·봉화 진행·저장 (자동 로드)
+   │  ├─ game_state.gd        레벨·인벤토리·장비·강화·퀘스트·봉화·저장 (자동 로드)
    │  ├─ controls.gd          터치 + 키보드 입력 통합 (자동 로드)
+   │  ├─ sfx.gd               효과음·배경음악 (자동 로드)
+   │  ├─ items.gd             아이템 28종, 제작 레시피, 상점 목록
+   │  ├─ quests.gd            퀘스트 13개
    │  └─ fx.gd                데미지 숫자, 한글 폰트
    ├─ models/
    │  ├─ low_poly.gd          로우폴리 메시 생성기 (상자·원기둥·구 → 플랫 셰이딩)
@@ -62,7 +66,12 @@ openworld/
    │  ├─ chunk.gd             48m 지형 조각: 메시·충돌·나무/바위 배치
    │  ├─ world.gd             청크 스트리밍 + 바다
    │  ├─ props.gd             나무·바위·덤불·꽃 메시
-   │  └─ beacon.gd            봉화탑, 수호자 소환, 점화
+   │  ├─ beacon.gd            봉화탑, 수호자 소환, 점화
+   │  ├─ village.gd / npc.gd  새벽 마을과 NPC 4명
+   │  ├─ camp.gd / chest.gd   몬스터 거점 13곳과 보물상자
+   │  ├─ resource_node.gd     약초·철광맥 채집
+   │  ├─ pickup.gd            떨어진 전리품
+   │  └─ interaction.gd       '확인' 버튼 상호작용 (대화·채집·상자·봉화)
    ├─ player/
    │  ├─ player.gd            이동·질주·점프·활공·구르기·콤보·수영
    │  └─ camera_rig.gd        3인칭 카메라
@@ -70,7 +79,12 @@ openworld/
    │  ├─ enemy.gd             적 AI (배회 → 추적 → 예고 → 공격)
    │  └─ enemy_spawner.gd     주변 적 생성·정리
    └─ ui/
-      ├─ hud.gd               체력·기력·경험치, 알림, 사망 화면
+      ├─ title_screen.gd      타이틀 화면
+      ├─ hud.gd               체력·기력, 메뉴 버튼, 퀘스트 추적, 배너, 보스 체력바
+      ├─ game_menu.gd         가방·장비·퀘스트·지도·설정
+      ├─ dialog_ui.gd         NPC 대화, 상점, 대장간
+      ├─ item_icon.gd         아이템 아이콘 (코드로 그림)
+      ├─ ui_kit.gd            공용 UI 테마
       ├─ touch_controls.gd    가상 조이스틱 + 버튼 (멀티터치)
       └─ radar.gd             레이더/나침반
 ```
@@ -84,5 +98,4 @@ openworld/
 
 ## 알려진 한계 (프로토타입)
 - 애니메이션은 관절을 코드로 돌리는 방식이라 단순합니다. 나중에 Mixamo 애니메이션이 들어간 .glb 모델로 바꿀 수 있습니다.
-- 효과음과 배경음악은 아직 없습니다.
 - 한글은 기기의 시스템 폰트를 사용합니다. 글자가 깨지면 Noto Sans KR 같은 폰트 파일을 프로젝트에 넣고 `scripts/game/fx.gd`에서 지정하세요.

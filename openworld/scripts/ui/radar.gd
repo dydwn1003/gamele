@@ -8,6 +8,7 @@ const RANGE := 400.0
 var player  # player.gd
 var camera_rig  # camera_rig.gd
 var beacons: Array = []
+var main  # main.gd (퀘스트 목표 위치)
 
 
 func _process(_delta: float) -> void:
@@ -54,6 +55,16 @@ func _draw() -> void:
 			draw_colored_polygon(PackedVector2Array([tip, tip - dir * 14 + side, tip - dir * 14 - side]), col)
 		else:
 			draw_circle(c + p, 6.0, col)
+
+	# 추적 중인 퀘스트 목표 ★
+	if main:
+		var tgt = main.quest_target()
+		if tgt != null:
+			var p := _to_radar(tgt, yaw, radius)
+			if p.length() > radius - 12:
+				p = p.normalized() * (radius - 12)
+			draw_string_outline(font, c + p + Vector2(-10, 9), "★", HORIZONTAL_ALIGNMENT_CENTER, 20, 24, 5, Color.BLACK)
+			draw_string(font, c + p + Vector2(-10, 9), "★", HORIZONTAL_ALIGNMENT_CENTER, 20, 24, Color(1, 0.9, 0.3))
 
 	# 플레이어 (가운데 삼각형: 캐릭터가 보는 방향)
 	var face_yaw: float = player.model.rotation.y - yaw
