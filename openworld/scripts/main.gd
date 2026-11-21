@@ -172,19 +172,19 @@ func _update_daylight() -> void:
 	sun.rotation = Vector3(-ang if elevation > 0.0 else -0.3, deg_to_rad(-35.0), 0)
 	var day := clampf(elevation * 3.0 + 0.3, 0.0, 1.0)
 	var dusk := clampf(1.0 - absf(elevation) * 4.0, 0.0, 1.0) * day
-	sun.light_energy = lerpf(0.08, 1.15, day)
+	sun.light_energy = lerpf(0.35, 1.15, day)  # 밤에도 달빛으로 길이 보이게
 	sun.light_color = Color(1, 0.97, 0.9).lerp(Color(1, 0.6, 0.35), dusk).lerp(Color(0.6, 0.7, 1.0), 1.0 - day)
 	var top_day := Color(0.3, 0.55, 0.9)
 	var horizon_day := Color(0.72, 0.82, 0.92)
-	var top_night := Color(0.03, 0.04, 0.1)
-	var horizon_night := Color(0.1, 0.12, 0.22)
+	var top_night := Color(0.06, 0.08, 0.18)
+	var horizon_night := Color(0.18, 0.22, 0.36)
 	sky_mat.sky_top_color = top_night.lerp(top_day, day)
 	var horizon := horizon_night.lerp(horizon_day, day).lerp(Color(0.95, 0.6, 0.4), dusk * 0.7)
 	sky_mat.sky_horizon_color = horizon
 	sky_mat.ground_horizon_color = horizon
 	sky_mat.ground_bottom_color = top_night.lerp(Color(0.3, 0.35, 0.3), day)
 	env.fog_light_color = horizon
-	env.ambient_light_energy = lerpf(0.4, 1.0, day)
+	env.ambient_light_energy = lerpf(0.75, 1.0, day)
 
 
 func _process(delta: float) -> void:
