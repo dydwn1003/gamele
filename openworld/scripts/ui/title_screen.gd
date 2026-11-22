@@ -28,19 +28,21 @@ func _ready() -> void:
 	v.anchor_bottom = 0.5
 	v.offset_left = -300
 	v.offset_right = 300
-	v.offset_top = -250
-	v.offset_bottom = 250
+	v.offset_top = -300
+	v.offset_bottom = 300
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
 	_root.add_child(v)
-	var title := UI.label("에버린", 120, Color(1.0, 0.85, 0.5))
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_constant_override("outline_size", 18)
-	title.add_theme_color_override("font_outline_color", Color(0.25, 0.08, 0.02))
-	v.add_child(title)
-	var sub := UI.label("— 잊힌 봉화 —", 36, Color(1.0, 0.95, 0.85))
-	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sub.add_theme_constant_override("outline_size", 10)
-	v.add_child(sub)
+	if ResourceLoader.exists("res://art/ui/logo.png"):
+		var logo := TextureRect.new()
+		logo.texture = load("res://art/ui/logo.png")
+		logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		logo.custom_minimum_size = Vector2(600, 298)
+		v.add_child(logo)
+	else:
+		var title := UI.label("에버린", 120, Color(1.0, 0.85, 0.5))
+		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		v.add_child(title)
 	var gap := Control.new()
 	gap.custom_minimum_size = Vector2(0, 30)
 	v.add_child(gap)

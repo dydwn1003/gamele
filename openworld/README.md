@@ -47,6 +47,10 @@ openworld/
 ├─ project.godot              프로젝트 설정 (모바일 렌더러, 가로 화면)
 ├─ scenes/main.tscn           시작 씬 (main.gd 하나만 붙어 있음)
 ├─ audio/                     효과음·배경음악 (tools/gen_audio.py 로 합성)
+├─ art/                       디자인 그림 (Gemini 로 제작)
+│  ├─ icons/items/<아이템 id>.png   아이템 아이콘 28종 (파일명 = items.gd 의 id)
+│  ├─ ui/                     로고, 앱 아이콘, 패널·버튼(9-slice), 터치 버튼, 메뉴 아이콘
+│  └─ concept/                스타일 가이드, 캐릭터 컨셉
 ├─ docs/GAME_DESIGN.md        기획서 · 캐릭터 디자인
 └─ scripts/
    ├─ main.gd                 하늘·조명·낮밤·월드·플레이어·UI 조립, 부활 처리
@@ -99,3 +103,10 @@ openworld/
 ## 알려진 한계 (프로토타입)
 - 애니메이션은 관절을 코드로 돌리는 방식이라 단순합니다. 나중에 Mixamo 애니메이션이 들어간 .glb 모델로 바꿀 수 있습니다.
 - 한글은 기기의 시스템 폰트를 사용합니다. 글자가 깨지면 Noto Sans KR 같은 폰트 파일을 프로젝트에 넣고 `scripts/game/fx.gd`에서 지정하세요.
+
+## 디자인 그림 교체하기
+- 그림 파일이 있으면 그림을 쓰고, 없으면 코드로 그린 기본 모양을 씁니다. 그래서 같은 이름으로 파일을 덮어쓰기만 하면 바로 바뀝니다.
+- 아이템 아이콘: `art/icons/items/<id>.png` (정사각형, 투명 배경)
+- 터치 버튼: `art/ui/btn_<attack|jump|dodge|sprint|potion|interact>.png` (원형, 투명 배경)
+- 메뉴 아이콘: `art/ui/tab_<bag|equip|quest|map|settings>.png`
+- 패널·버튼: `art/ui/panel.png`, `button_normal.png`, `button_pressed.png` (모서리 장식은 늘어나지 않는 9-slice)

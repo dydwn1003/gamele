@@ -11,6 +11,15 @@ var selected := false
 var equipped := false
 var enhance := 0
 
+static var _tex_cache := {}
+
+
+## res://art/ 아래 그림을 읽어온다 (없으면 null)
+static func tex(path: String) -> Texture2D:
+	if not _tex_cache.has(path):
+		_tex_cache[path] = load(path) if ResourceLoader.exists(path) else null
+	return _tex_cache[path]
+
 
 func _init() -> void:
 	custom_minimum_size = Vector2(76, 76)
@@ -35,15 +44,26 @@ func _gui_input(event: InputEvent) -> void:
 func _draw() -> void:
 	var r := Rect2(Vector2.ZERO, size)
 	var rc := Items.rarity_color(item_id) if item_id != "" else Color(0.4, 0.35, 0.3)
-	var bg := Color(0.14, 0.11, 0.09)
-	if item_id != "":
-		bg = bg.lerp(rc, 0.12)
-	draw_style_box(_sb(bg, rc if item_id != "" else Color(0.3, 0.26, 0.2), 3 if selected else 2), r)
+	var slot := tex("res://art/ui/slot.png")
+	if slot:
+		draw_texture_rect(slot, r, false, Color(1, 1, 1, 1) if item_id != "" else Color(0.75, 0.75, 0.75))
+		if item_id != "":
+			draw_rect(r.grow(-3), Color(rc.r, rc.g, rc.b, 0.12))
+			draw_style_box(_sb(Color(0, 0, 0, 0), rc, 3 if selected else 2), r.grow(-1))
+	else:
+		var bg := Color(0.14, 0.11, 0.09)
+		if item_id != "":
+			bg = bg.lerp(rc, 0.12)
+		draw_style_box(_sb(bg, rc if item_id != "" else Color(0.3, 0.26, 0.2), 3 if selected else 2), r)
 	if selected:
 		draw_rect(r.grow(-2), Color(1, 0.9, 0.5, 0.15))
 	if item_id == "":
 		return
-	draw_icon(self, item_id, r.get_center(), minf(size.x, size.y) * 0.36)
+	var art := tex("res://art/icons/items/%s.png" % item_id)
+	if art:
+		draw_texture_rect(art, r.grow(-minf(size.x, size.y) * 0.1), false)
+	else:
+		draw_icon(self, item_id, r.get_center(), minf(size.x, size.y) * 0.36)
 	var font := get_theme_default_font()
 	if count > 1:
 		draw_string_outline(font, Vector2(4, size.y - 6), str(count), HORIZONTAL_ALIGNMENT_RIGHT, size.x - 8, 18, 4, Color.BLACK)

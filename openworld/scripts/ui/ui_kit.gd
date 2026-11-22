@@ -26,6 +26,21 @@ static func box(bg: Color, border := Color(0, 0, 0, 0), radius := 10, border_w :
 	return s
 
 
+## 그림 파일로 9-slice 스타일 (모서리는 그대로, 가운데만 늘어남)
+static func tex_box(path: String, margin: float, content: Vector2, modulate := Color.WHITE) -> StyleBox:
+	if not ResourceLoader.exists(path):
+		return null
+	var s := StyleBoxTexture.new()
+	s.texture = load(path)
+	s.set_texture_margin_all(margin)
+	s.content_margin_left = content.x
+	s.content_margin_right = content.x
+	s.content_margin_top = content.y
+	s.content_margin_bottom = content.y
+	s.modulate_color = modulate
+	return s
+
+
 static func theme() -> Theme:
 	if _theme:
 		return _theme
@@ -33,6 +48,9 @@ static func theme() -> Theme:
 	t.default_font = Fx.font()
 	t.default_font_size = 22
 	t.set_stylebox("panel", "PanelContainer", box(BG, GOLD, 14, 3, 18))
+	var panel_tex := tex_box("res://art/ui/panel.png", 44.0, Vector2(30, 28))
+	if panel_tex:
+		t.set_stylebox("panel", "PanelContainer", panel_tex)
 	t.set_stylebox("panel", "Panel", box(BG2, GOLD_DIM, 10, 2, 10))
 	t.set_stylebox("normal", "Button", box(BG2, GOLD_DIM, 9, 2, 10))
 	t.set_stylebox("hover", "Button", box(BG3, GOLD, 9, 2, 10))
@@ -40,6 +58,13 @@ static func theme() -> Theme:
 	t.set_stylebox("hover_pressed", "Button", box(Color(0.42, 0.31, 0.17), GOLD, 9, 2, 10))
 	t.set_stylebox("disabled", "Button", box(Color(0.12, 0.1, 0.09), Color(0.3, 0.27, 0.22), 9, 2, 10))
 	t.set_stylebox("focus", "Button", StyleBoxEmpty.new())
+	var btn := tex_box("res://art/ui/button_normal.png", 24.0, Vector2(18, 8))
+	if btn:
+		t.set_stylebox("normal", "Button", btn)
+		t.set_stylebox("hover", "Button", tex_box("res://art/ui/button_normal.png", 24.0, Vector2(18, 8), Color(1.25, 1.18, 1.05)))
+		t.set_stylebox("pressed", "Button", tex_box("res://art/ui/button_pressed.png", 24.0, Vector2(18, 8), Color(1.3, 1.15, 0.9)))
+		t.set_stylebox("hover_pressed", "Button", tex_box("res://art/ui/button_pressed.png", 24.0, Vector2(18, 8), Color(1.4, 1.25, 1.0)))
+		t.set_stylebox("disabled", "Button", tex_box("res://art/ui/button_normal.png", 24.0, Vector2(18, 8), Color(0.45, 0.42, 0.4)))
 	t.set_color("font_color", "Button", TEXT)
 	t.set_color("font_hover_color", "Button", Color(1, 0.95, 0.8))
 	t.set_color("font_pressed_color", "Button", Color(1, 0.9, 0.6))

@@ -106,6 +106,17 @@ func _draw() -> void:
 		var c: Color = b["color"]
 		var pos: Vector2 = b["pos"]
 		var r: float = b["r"]
+		var art: Texture2D = _art(b["action"])
+		if art:
+			# 디자인 그림 버튼: 누르면 살짝 작아지고 밝아진다
+			var rr := r * (0.92 if pressed else 1.0)
+			draw_texture_rect(art, Rect2(pos - Vector2(rr, rr), Vector2(rr, rr) * 2.0), false,
+				Color(1.25, 1.2, 1.1, 1.0) if pressed else Color(1, 1, 1, 0.88))
+			if b["action"] == "potion":  # 남은 개수 배지
+				var bp := pos + Vector2(r * 0.62, r * 0.62)
+				draw_circle(bp, 16, Color(0.75, 0.15, 0.15))
+				draw_string(font, bp + Vector2(-16, 7), str(GameState.heal_item_total()), HORIZONTAL_ALIGNMENT_CENTER, 32, 19, Color.WHITE)
+			continue
 		draw_circle(pos, r, Color(c.r, c.g, c.b, 0.8 if pressed else 0.45))
 		draw_arc(pos, r, 0, TAU, 40, Color(1, 1, 1, 0.7), 3.0, true)
 		var lines: PackedStringArray = String(b["label"]).split("\n")
@@ -113,3 +124,13 @@ func _draw() -> void:
 		var y0 := pos.y - (lines.size() - 1) * fs * 0.55 + fs * 0.35
 		for i in lines.size():
 			draw_string(font, Vector2(pos.x - r, y0 + i * fs * 1.1), lines[i], HORIZONTAL_ALIGNMENT_CENTER, r * 2.0, fs, Color(1, 1, 1))
+
+
+var _art_cache := {}
+
+
+func _art(action: String) -> Texture2D:
+	if not _art_cache.has(action):
+		var path := "res://art/ui/btn_%s.png" % action
+		_art_cache[action] = load(path) if ResourceLoader.exists(path) else null
+	return _art_cache[action]

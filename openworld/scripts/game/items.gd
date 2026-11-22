@@ -2,9 +2,9 @@ extends RefCounted
 ## 아이템 데이터베이스 (소비 / 재료 / 무기 / 방어구 / 장신구) + 제작 레시피 + 상점 목록
 
 const RARITY_NAMES := ["일반", "고급", "희귀", "영웅", "전설"]
+## 스타일 가이드 등급색 (art/concept/style_guide.png)
 const RARITY_COLORS := [
-	Color(0.85, 0.85, 0.85), Color(0.45, 0.9, 0.4), Color(0.35, 0.65, 1.0),
-	Color(0.78, 0.45, 1.0), Color(1.0, 0.65, 0.2)]
+	Color("#9AA0A6"), Color("#34A853"), Color("#4285F4"), Color("#B04CC8"), Color("#FF8F00")]
 
 const TYPE_NAMES := {
 	"consumable": "소비", "material": "재료", "weapon": "무기", "armor": "방어구", "accessory": "장신구"}

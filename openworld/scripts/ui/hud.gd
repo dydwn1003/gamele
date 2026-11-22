@@ -106,13 +106,13 @@ func _ready() -> void:
 	_root.add_child(_feed)
 
 	# --- 위 가운데: 메뉴 버튼들
-	var btns := UI.hbox(8)
-	_place(btns, 0.5, 0.0, -230, 12, 460, 56)
+	var btns := UI.hbox(10)
+	_place(btns, 0.5, 0.0, -200, 8, 400, 70)
 	btns.alignment = BoxContainer.ALIGNMENT_CENTER
 	btns.add_to_group("touch_block")
 	_root.add_child(btns)
-	for b in [["가방", 0], ["장비", 1], ["퀘스트", 2], ["지도", 3], ["설정", 4]]:
-		var bt := UI.button(b[0], Vector2(84, 50), 19)
+	for b in [["가방", 0, "tab_bag"], ["장비", 1, "tab_equip"], ["퀘스트", 2, "tab_quest"], ["지도", 3, "tab_map"], ["설정", 4, "tab_settings"]]:
+		var bt := _icon_button(b[0], "res://art/ui/%s.png" % b[2])
 		bt.pressed.connect(func() -> void:
 			if menu:
 				menu.open_menu(b[1]))
@@ -120,7 +120,7 @@ func _ready() -> void:
 
 	# 보스 체력바
 	_boss_box = UI.vbox(2)
-	_place(_boss_box, 0.5, 0.0, -260, 74, 520, 50)
+	_place(_boss_box, 0.5, 0.0, -260, 84, 520, 50)
 	_boss_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(_boss_box)
 	_boss_name = _label("", 20)
@@ -196,6 +196,24 @@ func _ready() -> void:
 		player.hurt.connect(_on_hurt)
 	_refresh_static()
 	_refresh_quest()
+
+
+## 그림 아이콘 버튼 (그림이 없으면 글자 버튼)
+func _icon_button(text: String, path: String) -> Button:
+	if not ResourceLoader.exists(path):
+		return UI.button(text, Vector2(84, 50), 19)
+	var b := Button.new()
+	b.icon = load(path)
+	b.expand_icon = true
+	b.flat = true
+	b.tooltip_text = text
+	b.custom_minimum_size = Vector2(68, 68)
+	b.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+	b.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
+	b.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	b.pressed.connect(func() -> void: Sfx.play("ui_click", 0.0))
+	return b
 
 
 func _place(c: Control, ax: float, ay: float, x: float, y: float, w: float, h: float) -> void:

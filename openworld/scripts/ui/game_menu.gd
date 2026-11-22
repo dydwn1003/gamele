@@ -52,8 +52,13 @@ func _ready() -> void:
 	panel.add_child(v)
 	var head := UI.hbox(8)
 	v.add_child(head)
+	var tab_icons := ["tab_bag", "tab_equip", "tab_quest", "tab_map", "tab_settings"]
 	for i in TABS.size():
-		var b := UI.button(TABS[i], Vector2(120, 54), 24)
+		var b := UI.button(TABS[i], Vector2(140, 58), 24)
+		var ip := "res://art/ui/%s.png" % tab_icons[i]
+		if ResourceLoader.exists(ip):
+			b.icon = load(ip)
+			b.add_theme_constant_override("icon_max_width", 36)
 		b.toggle_mode = true
 		b.pressed.connect(_set_tab.bind(i))
 		head.add_child(b)
@@ -204,7 +209,8 @@ func _item_detail(id: String) -> Control:
 		var slot: String = it["type"]
 		var cur: String = GameState.equipment[slot]
 		if cur != "":
-			v.add_child(UI.label("현재 장착: %s  (%s)" % [Items.item_name(cur), Items.describe_stats(Items.stats_of(cur, GameState.enhance_level(cur)))], 17, UI.TEXT_DIM, true))
+			var cur_stats := Items.describe_stats(Items.stats_of(cur, GameState.enhance_level(cur)))
+			v.add_child(UI.label("현재 장착: %s%s" % [Items.item_name(cur), ("  (%s)" % cur_stats) if cur_stats != "" else ""], 17, UI.TEXT_DIM, true))
 	var desc := UI.label(String(it.get("desc", "")), 20, UI.TEXT, true)
 	desc.custom_minimum_size = Vector2(380, 0)
 	v.add_child(desc)
