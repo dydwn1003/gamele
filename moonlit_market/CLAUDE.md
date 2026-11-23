@@ -7,5 +7,5 @@
 - `class_name` 대신 `preload` 상수를 쓴다 (헤드리스 테스트에서 글로벌 클래스 캐시 의존 방지).
 - `:=` 로 Variant(딕셔너리 값 등) 타입 추론 금지 → `var x: int = d["k"]` 처럼 명시.
 - 재화 변경은 `EconomyManager.spend/earn` 으로만. 정산/오프라인 보상은 중복 지급 방지 로직 유지.
-- 테스트: `bash tools/test.sh` (Godot 자동 설치) · 화면 확인: `bash tools/screenshots.sh`
+- 테스트: `bash tools/test.sh` (Godot 자동 설치) · 화면 확인: `bash tools/screenshots.sh` · 웹 빌드: `bash tools/build_web.sh`
 - UI 를 바꾸면 screenshots.sh 로 실제 화면을 확인한다. 실행해 보지 않은 것을 테스트했다고 기록하지 않는다.

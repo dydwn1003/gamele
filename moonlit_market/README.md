@@ -26,15 +26,25 @@ Godot 4.x (GDScript, 2D, GL Compatibility 렌더러), 세로형 720x1280 기준.
 - 화면 확인은 `bash tools/screenshots.sh` → 새 게임, 노점 설치, 영업 준비, 영업 중(3배속),
   정산, 상인, 시너지 화면 8장을 저장합니다.
 
+### 웹(HTML5) 빌드
+```bash
+bash tools/build_web.sh                       # 웹 템플릿 자동 설치(1회, 약 1.2GB 다운로드) 후 내보내기
+cd build/web && python3 -m http.server 8000   # 브라우저에서 http://localhost:8000
+```
+- 스레드를 쓰지 않는 빌드라 특별한 서버 헤더 없이 어떤 정적 호스팅(GitHub Pages, itch.io 등)에서도 동작합니다.
+- `build/artifact/` 는 claude.ai 아티팩트용입니다. 파일당 크기 제한 때문에 엔진(wasm 약 44MB)을
+  14MB 조각으로 나누고, 페이지의 로더가 받아서 합칩니다.
+- 웹에서는 OS 글꼴을 쓸 수 없어 `assets/fonts/` 의 Noto Sans KR(OFL, 상용 한글 2,350자 + 게임 문자로 축소)을 사용합니다.
+- 저장 데이터는 브라우저(IndexedDB)에 남습니다.
+
 ### Android 빌드
 Godot 에디터 → Project → Install Android Build Template, Export → Android 프리셋 추가
 (Android SDK/JDK 필요). 화면 방향은 세로(Portrait), 렌더러는 Compatibility 로 설정되어 있습니다.
 
 ### 한국어 글꼴
-`assets/fonts/main.ttf` (+ 선택 `main_bold.ttf`) 를 넣으면 그 글꼴을 사용합니다.
-없으면 OS 시스템 글꼴(Noto Sans CJK KR, Apple SD Gothic Neo, 맑은 고딕 등)을 사용합니다.
-Android/iOS/Windows/macOS 는 기본 한글 글꼴이 있지만, **한글 글꼴이 없는 Linux 데스크톱에서는
-글자가 네모로 보일 수 있으니** Noto Sans KR 등 OFL 글꼴을 `assets/fonts/main.ttf` 로 넣어 주세요.
+`assets/fonts/main.ttf`, `main_bold.ttf` 에 Noto Sans KR(SIL Open Font License, `assets/fonts/OFL.txt`)을
+축소해서 넣었습니다 (상용 한글 2,350자 + 게임에 쓰인 문자). 게임 텍스트에 새 한자/특수문자를 쓰면
+글꼴을 다시 축소해야 합니다. 파일이 없으면 OS 시스템 글꼴로 대체됩니다.
 
 ## 플레이 흐름
 
