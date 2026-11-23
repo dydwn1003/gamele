@@ -98,11 +98,16 @@ func refresh_slots() -> void:
 
 
 ## 화면의 사용 가능 영역(HUD 사이)에 시장 전체가 보이도록 배치
+## 디자인 상단 SKY_CROP 픽셀(밤하늘)은 영역 밖으로 나가도 되도록 계산
+const SKY_CROP := 30.0
+
+
 func fit_to_rect(rect: Rect2) -> void:
-	var s := minf(rect.size.x / DESIGN_SIZE.x, rect.size.y / DESIGN_SIZE.y)
+	var content := Vector2(DESIGN_SIZE.x, DESIGN_SIZE.y - SKY_CROP)
+	var s := minf(rect.size.x / content.x, rect.size.y / content.y)
 	s = clampf(s, 0.4, 1.3)
 	scale = Vector2(s, s)
-	position = rect.position + (rect.size - DESIGN_SIZE * s) / 2.0
+	position = rect.position + (rect.size - content * s) / 2.0 - Vector2(0, SKY_CROP * s)
 
 
 # ───────── 레이아웃 ─────────

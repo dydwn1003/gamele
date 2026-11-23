@@ -11,14 +11,20 @@ Godot 4.x (GDScript, 2D, GL Compatibility 렌더러), 세로형 720x1280 기준.
 1. Godot **4.4 이상** (4.1+ 필요: `static var` 사용) 을 설치합니다.
 2. Godot 프로젝트 매니저에서 `moonlit_market/project.godot` 를 가져와 실행(F5)합니다.
    - 데스크톱 창은 405x720 으로 열리며 마우스 클릭이 터치로 동작합니다.
-3. 테스트(헤드리스):
+3. 테스트(헤드리스) — Godot 이 없으면 자동으로 내려받아 설치합니다:
    ```bash
    cd moonlit_market
-   godot --headless --path . --import          # 최초 1회 (리소스 임포트)
-   godot --headless --path . res://tests/test_runner.tscn -- --test
+   bash tools/test.sh          # 종료 코드 0 = 전체 통과
+   bash tools/screenshots.sh   # Xvfb 에서 자동 플레이하며 screenshots/ 에 PNG 저장
    ```
+   직접 실행하려면 `godot --headless --path . res://tests/test_runner.tscn -- --test`.
    `--test` 인자가 있으면 `user://_test_saves` 를 사용하므로 실제 세이브를 건드리지 않습니다.
-   종료 코드 0 = 전체 통과.
+
+### Claude Code (클라우드 세션)에서 실행
+- 클라우드 환경 설정 스크립트가 새 세션마다 Godot 4.4.1 을 `/usr/local/bin/godot` 에 설치합니다.
+  설정이 없는 환경이어도 `tools/setup_godot.sh` 가 자동 설치하므로 `bash tools/test.sh` 만 실행하면 됩니다.
+- 화면 확인은 `bash tools/screenshots.sh` → 새 게임, 노점 설치, 영업 준비, 영업 중(3배속),
+  정산, 상인, 시너지 화면 8장을 저장합니다.
 
 ### Android 빌드
 Godot 에디터 → Project → Install Android Build Template, Export → Android 프리셋 추가

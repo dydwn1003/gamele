@@ -58,7 +58,7 @@ const BALANCE_DEFAULTS := {
 	"browse_time_min": 0.6, "browse_time_max": 1.8, "no_choice_weight": 0.35,
 	"purchase_base_chance": 0.97, "purchase_price_penalty": 1.3,
 	"satisfaction_base": 68.0, "satisfaction_wait_penalty": 0.9, "walkout_satisfaction": 15.0,
-	"reputation_per_satisfaction": 0.04, "reputation_per_buyer": 0.15,
+	"reputation_per_satisfaction": 0.015, "reputation_per_buyer": 0.1,
 	"reputation_walkout_penalty": 0.3, "satisfaction_bonus_threshold": 70.0,
 	"satisfaction_bonus_rate": 0.05, "spoilage_rate": 0.15, "build_refund_rate": 0.5,
 	"offline_efficiency": 0.35, "offline_max_minutes": 240.0, "offline_min_minutes": 1.0,

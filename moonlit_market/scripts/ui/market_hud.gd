@@ -88,6 +88,7 @@ func _build_top() -> void:
 	wbox.add_child(weather_icon)
 	weather_label = UIKit.label("흐림", "caption")
 	weather_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	weather_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	wbox.add_child(weather_label)
 	var settings := UIKit.button("", "secondary", 76)
 	settings.custom_minimum_size = Vector2(76, 76)
@@ -244,6 +245,11 @@ func _stack_banners() -> void:
 
 func top_height() -> float:
 	return 166.0 + _safe_top
+
+
+## 영업 정보 카드가 시장(맨 윗줄 노점)을 가리지 않도록 확보하는 높이
+func banner_space() -> float:
+	return 126.0
 
 
 func bottom_height() -> float:

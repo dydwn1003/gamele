@@ -15,7 +15,9 @@ func build() -> void:
 	var gl := UIKit.label("달빛 보석 %d" % GameManager.state.gems, "section")
 	gl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	gr.add_child(gl)
-	gr.add_child(UIKit.label("프리미엄 재화 (준비 중)", "caption"))
+	var gnote := UIKit.label("준비 중", "caption")
+	gnote.autowrap_mode = TextServer.AUTOWRAP_OFF
+	gr.add_child(gnote)
 	content.add_child(gc)
 	content.add_child(UIKit.label("과금 없이도 모든 성장이 가능합니다. 유료 상품은 꾸미기와 편의성 위주로 준비 중입니다.", "caption"))
 	section("상품")
@@ -46,6 +48,8 @@ func build() -> void:
 		v.add_child(UIKit.label(str(a.get("name", "")), "body"))
 		v.add_child(UIKit.label(str(a.get("desc", "")), "caption"))
 		row2.add_child(v)
-		row2.add_child(UIKit.label("준비 중" if not GameManager.ads.has_sdk() else "사용 가능", "caption"))
+		var st := UIKit.label("준비 중" if not GameManager.ads.has_sdk() else "사용 가능", "caption")
+		st.autowrap_mode = TextServer.AUTOWRAP_OFF
+		row2.add_child(st)
 		content.add_child(row2)
 	content.add_child(UIKit.label("광고 상태: " + GameManager.ads.status_text() + " · 강제 광고는 넣지 않습니다.", "caption"))

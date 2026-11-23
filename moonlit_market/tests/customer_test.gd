@@ -95,7 +95,11 @@ func test_full_session_simulation(t) -> void:
 	var market = MarketScene.instantiate()
 	tree.root.add_child(market)
 	await tree.process_frame
+	t.ok(market.is_inside_tree(), "시장 장면 생성")
 	var op = market.operating
+	if op == null:
+		t.ok(false, "OperatingManager 없음")
+		return
 	op.set_process(false) # 수동으로 시간 진행
 	t.ok(op.start_session(), "영업 시작")
 	t.ok(GameManager.is_operating, "영업 중 상태")

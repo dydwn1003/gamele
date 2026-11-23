@@ -51,8 +51,7 @@ func _ready() -> void:
 
 func _on_viewport_resized() -> void:
 	_compute_safe_area()
-	toast_layer.position = Vector2(40, safe_top + 200)
-	toast_layer.size = Vector2(size.x - 80, 0)
+	_place_toasts()
 	if hud:
 		hud.apply_layout(safe_top, safe_bottom)
 	for p in panels:
@@ -79,7 +78,7 @@ func _compute_safe_area() -> void:
 
 func market_rect() -> Rect2:
 	var vp := get_viewport_rect().size
-	var top: float = hud.top_height() if hud else 160.0
+	var top: float = (hud.top_height() + hud.banner_space()) if hud else 260.0
 	var bottom: float = hud.bottom_height() if hud else 220.0
 	return Rect2(Vector2(0, top), Vector2(vp.x, maxf(200.0, vp.y - top - bottom)))
 
@@ -151,6 +150,14 @@ func confirm(title: String, message: String, ok_text: String, on_ok: Callable, d
 
 # ───────── 토스트 ─────────
 
+## 토스트는 하단 버튼 바로 위에 표시 (패널 제목을 가리지 않도록)
+func _place_toasts() -> void:
+	var vp := get_viewport_rect().size
+	var bottom: float = hud.bottom_height() if hud else 240.0
+	toast_layer.size = Vector2(vp.x - 80, 0)
+	toast_layer.position = Vector2(40, vp.y - bottom - 12 - toast_layer.get_combined_minimum_size().y)
+
+
 func show_toast(text: String, kind: String = "info") -> void:
 	var col := UIKit.PANEL_LIGHT
 	match kind:
@@ -171,10 +178,12 @@ func show_toast(text: String, kind: String = "info") -> void:
 		var old := toast_layer.get_child(0)
 		toast_layer.remove_child(old)
 		old.queue_free()
+	_place_toasts.call_deferred()
 	var tw := card.create_tween()
 	tw.tween_interval(2.2)
 	tw.tween_property(card, "modulate:a", 0.0, 0.4)
 	tw.tween_callback(card.queue_free)
+	tw.tween_callback(_place_toasts.call_deferred)
 
 
 func handle_back() -> bool:

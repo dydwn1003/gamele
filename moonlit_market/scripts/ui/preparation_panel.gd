@@ -85,9 +85,10 @@ func _stall_card(i: int) -> void:
 		var sel: bool = s.get("menu", "") == m
 		var b := UIKit.button(str(DataManager.get_menu(m).get("name", m)) + ("" if ok else " (잠김)"), "primary" if sel else "secondary", 64)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		UIKit.set_enabled(b, ok and not sel)
+		UIKit.set_enabled(b, ok)
 		var mid: String = m
-		b.pressed.connect(func(): GameManager.set_menu(i, mid))
+		if not sel:
+			b.pressed.connect(func(): GameManager.set_menu(i, mid))
 		mrow.add_child(b)
 	col.add_child(mrow)
 	# 가격

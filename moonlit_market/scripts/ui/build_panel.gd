@@ -141,7 +141,9 @@ func _build_synergies() -> void:
 		var t := UIKit.label(str(d.get("name", "")), "section")
 		t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(t)
-		row.add_child(UIKit.label("활성" if on else "비활성", "body", UIKit.SUCCESS if on else UIKit.TEXT_SUB))
+		var status := UIKit.label("활성" if on else "비활성", "body", UIKit.SUCCESS if on else UIKit.TEXT_SUB)
+		status.autowrap_mode = TextServer.AUTOWRAP_OFF
+		row.add_child(status)
 		v.add_child(UIKit.label(str(d.get("desc", "")), "caption", UIKit.TEXT))
 		content.add_child(card)
 	# 자리 배치도

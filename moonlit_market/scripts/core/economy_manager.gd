@@ -337,7 +337,7 @@ func record_sale(idx: int, price: int, satisfaction: float) -> bool:
 	ledger["cogs"] += cost
 	ledger["sat_sum"] += satisfaction
 	ledger["sat_count"] += 1
-	ledger["rep_points"] += (satisfaction - 40.0) * float(data.bal("reputation_per_satisfaction", 0.04))
+	ledger["rep_points"] += (satisfaction - 40.0) * float(data.bal("reputation_per_satisfaction", 0.015))
 	var key := str(idx)
 	ledger["stall_sales"][key] = int(ledger["stall_sales"].get(key, 0)) + 1
 	ledger["stall_revenue"][key] = int(ledger["stall_revenue"].get(key, 0)) + price
@@ -387,7 +387,7 @@ func close_session(duration_sec: float) -> Dictionary:
 	if int(ledger["sat_count"]) > 0:
 		avg = float(ledger["sat_sum"]) / int(ledger["sat_count"])
 	var rep_gain := int(round(float(ledger["rep_points"])
-		+ int(ledger["buyers"]) * float(data.bal("reputation_per_buyer", 0.15))
+		+ int(ledger["buyers"]) * float(data.bal("reputation_per_buyer", 0.1))
 		- int(ledger["walkouts"]) * float(data.bal("reputation_walkout_penalty", 0.3))))
 	rep_gain = maxi(0, rep_gain)
 	var bonus := 0

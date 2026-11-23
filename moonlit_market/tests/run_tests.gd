@@ -31,6 +31,8 @@ func _ready() -> void:
 		printerr("테스트는 '-- --test' 인자와 함께 실행해야 합니다 (실제 세이브 보호).")
 		get_tree().quit(2)
 		return
+	# 루트가 자식 노드를 구성하는 중에는 add_child 가 실패하므로 한 프레임 대기
+	await get_tree().process_frame
 	print("=== 달빛장터 테스트 시작 ===")
 	for suite_script in SUITES:
 		var suite = suite_script.new()

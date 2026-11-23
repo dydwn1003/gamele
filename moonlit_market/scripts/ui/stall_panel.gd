@@ -140,9 +140,10 @@ func _build_stall(s: Dictionary) -> void:
 			label_text = "%s\nLv.%d 해금" % [mdef.get("name", m), need]
 		var b := UIKit.button(label_text, "primary" if selected else "secondary", 96)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		UIKit.set_enabled(b, available and not selected and not op)
+		UIKit.set_enabled(b, available and not op)
 		var menu_id: String = m
-		b.pressed.connect(func(): GameManager.set_menu(slot, menu_id))
+		if not selected:
+			b.pressed.connect(func(): GameManager.set_menu(slot, menu_id))
 		menu_row.add_child(b)
 	content.add_child(menu_row)
 	var menu: Dictionary = GameManager.economy.menu_for_slot(slot)
