@@ -1,0 +1,22 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/main/main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://scenes/market/market.tscn" id="2_market"]
+[ext_resource type="Script" path="res://scripts/ui/ui_manager.gd" id="3_ui"]
+
+[node name="Main" type="Node"]
+script = ExtResource("1_main")
+
+[node name="Market" parent="." instance=ExtResource("2_market")]
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+layer = 5
+
+[node name="UIRoot" type="Control" parent="UILayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("3_ui")

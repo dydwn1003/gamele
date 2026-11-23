@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "slot_adjacency": [[0, 1], [1, 2], [3, 4], [4, 5], [0, 3], [1, 4], [2, 5]],
+  "synergies": [
+    {
+      "id": "skewer_drink", "name": "꼬치 + 음료",
+      "desc": "꼬치를 먹은 손님이 옆 음료 노점에서 음료를 살 확률 증가",
+      "a": ["skewer"], "b": ["drink"],
+      "effects_a": {"follow_up_chance": 0.45},
+      "effects_b": {"attraction": 0.1},
+      "color": "#FFB45C"
+    },
+    {
+      "id": "noodle_drink", "name": "면 요리 + 음료",
+      "desc": "분식·면 요리점과 음료 노점 손님의 만족도 증가",
+      "a": ["snack_noodle"], "b": ["drink"],
+      "effects_a": {"satisfaction": 10},
+      "effects_b": {"satisfaction": 6},
+      "color": "#5FB9C9"
+    },
+    {
+      "id": "dessert_photo", "name": "디저트 + 포토존",
+      "desc": "관광객 방문 확률 증가, 디저트 노점 인기 상승",
+      "a": ["dessert"], "b": ["photo_zone"],
+      "effects_a": {"attraction": 0.25},
+      "effects_b": {},
+      "global": {"tourist_mult": 0.6},
+      "color": "#E58FB1"
+    },
+    {
+      "id": "food_stage", "name": "먹거리 + 공연장",
+      "desc": "공연을 보며 손님이 오래 머물러 인내심과 추가 구매 증가",
+      "a": ["skewer", "snack_noodle", "dessert"], "b": ["stage"],
+      "effects_a": {"patience_mult": 0.3, "extra_purchase_chance": 0.15},
+      "effects_b": {},
+      "global": {"stay_mult": 0.25},
+      "color": "#9B8CFF"
+    }
+  ]
+}

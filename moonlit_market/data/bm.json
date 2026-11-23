@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "note": "가격은 시장 테스트용 가설값이며 확정이 아닙니다.",
+  "products": [
+    {"id": "remove_ads", "name": "광고 제거", "price_krw": 9900, "type": "non_consumable", "desc": "선택형 광고 없이 보상을 받습니다."},
+    {"id": "starter_pack", "name": "초보자 패키지", "price_krw": 3300, "type": "non_consumable", "desc": "장식 세트와 프리미엄 재화"},
+    {"id": "deco_pack_s", "name": "장식 패키지 (소)", "price_krw": 2200, "type": "non_consumable", "desc": "한정 장식 2종"},
+    {"id": "deco_pack_l", "name": "장식 패키지 (대)", "price_krw": 5500, "type": "non_consumable", "desc": "한정 장식 5종"},
+    {"id": "season_pass", "name": "시즌 패스", "price_krw": 9900, "type": "subscription", "desc": "시즌 보상 트랙"},
+    {"id": "merchant_costume", "name": "상인 코스튬", "price_krw": 1100, "type": "non_consumable", "desc": "상인 외형 변경"}
+  ],
+  "ad_placements": [
+    {"id": "offline_bonus", "name": "오프라인 추가 보상", "desc": "오프라인 보상 2배"},
+    {"id": "emergency_restock", "name": "긴급 재고 보충", "desc": "영업 중 한 노점 재고 보충"},
+    {"id": "session_bonus", "name": "특별 영업 보너스", "desc": "다음 영업 방문객 증가"},
+    {"id": "event_bonus", "name": "이벤트 추가 보상", "desc": "이벤트 보상 추가"}
+  ]
+}

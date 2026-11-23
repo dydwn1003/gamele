@@ -1,0 +1,48 @@
+; Engine configuration file.
+; 달빛장터 (MOONLIT MARKET) — Godot 4.x, GDScript, 2D, Compatibility renderer.
+
+config_version=5
+
+[application]
+
+config/name="달빛장터 (MOONLIT MARKET)"
+config/description="한국 야시장 경영 하이브리드 방치형 게임 프로토타입"
+config/version="0.1.0"
+run/main_scene="res://scenes/main/main.tscn"
+config/features=PackedStringArray("4.4", "GL Compatibility")
+config/icon="res://icon.svg"
+config/quit_on_go_back=false
+run/low_processor_mode=false
+boot_splash/bg_color=Color(0.0902, 0.102, 0.137, 1)
+
+[autoload]
+
+DataManager="*res://scripts/core/data_manager.gd"
+SaveManager="*res://scripts/core/save_manager.gd"
+GameManager="*res://scripts/core/game_manager.gd"
+
+[display]
+
+window/size/viewport_width=720
+window/size/viewport_height=1280
+window/size/window_width_override=405
+window/size/window_height_override=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=1
+
+[input_devices]
+
+pointing/emulate_mouse_from_touch=true
+
+[physics]
+
+common/physics_ticks_per_second=30
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
+environment/defaults/default_clear_color=Color(0.0902, 0.102, 0.137, 1)
+anti_aliasing/quality/msaa_2d=1

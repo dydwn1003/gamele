@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "facilities": [
+    {
+      "id": "photo_zone", "name": "달빛 포토존", "build_cost": 400,
+      "desc": "노점 자리에 설치하는 시설. 디저트 노점 옆에 두면 관광객이 늘어납니다.",
+      "unlock": {"market_level": 2}, "color": "#FFD27A", "tags": ["photo_zone"]
+    },
+    {
+      "id": "stage", "name": "버스킹 공연장", "build_cost": 700,
+      "desc": "노점 자리에 설치하는 시설. 먹거리 노점 옆이면 손님이 오래 머뭅니다.",
+      "unlock": {"market_level": 2, "reputation": 100}, "color": "#9B8CFF", "tags": ["stage"]
+    }
+  ],
+  "decorations": [
+    {
+      "id": "lantern_row", "name": "청사초롱 줄", "cost": 200,
+      "desc": "시장이 환해져 방문객이 조금 늘어납니다.",
+      "effects": {"visitor_mult": 0.05}, "unlock": {"reputation": 5}, "color": "#E5483A"
+    },
+    {
+      "id": "flower_pots", "name": "화분 장식", "cost": 150,
+      "desc": "아늑한 분위기로 손님 만족도가 오릅니다.",
+      "effects": {"satisfaction": 3}, "unlock": {"reputation": 0}, "color": "#65C99A"
+    },
+    {
+      "id": "neon_sign", "name": "네온 간판", "cost": 450,
+      "desc": "멀리서도 보이는 간판. 관광객 방문이 늘어납니다.",
+      "effects": {"tourist_mult": 0.2, "visitor_mult": 0.03}, "unlock": {"market_level": 2}, "color": "#FF5FA2"
+    },
+    {
+      "id": "bench", "name": "나무 벤치", "cost": 300,
+      "desc": "쉬어 갈 곳이 생겨 대기 인내심이 늘어납니다.",
+      "effects": {"patience_mult": 0.1}, "unlock": {"reputation": 25}, "color": "#B07A4A"
+    },
+    {
+      "id": "moon_lamp", "name": "보름달 등불", "cost": 900,
+      "desc": "달빛장터의 상징. 방문객과 만족도가 함께 오릅니다.",
+      "effects": {"visitor_mult": 0.08, "satisfaction": 4}, "unlock": {"market_level": 3}, "color": "#FFF1B8"
+    }
+  ]
+}

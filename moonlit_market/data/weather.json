@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "max_consecutive_bad": 1,
+  "weather": [
+    {"id": "sunny", "name": "맑음", "weight": 0.45, "visitor_mult": 1.2, "warm_mult": 0.95, "cold_mult": 1.2, "category_mult": {"drink": 1.15, "dessert": 1.1}, "is_bad": false, "desc": "방문객 증가 · 시원한 메뉴 인기"},
+    {"id": "cloudy", "name": "흐림", "weight": 0.35, "visitor_mult": 1.0, "warm_mult": 1.0, "cold_mult": 1.0, "category_mult": {}, "is_bad": false, "desc": "평소와 같은 수요"},
+    {"id": "rain", "name": "비", "weight": 0.2, "visitor_mult": 0.8, "warm_mult": 1.4, "cold_mult": 0.7, "category_mult": {"meal": 1.1}, "is_bad": true, "desc": "방문객 감소 · 따뜻한 음식 수요 증가"}
+  ]
+}

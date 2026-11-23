@@ -1,3 +1,6 @@
+> **새 프로젝트: 달빛장터 (MOONLIT MARKET)** — Godot 4 한국 야시장 경영 게임 프로토타입이
+> [`moonlit_market/`](moonlit_market/README.md) 폴더에 있습니다. 아래 내용은 기존 Expo RPG 프로젝트 설명입니다.
+
 # 영웅 키우기 (gamele)
 
 자동전투 방치형 RPG. 솔로 플레이 + Google 로그인 기반 랭킹.

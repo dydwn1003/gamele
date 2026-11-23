@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "stalls": [
+    {
+      "id": "skewer", "name": "꼬치 전문점", "kind": "food", "build_cost": 250,
+      "menus": ["skewer_grill", "twigim"], "default_menu": "skewer_grill",
+      "menu_unlock_level": {"skewer_grill": 1, "twigim": 2},
+      "queue_capacity": 4, "base_reputation": 10,
+      "color": "#E97858", "roof_color": "#B8443A", "sign": "꼬치",
+      "unlock": {"reputation": 0}
+    },
+    {
+      "id": "drink", "name": "음료 전문점", "kind": "drink", "build_cost": 300,
+      "menus": ["lemonade", "bubble_tea"], "default_menu": "lemonade",
+      "menu_unlock_level": {"lemonade": 1, "bubble_tea": 2},
+      "queue_capacity": 5, "base_reputation": 10,
+      "color": "#5FB9C9", "roof_color": "#2F7F9A", "sign": "음료",
+      "unlock": {"reputation": 0}
+    },
+    {
+      "id": "snack_noodle", "name": "분식·면 요리점", "kind": "food", "build_cost": 450,
+      "menus": ["tteokbokki", "noodle"], "default_menu": "tteokbokki",
+      "menu_unlock_level": {"tteokbokki": 1, "noodle": 2},
+      "queue_capacity": 4, "base_reputation": 10,
+      "color": "#F2A64A", "roof_color": "#C0662B", "sign": "분식",
+      "unlock": {"reputation": 15}
+    },
+    {
+      "id": "dessert", "name": "디저트 전문점", "kind": "dessert", "build_cost": 600,
+      "menus": ["hotteok", "ice_cream"], "default_menu": "hotteok",
+      "menu_unlock_level": {"hotteok": 1, "ice_cream": 2},
+      "queue_capacity": 5, "base_reputation": 10,
+      "color": "#E58FB1", "roof_color": "#A9507A", "sign": "디저트",
+      "unlock": {"reputation": 40}
+    }
+  ],
+  "levels": [
+    {"level": 1, "upgrade_cost": 0,    "cook_speed": 1.00, "stock_max": 20, "sales_efficiency": 1.00, "appeal": 0.00},
+    {"level": 2, "upgrade_cost": 400,  "cook_speed": 1.15, "stock_max": 25, "sales_efficiency": 1.05, "appeal": 0.05},
+    {"level": 3, "upgrade_cost": 900,  "cook_speed": 1.30, "stock_max": 30, "sales_efficiency": 1.10, "appeal": 0.10},
+    {"level": 4, "upgrade_cost": 1800, "cook_speed": 1.45, "stock_max": 36, "sales_efficiency": 1.15, "appeal": 0.15},
+    {"level": 5, "upgrade_cost": 3200, "cook_speed": 1.65, "stock_max": 42, "sales_efficiency": 1.20, "appeal": 0.22}
+  ]
+}
