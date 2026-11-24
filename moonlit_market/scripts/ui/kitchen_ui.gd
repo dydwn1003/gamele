@@ -58,6 +58,12 @@ class BurnerView extends Control:
 			var a0 := -PI / 2 + TAU * float(z[0]) / full
 			var a1 := -PI / 2 + TAU * float(z[1]) / full
 			draw_arc(c, r, a0, a1, 24, z[2], 12.0, true)
+		var needs_flip: bool = pocha.kitchen.needs_flip(index)
+		var f: Dictionary = b.get("flip", {})
+		if needs_flip:
+			var fa0 := -PI / 2 + TAU * float(f.get("good_min", 0.3)) / full
+			var fa1 := -PI / 2 + TAU * float(f.get("good_max", 0.9)) / full
+			draw_arc(c, r - 15, fa0, fa1, 20, Color("#5FA8E8"), 6.0, true)
 		var ratio: float = pocha.kitchen.ratio(index)
 		var ang := -PI / 2 + TAU * clampf(ratio, 0.0, full) / full
 		draw_line(c + Vector2.from_angle(ang) * (r - 16), c + Vector2.from_angle(ang) * (r + 10), Color("#FFF5E9"), 5.0)
@@ -87,12 +93,21 @@ class BurnerView extends Control:
 			KitchenScript.STAGE_BURNT:
 				txt = "탔음 (버리기)"
 				col = Color("#E5564A")
+		if needs_flip:
+			var in_window := ratio >= float(f.get("good_min", 0.3)) and ratio <= float(f.get("good_max", 0.9))
+			if ratio >= float(f.get("min", 0.3)) and ratio < 1.0:
+				txt = "뒤집기!" if in_window else "지금 뒤집기?"
+				col = Color("#5FA8E8") if in_window else Color("#B9C4E8")
+		elif not f.is_empty() and stage == KitchenScript.STAGE_RAW:
+			txt = "뒤집음 · 익는 중"
 		if is_auto:
 			txt = "요리사 담당"
 			col = Color("#B9B5B0")
 		_label(c + Vector2(0, r * 0.42), str(m.get("name", "")), 17, Color("#FFF5E9"), font)
 		_label(c + Vector2(0, r * 0.72), txt, 19, col, font)
-		if stage == KitchenScript.STAGE_PERFECT and not is_auto:
+		if needs_flip and ratio >= float(f.get("good_min", 0.3)) and ratio <= float(f.get("good_max", 0.9)) and not is_auto:
+			draw_arc(c, r + 10, 0, TAU, 40, Color(0.37, 0.66, 0.91, 0.5 + 0.4 * sin(t * 10.0)), 4.0, true)
+		elif stage == KitchenScript.STAGE_PERFECT and not is_auto:
 			draw_arc(c, r + 10, 0, TAU, 40, Color(0.4, 0.8, 0.6, 0.5 + 0.4 * sin(t * 10.0)), 4.0, true)
 
 	func _label(p: Vector2, text: String, fs: int, col: Color, font: Font) -> void:
@@ -108,6 +123,9 @@ class DrinkTap extends Control:
 	var menu_id: String = ""
 	var level: float = 0.0
 	var pouring: bool = false
+	var is_mix: bool = false
+	var mix_stage: int = 0 ## 소맥: 0 = 소주 차례, 1 = 맥주 차례
+	var soju_level: float = 0.0
 	var hot: bool = false
 	var stock: int = 0
 	var t: float = 0.0
@@ -147,9 +165,20 @@ class DrinkTap extends Control:
 		draw_rect(Rect2(gp, Vector2(gw, gh)), Color(1, 1, 1, 0.25))
 		var fill := clampf(level, 0.0, 1.0)
 		var liquid := DataManager.color(m.get("color", "#F2C14E"))
-		draw_rect(Rect2(gp + Vector2(3, gh * (1.0 - fill)), Vector2(gw - 6, gh * fill - 3)), liquid)
+		if not (is_mix and mix_stage == 0):
+			draw_rect(Rect2(gp + Vector2(3, gh * (1.0 - fill)), Vector2(gw - 6, gh * fill - 3)), liquid)
 		if fill > 0.05 and str(m.get("icon", "")) == "beer":
 			draw_rect(Rect2(gp + Vector2(3, gh * (1.0 - fill) - 5), Vector2(gw - 6, 6)), Color("#FFF8E6"))
+		if is_mix:
+			var mx: Dictionary = m.get("mix", {})
+			tmin = float(mx.get("beer_min", 0.8))
+			tmax = float(mx.get("beer_max", 0.93))
+			var smin := float(mx.get("soju_min", 0.22))
+			var smax := float(mx.get("soju_max", 0.34))
+			var sf := clampf(soju_level if mix_stage == 1 else level, 0.0, 1.0)
+			if mix_stage == 1 or pouring:
+				draw_rect(Rect2(gp + Vector2(3, gh * (1.0 - sf)), Vector2(gw - 6, gh * sf - 3)), Color("#DDEBF0"))
+			draw_rect(Rect2(gp + Vector2(-4, gh * (1.0 - smax)), Vector2(gw + 8, gh * (smax - smin))), Color(0.37, 0.66, 0.91, 0.5))
 		draw_rect(Rect2(gp + Vector2(-4, gh * (1.0 - tmax)), Vector2(gw + 8, gh * (tmax - tmin))), Color(0.4, 0.85, 0.6, 0.45))
 		draw_rect(Rect2(gp, Vector2(gw, gh)), Color(1, 1, 1, 0.7), false, 2.0)
 		if level >= 1.0:
@@ -160,7 +189,10 @@ class DrinkTap extends Control:
 		var want: int = 0
 		var sub := "재고 %d" % stock
 		draw_string(font, Vector2(tx, 66), sub, HORIZONTAL_ALIGNMENT_LEFT, tw, 16, fg)
-		draw_string(font, Vector2(tx, 92), "꾹 눌러 따르기" if not pouring else "선에서 떼기!", HORIZONTAL_ALIGNMENT_LEFT, tw, 15, fg if not pouring else Color("#2E7A55"))
+		var hint := "꾹 눌러 따르기" if not pouring else "선에서 떼기!"
+		if is_mix:
+			hint = ("① 소주: 파란 선" if mix_stage == 0 else "② 맥주: 초록 선") if not pouring else ("소주 따르는 중" if mix_stage == 0 else "맥주 따르는 중")
+		draw_string(font, Vector2(tx, 92), hint, HORIZONTAL_ALIGNMENT_LEFT, tw, 15, fg if not pouring else Color("#2E7A55"))
 
 
 var pocha ## PochaManager
@@ -274,7 +306,7 @@ func _rebuild() -> void:
 	for id in GameManager.state.enabled_menus():
 		var m: Dictionary = DataManager.get_menu(id)
 		var station := str(m.get("station", ""))
-		if station != "grill" and station != "drink":
+		if station != "grill" and station != "drink" and station != "mix":
 			continue
 		var b := Button.new()
 		b.focus_mode = Control.FOCUS_NONE
@@ -291,6 +323,7 @@ func _rebuild() -> void:
 			b.queue_free()
 			var tap := DrinkTap.new()
 			tap.menu_id = menu_id
+			tap.is_mix = station == "mix"
 			tap.pour_started.connect(_on_pour_start)
 			tap.pour_released.connect(_on_pour_release)
 			drink_box.add_child(tap)
@@ -339,6 +372,12 @@ func _on_burner(i: int) -> void:
 		if r.has("error"):
 			show_message(str(r["error"]))
 		return
+	if r.get("flipped", false):
+		if r.get("flip", "") == "good":
+			show_message("뒤집기 성공! 이제 익기를 기다려요", true)
+		else:
+			show_message("타이밍이 아쉬워요 (품질 감소)")
+		return
 	if r.get("burnt", false):
 		show_message("탔어요! 재료를 버렸습니다")
 		GameManager.vibrate(40)
@@ -356,12 +395,18 @@ func _on_cook(menu_id: String) -> void:
 func _on_pour_start(menu_id: String) -> void:
 	if pouring_menu != "":
 		return
+	var tap = drink_taps[menu_id]
+	if tap.is_mix and tap.mix_stage == 1:
+		# 소맥 두 번째 단계: 소주 위에 맥주
+		pouring_menu = menu_id
+		tap.level = tap.soju_level
+		tap.pouring = true
+		return
 	var r: Dictionary = pocha.pour_start(menu_id)
 	if not r.get("ok", false):
 		show_message(str(r.get("error", "")))
 		return
 	pouring_menu = menu_id
-	var tap = drink_taps[menu_id]
 	tap.level = 0.0
 	tap.pouring = true
 
@@ -370,7 +415,20 @@ func _on_pour_release(menu_id: String) -> void:
 	if pouring_menu != menu_id or not drink_taps.has(menu_id):
 		return
 	var tap = drink_taps[menu_id]
-	var r: Dictionary = pocha.pour_finish(menu_id, tap.level)
+	if tap.is_mix and tap.mix_stage == 0:
+		tap.soju_level = tap.level
+		tap.mix_stage = 1
+		tap.pouring = false
+		pouring_menu = ""
+		show_message("이제 맥주를 꾹! 초록 선까지", true)
+		return
+	var r: Dictionary
+	if tap.is_mix:
+		r = pocha.pour_finish_mix(menu_id, tap.soju_level, tap.level)
+		tap.mix_stage = 0
+		tap.soju_level = 0.0
+	else:
+		r = pocha.pour_finish(menu_id, tap.level)
 	tap.pouring = false
 	pouring_menu = ""
 	if r.get("ok", false):
@@ -387,4 +445,6 @@ func pour_amount(menu_id: String, level: float) -> Dictionary:
 	var r: Dictionary = pocha.pour_start(menu_id)
 	if not r.get("ok", false):
 		return r
+	if str(DataManager.get_menu(menu_id).get("station", "")) == "mix":
+		return pocha.pour_finish_mix(menu_id, 0.28, level)
 	return pocha.pour_finish(menu_id, level)

@@ -87,7 +87,7 @@ func tick(delta: float) -> void:
 	serve_flash = maxf(0.0, serve_flash - delta * 3.0)
 	for it in tray:
 		it["age"] = float(it.get("age", 0.0)) + delta
-		it["quality"] = maxf(40.0, float(it["quality"]) - delta * 1.2)
+		it["decay"] = float(it.get("decay", 0.0)) + delta * 1.2
 	if cur.is_empty() and not tasks.is_empty():
 		cur = tasks.pop_front()
 		_begin()

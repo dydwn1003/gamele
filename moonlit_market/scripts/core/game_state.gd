@@ -40,6 +40,14 @@ var today_weather: String = "cloudy"
 var weather_history: Array = []
 var event_history: Array = []
 var tutorial_done: bool = false
+## 오늘의 목표 [{"id", "target"}] 와 생성된 날
+var daily_goals: Array = []
+var goals_day: int = 0
+## 오늘 라이벌 대결 {"day", "rival"} (없으면 {})
+var showdown: Dictionary = {}
+var showdown_record: Dictionary = {"wins": 0, "losses": 0}
+## 인플루언서 효과: 다음 영업 방문객 보너스
+var next_visitor_bonus: float = 0.0
 
 
 static func empty_offline() -> Dictionary:
@@ -87,6 +95,11 @@ func reset_empty() -> void:
 	weather_history = []
 	event_history = []
 	tutorial_done = false
+	daily_goals = []
+	goals_day = 0
+	showdown = {}
+	showdown_record = {"wins": 0, "losses": 0}
+	next_visitor_bonus = 0.0
 
 
 # ───────── 포차 조회 ─────────
@@ -154,6 +167,11 @@ func to_dict() -> Dictionary:
 		"weather_history": weather_history.duplicate(),
 		"event_history": event_history.duplicate(),
 		"tutorial_done": tutorial_done,
+		"daily_goals": daily_goals.duplicate(true),
+		"goals_day": goals_day,
+		"showdown": showdown.duplicate(),
+		"showdown_record": showdown_record.duplicate(),
+		"next_visitor_bonus": next_visitor_bonus,
 	}
 
 
@@ -232,6 +250,19 @@ func from_dict(d: Dictionary, data = null) -> bool:
 	var eh = d.get("event_history", [])
 	event_history = eh if eh is Array else []
 	tutorial_done = bool(d.get("tutorial_done", false))
+	var dg = d.get("daily_goals", [])
+	if dg is Array:
+		for g in dg:
+			if g is Dictionary and g.has("id"):
+				daily_goals.append({"id": str(g["id"]), "target": maxi(0, int(g.get("target", 1)))})
+	goals_day = maxi(0, int(d.get("goals_day", 0)))
+	var sd = d.get("showdown", {})
+	if sd is Dictionary and sd.has("rival") and (data == null or data.rivals.has(str(sd["rival"]))):
+		showdown = {"day": int(sd.get("day", 0)), "rival": str(sd["rival"])}
+	var sr = d.get("showdown_record", {})
+	if sr is Dictionary:
+		showdown_record = {"wins": maxi(0, int(sr.get("wins", 0))), "losses": maxi(0, int(sr.get("losses", 0)))}
+	next_visitor_bonus = clampf(float(d.get("next_visitor_bonus", 0.0)), 0.0, 1.0)
 	return true
 
 

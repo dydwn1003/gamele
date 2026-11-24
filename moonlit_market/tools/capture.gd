@@ -18,6 +18,9 @@ func _ready() -> void:
 	await get_tree().process_frame
 	GameManager.reset_game()
 	GameManager.state.tutorial_done = true
+	GameManager.state.day = 3
+	GameManager.state.goals_day = 0
+	GameManager.prepare_day()
 	main = MainScene.instantiate()
 	add_child(main)
 	await _wait(1.0)
@@ -35,6 +38,8 @@ func _ready() -> void:
 	await _shot("03_preparation")
 	main.start_session()
 	main.market.operating.set_speed(2.0)
+	main.market.customer_manager.spawn_customer("", "group")
+	main.market.customer_manager.spawn_customer("", "critic")
 	bot_on = true
 	await _wait(14.0)
 	await _shot("04_cooking")
@@ -63,7 +68,13 @@ func _process(_delta: float) -> void:
 		return
 	var pm = main.market.pocha_manager
 	for i in pm.kitchen.burners.size():
-		if i != pm.auto_burner and pm.kitchen.stage(i) == "perfect" and pm.kitchen.ratio(i) > 1.1 and pm.pass_space() > 0:
+		if i == pm.auto_burner:
+			continue
+		if pm.kitchen.needs_flip(i):
+			var f: Dictionary = pm.kitchen.burners[i]["flip"]
+			if pm.kitchen.ratio(i) > (float(f["good_min"]) + float(f["good_max"])) / 2.0 + 0.05:
+				main.ui.hud.kitchen._on_burner(i)
+		elif pm.kitchen.stage(i) == "perfect" and pm.kitchen.ratio(i) > 1.1 and pm.pass_space() > 0:
 			main.ui.hud.kitchen._on_burner(i)
 	for i in pm.seat_state.size():
 		if pm.seat_state[i]["state"] == "dirty" and randf() < 0.02:
@@ -86,7 +97,7 @@ func _process(_delta: float) -> void:
 		if int(making.get(m, 0)) > 0:
 			making[m] = int(making[m]) - 1
 			continue
-		if str(DataManager.get_menu(m).get("station", "")) == "drink":
+		if str(DataManager.get_menu(m).get("station", "")) in ["drink", "mix"]:
 			if randf() < 0.04:
 				main.ui.hud.kitchen.pour_amount(m, 0.86)
 			return

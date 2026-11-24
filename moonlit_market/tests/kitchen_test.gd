@@ -62,3 +62,36 @@ func test_pour_quality(t) -> void:
 	t.ok(KitchenScript.pour_quality(0.5, 0.78, 0.92, 1.0) < 90.0, "덜 채우면 품질 하락")
 	t.ok(KitchenScript.pour_quality(0.97, 0.78, 0.92, 1.0) < 100.0, "선을 넘기면 품질 하락")
 	t.eq(KitchenScript.pour_quality(1.02, 0.78, 0.92, 1.0), -1.0, "넘치면 버림")
+
+
+func test_flip(t) -> void:
+	var k = KitchenScript.new()
+	k.setup(2)
+	var menu := {"id": "dak_skewer", "cook_time": 10.0, "perfect_end": 1.4, "burn": 1.9,
+		"flip": {"min": 0.3, "max": 0.9, "good_min": 0.45, "good_max": 0.65, "miss_penalty": 0.5, "bad_penalty": 25}}
+	k.start(0, menu)
+	k.tick(2.0)
+	t.eq(k.try_flip(0)["result"], "early", "너무 일찍 뒤집기 불가")
+	k.tick(3.5)
+	t.eq(k.try_flip(0)["result"], "good", "좋은 타이밍에 뒤집기")
+	t.ok(not k.needs_flip(0), "뒤집은 뒤엔 더 안 뒤집음")
+	k.tick(6.5)
+	t.eq(k.collect(0)["quality"], 100.0, "잘 뒤집고 딱 좋게 = 100")
+	k.start(1, menu)
+	k.tick(12.0)
+	var missed: Dictionary = k.collect(1)
+	t.ok(missed["flip_missed"], "안 뒤집음 표시")
+	t.eq(missed["quality"], 50.0, "안 뒤집으면 품질 절반")
+	k.start(1, menu)
+	k.tick(8.5)
+	t.eq(k.try_flip(1)["result"], "bad", "늦게 뒤집으면 찢어짐")
+	k.tick(3.5)
+	t.eq(k.collect(1)["quality"], 75.0, "찢어지면 -25")
+
+
+func test_doneness_request(t) -> void:
+	t.eq(KitchenScript.quality_for_pref(1.1, 1.4, 1.9, ""), 100.0, "보통 요청: 110% 완벽")
+	t.ok(KitchenScript.quality_for_pref(1.1, 1.4, 1.9, "well") < 100.0, "바싹 요청: 110%는 부족")
+	t.eq(KitchenScript.quality_for_pref(1.5, 1.4, 1.9, "well"), 100.0, "바싹 요청: 150% 완벽")
+	t.eq(KitchenScript.quality_for_pref(0.9, 1.4, 1.9, "rare"), 100.0, "덜 익혀 요청: 90% 완벽")
+	t.ok(KitchenScript.quality_for_pref(1.35, 1.4, 1.9, "rare") < 100.0, "덜 익혀 요청: 135%는 너무 익음")

@@ -96,7 +96,13 @@ func _setup_state() -> void:
 ## 손님을 탭해 서빙하고, 빈 테이블을 치운다 (실제 플레이와 같은 API 사용)
 func _bot_play(pm) -> void:
 	for i in pm.kitchen.burners.size():
-		if i != pm.auto_burner and pm.kitchen.stage(i) == "perfect" and pm.pass_space() > 0:
+		if i == pm.auto_burner:
+			continue
+		if pm.kitchen.needs_flip(i):
+			var f: Dictionary = pm.kitchen.burners[i]["flip"]
+			if pm.kitchen.ratio(i) >= (float(f["good_min"]) + float(f["good_max"])) / 2.0:
+				pm.tap_burner(i)
+		elif pm.kitchen.stage(i) == "perfect" and pm.pass_space() > 0:
 			pm.tap_burner(i)
 	for i in pm.seat_state.size():
 		var st: Dictionary = pm.seat_state[i]
@@ -120,9 +126,13 @@ func _bot_play(pm) -> void:
 		if int(making.get(m, 0)) > 0:
 			making[m] = int(making[m]) - 1
 			continue
-		if str(DataManager.get_menu(m).get("station", "")) == "drink":
+		var station := str(DataManager.get_menu(m).get("station", ""))
+		if station == "drink" or station == "mix":
 			if pm.pour_start(m).get("ok", false):
-				pm.pour_finish(m, 0.85)
+				if station == "mix":
+					pm.pour_finish_mix(m, 0.28, 0.86)
+				else:
+					pm.pour_finish(m, 0.85)
 			return
 		if pm.cook(m).get("ok", false):
 			return
@@ -193,7 +203,8 @@ func test_full_session_with_cooking(t) -> void:
 	var coins := int(st.coins)
 	t.ok(GameManager.claim_session_result().get("ok", false), "정산 수령")
 	var coins_after := int(st.coins)
-	t.eq(coins_after, coins + int(r["bonus_coins"]), "보너스만 추가 지급")
+	t.eq(coins_after, coins + int(r["bonus_coins"]) + int(r["goal_coins"]) + int(r.get("showdown", {}).get("coins", 0)), "보너스 + 목표 보상만 추가 지급")
+	t.eq((r.get("goals", []) as Array).size(), 3, "오늘의 목표 3개 판정")
 	GameManager.claim_session_result()
 	GameManager.claim_session_result()
 	t.eq(int(st.coins), coins_after, "정산 버튼 반복 시 중복 지급 없음")
@@ -207,4 +218,75 @@ func test_session_without_cooking(t) -> void:
 	var r: Dictionary = out["r"]
 	t.ok(int(r.get("walkouts", 0)) > 0, "음식이 안 나오면 이탈 (%d명)" % int(r.get("walkouts", 0)))
 	t.eq(int(r.get("perfect", 0)), 0, "요리하지 않으면 완벽한 요리 없음")
+	GameManager.reset_game()
+
+
+## 특별 손님: 회식 단체·평론가·취객·인플루언서가 실제로 와서 행동한다
+func test_special_customers(t) -> void:
+	_setup_state()
+	GameManager.state.day = 5
+	var tree: SceneTree = Engine.get_main_loop()
+	var market = MarketScene.instantiate()
+	tree.root.add_child(market)
+	await tree.process_frame
+	var op = market.operating
+	op.set_process(false)
+	op.start_session()
+	var cm = market.customer_manager
+	var spawned := {}
+	for id in ["group", "critic", "drunk", "influencer"]:
+		var c = cm.spawn_customer("", id)
+		spawned[id] = c
+		t.eq(c.special_id, id, "특별 손님 생성: %s" % id)
+	var group_items := 0
+	var group_seen := false
+	var dozed := false
+	for step in 3200:
+		op._process(0.1)
+		_bot_play(market.pocha_manager)
+		for id in spawned.keys():
+			var c = spawned[id]
+			if not is_instance_valid(c):
+				continue
+			if id == "group" and c.ordered and c.rounds == 1 and not group_seen:
+				group_seen = true
+				group_items = c.pending.size() + c.served_items.size()
+			if id == "drunk" and c.doze_t > 0.0:
+				dozed = true
+		if not op.is_running():
+			break
+	var r: Dictionary = GameManager.state.pending_result
+	t.ok(group_items >= 2, "회식 단체는 한 번에 여러 개 주문 (%d)" % group_items)
+	t.ok(int(r.get("specials_served", 0)) >= 2, "특별 손님 대접 (%d명)" % int(r.get("specials_served", 0)))
+	t.ok(r.has("critic_rep"), "평론가 평가 기록")
+	market.queue_free()
+	await tree.process_frame
+	GameManager.reset_game()
+
+
+## 회귀: 주방 UI 에서 뒤집기 탭 시 오류 없이 처리
+func test_kitchen_ui_flip_tap(t) -> void:
+	_setup_state()
+	var tree: SceneTree = Engine.get_main_loop()
+	var market = MarketScene.instantiate()
+	tree.root.add_child(market)
+	await tree.process_frame
+	var op = market.operating
+	op.set_process(false)
+	op.start_session()
+	var KitchenUI = load("res://scripts/ui/kitchen_ui.gd")
+	var ui = KitchenUI.new()
+	tree.root.add_child(ui)
+	ui.bind(market.pocha_manager)
+	var pm = market.pocha_manager
+	t.ok(pm.cook("dak_skewer")["ok"], "닭꼬치 올리기")
+	for i in 30:
+		op._process(0.1)
+	t.ok(pm.kitchen.needs_flip(0), "뒤집기 필요")
+	ui._on_burner(0)
+	t.ok(not pm.kitchen.needs_flip(0), "UI 탭으로 뒤집음")
+	t.ok(ui.status_label.text.contains("뒤집기"), "뒤집기 안내 표시")
+	ui.queue_free()
+	market.queue_free()
+	await tree.process_frame
 	GameManager.reset_game()

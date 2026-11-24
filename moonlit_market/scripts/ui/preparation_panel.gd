@@ -19,6 +19,27 @@ func build() -> void:
 	wv.add_child(UIKit.label(str(w.get("desc", "")), "caption"))
 	wr.add_child(wv)
 	content.add_child(wc)
+	# 라이벌 대결의 밤
+	if GameManager.goals.is_showdown_today():
+		var rv: Dictionary = DataManager.get_rival(str(GameManager.state.showdown["rival"]))
+		var sdm: Dictionary = DataManager.goals_meta.get("showdown", {})
+		var sc := UIKit.card(Color("#6A2E2E"))
+		var sv := UIKit.vbox(4)
+		sc.add_child(sv)
+		sv.add_child(UIKit.label("오늘은 대결의 밤! vs %s" % rv.get("name", ""), "section", UIKit.ACCENT))
+		sv.add_child(UIKit.label("오늘 매출로 이기면 코인 +%d · 평판 +%d, 그 가게 평판 -%d. 지면 평판 %d. 라이벌도 실력을 발휘합니다." % [int(sdm.get("win_coins", 500)), int(sdm.get("win_rep", 12)), int(sdm.get("rival_rep_loss", 10)), int(sdm.get("lose_rep", -4))], "caption", UIKit.TEXT))
+		content.add_child(sc)
+	# 오늘의 목표
+	section("오늘의 목표")
+	var gc := UIKit.card()
+	var gv := UIKit.vbox(6)
+	gc.add_child(gv)
+	for g in GameManager.state.daily_goals:
+		var def: Dictionary = GameManager.goals.goal_def(str(g["id"]))
+		info_row(gv, "· " + GameManager.goals.describe(g), "+%d 코인 · 평판 +%d" % [int(def.get("reward_coins", 0)), int(def.get("reward_rep", 0))], UIKit.ACCENT)
+	content.add_child(gc)
+	if GameManager.state.next_visitor_bonus > 0.0:
+		content.add_child(UIKit.label("SNS 후기 효과: 오늘 손님 +%d%%" % int(GameManager.state.next_visitor_bonus * 100), "body", UIKit.SUCCESS))
 	# 오늘 장사하는 경쟁 노점
 	var rivals: Array = []
 	for id in GameManager.progression.active_rivals():
@@ -51,7 +72,7 @@ func build() -> void:
 		content.add_child(UIKit.label("활성 메뉴 궁합: " + ", ".join(pn), "body", UIKit.SUCCESS))
 	# 조작 안내
 	var tip := UIKit.card(UIKit.PANEL_DARK)
-	tip.add_child(UIKit.label("영업 중 조작\n· 음식 버튼 → 화구에 올라감\n· 링이 초록색(지금!)일 때 화구를 탭 → 완벽한 요리\n· 너무 오래 두면 타서 버려야 해요\n· 음료 버튼 → 주문한 손님에게 바로 서빙", "body"))
+	tip.add_child(UIKit.label("영업 중 조작\n· 음식 버튼 → 화구에 올라감 → 링이 초록색(지금!)일 때 탭 → 서빙대\n· 꼬치·파전은 파란 구간에서 한 번 탭해 뒤집기 (안 뒤집으면 한쪽만 익음)\n· 「바싹」 요청은 조금 더, 「덜」 요청은 조금 덜 익혀서\n· 음료는 꾹 눌러 선까지, 소맥은 소주(파란 선) → 맥주(초록 선)\n· 손님 탭 → 서빙, 빈 테이블 탭 → 치우기, 조는 손님 탭 → 깨우기", "body"))
 	content.add_child(tip)
 	var total_restock: int = GameManager.economy.restock_all_cost()
 	footer_button("재료 전부 채우기\n-%s" % UIKit.fmt(total_restock), "success", func(): GameManager.restock_all(), total_restock > 0 and GameManager.state.coins > 0)

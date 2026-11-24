@@ -45,6 +45,15 @@ var eat_total: float = 6.0
 var eating_item: String = ""
 var eat_spot: int = -1
 var pending_tip: int = 0
+## 특별 손님
+var special_id: String = ""
+var special: Dictionary = {}
+var behavior: String = ""
+var order_prefs: Array = [] ## [[menu, pref], ...] 이번 주문의 익힘 요청
+var doze_t: float = 0.0
+var drunk_t: float = 0.0
+var drunk_changed: bool = false
+var flash_t: float = 0.0
 var facing_back: bool = false
 var reselect_count: int = 0
 var exit_counted: bool = false
@@ -60,11 +69,14 @@ var lane_offset: float = 0.0
 var rng: RandomNumberGenerator
 
 
-func setup(p_manager, p_uid: int, p_type_id: String, p_rng: RandomNumberGenerator, spawn: Vector2) -> void:
+func setup(p_manager, p_uid: int, p_type_id: String, p_rng: RandomNumberGenerator, spawn: Vector2, p_special: String = "") -> void:
 	manager = p_manager
 	uid = p_uid
-	type_id = p_type_id
 	rng = p_rng
+	special_id = p_special
+	special = DataManager.specials.get(p_special, {})
+	behavior = str(special.get("behavior", ""))
+	type_id = str(special.get("base_type", p_type_id)) if not special.is_empty() else p_type_id
 	ctype = DataManager.get_customer_type(type_id).duplicate(true)
 	ctype["id"] = type_id
 	var names: Array = ctype.get("names", ["손님"])
@@ -82,6 +94,14 @@ func setup(p_manager, p_uid: int, p_type_id: String, p_rng: RandomNumberGenerato
 		if float(prefs[k]) > best:
 			best = float(prefs[k])
 			favorite_category = str(k)
+	if not special.is_empty():
+		display_name = str(special.get("name", display_name))
+		ctype["color"] = special.get("color", ctype.get("color"))
+		ctype["accent"] = special.get("accent", ctype.get("accent"))
+		budget *= float(special.get("budget_mult", 1.0))
+		patience_max *= float(special.get("patience_mult", 1.0))
+		patience_left = patience_max
+		drunk_t = rng.randf_range(5.0, 9.0)
 	lane_offset = rng.randf_range(-10.0, 10.0)
 	position = spawn
 	anim_t = rng.randf() * 10.0
@@ -103,6 +123,10 @@ func tick(delta: float) -> void:
 	anim_t += delta
 	if reaction_timer > 0.0:
 		reaction_timer -= delta
+	if behavior == "influencer" and state == State.EATING:
+		flash_t -= delta
+		if flash_t <= -1.4:
+			flash_t = 0.25
 	if state != State.LEAVING:
 		fade = minf(1.0, fade + delta * 3.0)
 	_move(delta)
@@ -122,11 +146,16 @@ func tick(delta: float) -> void:
 			if arrived and not ordered:
 				_order()
 			elif ordered and not pending.is_empty():
-				wait_time += delta
-				total_wait += delta
-				patience_left -= delta / maxf(0.1, _patience_mult())
-				if patience_left <= 0.0:
-					_give_up()
+				if behavior == "drunk":
+					_drunk_tick(delta)
+				if doze_t > 0.0:
+					doze_t -= delta
+				else:
+					wait_time += delta
+					total_wait += delta
+					patience_left -= delta / maxf(0.1, _patience_mult())
+					if patience_left <= 0.0:
+						_give_up()
 		State.EATING:
 			if arrived:
 				eat_t += delta
@@ -275,7 +304,38 @@ func go_to_seat(_i: int, pos: Vector2) -> void:
 
 
 func can_receive() -> bool:
-	return state == State.SEATED and arrived and ordered and not pending.is_empty()
+	return state == State.SEATED and arrived and ordered and not pending.is_empty() and doze_t <= 0.0
+
+
+## 취객: 주문을 바꾸거나 졸기
+func _drunk_tick(delta: float) -> void:
+	drunk_t -= delta
+	if drunk_t > 0.0:
+		return
+	drunk_t = rng.randf_range(6.0, 10.0)
+	if not drunk_changed and rng.randf() < float(special.get("change_chance", 0.5)):
+		drunk_changed = true
+		if manager.drunk_change_order(self):
+			_react("change")
+			return
+	if rng.randf() < float(special.get("doze_chance", 0.4)):
+		doze_t = 4.0
+
+
+## 졸고 있는 손님을 깨움 (탭)
+func wake_up() -> bool:
+	if doze_t <= 0.0:
+		return false
+	doze_t = 0.0
+	_react("smile")
+	return true
+
+
+func pref_of(menu_id: String) -> String:
+	for p in order_prefs:
+		if p[0] == menu_id:
+			return str(p[1])
+	return ""
 
 
 func _order() -> void:
@@ -292,7 +352,11 @@ func _order() -> void:
 	rounds += 1
 	wait_time = 0.0
 	patience_left = patience_max
-	manager.pocha_manager.place_order(self, items)
+	var prefs: Array = manager.pick_prefs(self, items)
+	order_prefs = []
+	for k in items.size():
+		order_prefs.append([items[k], prefs[k]])
+	manager.pocha_manager.place_order(self, items, prefs)
 
 
 func on_item_served(menu_id: String, quality: float, price: int) -> void:
@@ -346,6 +410,7 @@ func _leave_pocha() -> void:
 		satisfaction = manager.pocha_satisfaction(self)
 		GameManager.economy.record_satisfaction(satisfaction)
 		pending_tip = manager.tip_for(self, satisfaction)
+		manager.special_on_leave(self, satisfaction)
 		_react("heart" if satisfaction >= 75.0 else ("smile" if satisfaction >= 50.0 else "meh"))
 		exit_counted = true
 	# 빈 그릇과 팁은 테이블에 남는다 → 사장님이 치워야 다음 손님이 앉는다
@@ -450,12 +515,17 @@ func _draw() -> void:
 	var skin := Color("#F6D7B8")
 	var bob := -absf(sin(anim_t * 11.0)) * 3.0 if moving else sin(anim_t * 2.0) * 0.8
 	DrawUtil.ellipse(self, Vector2.ZERO, 14, 6, Color(0, 0, 0, 0.35))
-	if type_id == "family":
+	if behavior == "group":
+		_draw_body(Vector2(-16, bob * 0.8 - 4), Color("#5C7BD9"), Color("#2A3A6B"), skin, 0.8)
+		_draw_body(Vector2(16, bob * 0.8 - 4), Color("#7A8BA8"), Color("#3A3F4E"), skin, 0.8)
+		_draw_body(Vector2(0, bob), col, accent, skin, 1.0)
+	elif type_id == "family":
 		_draw_body(Vector2(-9, bob), col, accent, skin, 1.0)
 		_draw_body(Vector2(12, bob * 0.7 + 2), col.lightened(0.2), accent, skin, 0.62)
 	else:
 		_draw_body(Vector2(0, bob), col, accent, skin, 1.0)
 	var head_top := Vector2(0, -56 + bob)
+	_draw_special_marks(Vector2(0, bob))
 	# 먹는 중: 음식 들고 냠냠
 	if state == State.EATING and eating_item != "" and arrived:
 		var m: Dictionary = DataManager.get_menu(eating_item)
@@ -466,6 +536,9 @@ func _draw() -> void:
 			DrawUtil.text_center(self, head_top + Vector2(16, -6), "냠", 15, Color("#FFF5E9"), 4)
 	if reaction_timer > 0.0:
 		_draw_reaction(head_top + Vector2(0, -6))
+	elif doze_t > 0.0:
+		DrawUtil.bubble(self, head_top, 44, 28, Color("#B9C4E8"))
+		DrawUtil.text_center(self, head_top + Vector2(0, -14), "zzz", 16, Color("#2A3A6B"), 0)
 	elif state == State.SEATED and ordered and not pending.is_empty() and arrived:
 		# 주문 말풍선 (나오지 않은 메뉴) + 인내심
 		var n := mini(2, pending.size())
@@ -473,7 +546,12 @@ func _draw() -> void:
 		DrawUtil.bubble(self, head_top, w, 32)
 		for k in n:
 			var pm: Dictionary = DataManager.get_menu(pending[k])
-			DrawUtil.menu_icon(self, pm, head_top + Vector2(-13.0 * (n - 1) + 26.0 * k, -16), 9)
+			var ip := head_top + Vector2(-13.0 * (n - 1) + 26.0 * k, -16)
+			DrawUtil.menu_icon(self, pm, ip, 9)
+			var pf := pref_of(str(pending[k]))
+			if pf != "":
+				DrawUtil.rounded_rect(self, Rect2(ip + Vector2(-14, 4), Vector2(28, 14)), 6, Color("#E5483A") if pf == "well" else Color("#5FB9C9"))
+				DrawUtil.text_center(self, ip + Vector2(0, 11), "바싹" if pf == "well" else "덜", 11, Color("#FFF5E9"), 0)
 		var ratio := clampf(patience_left / maxf(1.0, patience_max), 0.0, 1.0)
 		draw_rect(Rect2(head_top + Vector2(-w / 2.0 + 4, -40), Vector2(w - 8, 5)), Color(0, 0, 0, 0.6))
 		draw_rect(Rect2(head_top + Vector2(-w / 2.0 + 4, -40), Vector2((w - 8) * ratio, 5)), Color("#65C99A").lerp(Color("#E5564A"), 1.0 - ratio))
@@ -558,3 +636,31 @@ func _draw_reaction(p: Vector2) -> void:
 		"expensive":
 			DrawUtil.bubble(self, p, 52, 28, Color("#FFB45C"))
 			DrawUtil.text_center(self, p + Vector2(0, -14), "비싸", 16, Color("#2A1A0C"), 0)
+		"change":
+			DrawUtil.bubble(self, p, 74, 28, Color("#FFD27A"))
+			DrawUtil.text_center(self, p + Vector2(0, -14), "이걸로!", 16, Color("#2A1A0C"), 0)
+
+
+## 특별 손님 표시 (이름표 + 외형 포인트)
+func _draw_special_marks(o: Vector2) -> void:
+	if special.is_empty():
+		return
+	var head := o + Vector2(0, -40)
+	match behavior:
+		"critic":
+			draw_circle(head + Vector2(-5, 1), 4.5, Color(1, 1, 1, 0.0))
+			draw_arc(head + Vector2(-5, 1), 4.5, 0, TAU, 12, Color("#1A1A1A"), 1.8, true)
+			draw_arc(head + Vector2(5, 1), 4.5, 0, TAU, 12, Color("#1A1A1A"), 1.8, true)
+			DrawUtil.ellipse(self, head + Vector2(2, -11), 14, 5, Color("#2A1E2E"))
+		"drunk":
+			draw_circle(head + Vector2(-7, 5), 4, Color(1, 0.3, 0.3, 0.7))
+			draw_circle(head + Vector2(7, 5), 4, Color(1, 0.3, 0.3, 0.7))
+			draw_rect(Rect2(head + Vector2(-12, -14), Vector2(24, 4)), Color("#FFF5E9"))
+		"influencer":
+			draw_rect(Rect2(o + Vector2(10, -34), Vector2(9, 14)), Color("#2A2A2A"))
+			if flash_t > 0.0:
+				DrawUtil.glow(self, o + Vector2(14, -30), 40, Color(1, 1, 1, 0.8))
+	var tag_y := -96.0 if state == State.SEATED or state == State.EATING else -78.0
+	var tag := Rect2(o + Vector2(-38, tag_y), Vector2(76, 18))
+	DrawUtil.rounded_rect(self, tag, 8, Color(0.1, 0.08, 0.12, 0.85))
+	DrawUtil.text_center(self, tag.get_center(), str(special.get("name", "")), 12, Color(special.get("accent", "#FFD27A")) if false else Color("#FFD27A"), 0)

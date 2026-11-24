@@ -30,7 +30,11 @@ func def_of(id: String) -> Dictionary:
 func quality(id: String) -> float:
 	var d := def_of(id)
 	var g: Dictionary = d.get("growth", {})
-	return clampf(float(d.get("quality", 70)) + float(g.get("quality", 0)) * (GameManager.state.market_level - 1), 0.0, 100.0)
+	var q: float = float(d.get("quality", 70)) + float(g.get("quality", 0)) * (GameManager.state.market_level - 1)
+	# 대결의 밤: 라이벌도 실력 발휘
+	if GameManager.goals and GameManager.goals.is_showdown_today() and str(GameManager.state.showdown.get("rival", "")) == id:
+		q += float(DataManager.goals_meta.get("showdown", {}).get("rival_quality_bonus", 6))
+	return clampf(q, 0.0, 100.0)
 
 
 func reputation(id: String) -> float:

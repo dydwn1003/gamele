@@ -148,11 +148,28 @@ func _promote_waiting() -> void:
 		waiting[k].go_to_wait(k, market.wait_pos(k))
 
 
-func place_order(c, items: Array) -> void:
-	for m in items:
-		orders.append({"id": next_order_id, "customer": c, "menu": str(m), "t": elapsed})
+## prefs: 메뉴별 익힘 요청 ("" / "well" / "rare"), items 와 같은 순서
+func place_order(c, items: Array, prefs: Array = []) -> void:
+	for k in items.size():
+		var pref: String = str(prefs[k]) if k < prefs.size() else ""
+		orders.append({"id": next_order_id, "customer": c, "menu": str(items[k]), "pref": pref, "t": elapsed})
 		next_order_id += 1
 	changed.emit()
+
+
+func is_drink_menu(menu_id: String) -> bool:
+	return str(DataManager.get_menu(menu_id).get("station", "")) in ["drink", "mix"]
+
+
+## 서빙대/쟁반 음식의 품질 (손님 요청 반영, 식은 만큼 감소)
+func item_quality(item: Dictionary, pref: String = "") -> float:
+	var q := float(item.get("quality", 80.0))
+	if item.has("r"):
+		var base: float = KitchenScript.quality_for_pref(float(item["r"]), float(item["pe"]), float(item["burn"]), pref, kitchen.too_early)
+		if base < 0.0:
+			base = 45.0
+		q = base * float(item.get("flip_mul", 1.0)) - float(item.get("flip_sub", 0.0)) + float(item.get("bonus", 0.0))
+	return clampf(q - float(item.get("decay", 0.0)), 30.0, 100.0)
 
 
 func seat_of(c) -> int:
@@ -216,6 +233,18 @@ func tap_burner(i: int) -> Dictionary:
 	if i < 0 or i >= kitchen.burners.size() or not kitchen.is_busy(i):
 		return _fail("비어 있는 화구예요")
 	var st: String = kitchen.stage(i)
+	if kitchen.needs_flip(i) and kitchen.ratio(i) < 1.0:
+		var fr: Dictionary = kitchen.try_flip(i)
+		match str(fr.get("result", "")):
+			"early":
+				feedback.emit(_grill_pos(i), "뒤집기엔 아직 일러요", Color("#FFF5E9"), 20)
+				return {"ok": false, "too_early": true, "error": "뒤집기엔 아직 일러요"}
+			"good":
+				feedback.emit(_grill_pos(i), "뒤집기!", Color("#65C99A"), 22)
+			"bad":
+				feedback.emit(_grill_pos(i), "앗, 찢어졌어요", Color("#E97858"), 20)
+		changed.emit()
+		return {"ok": true, "flipped": true, "flip": fr.get("result", "")}
 	if st == KitchenScript.STAGE_RAW:
 		feedback.emit(_grill_pos(i), "아직 덜 익었어요", Color("#FFF5E9"), 20)
 		return {"ok": false, "too_early": true, "error": "아직 덜 익었어요"}
@@ -228,11 +257,13 @@ func tap_burner(i: int) -> Dictionary:
 		feedback.emit(_grill_pos(i), "탔어요!", Color("#E5564A"), 24)
 		changed.emit()
 		return r
-	if r.get("stage", "") == "almost":
+	if r.get("flip_missed", false):
+		feedback.emit(_grill_pos(i), "한쪽만 익었어요", Color("#E97858"), 20)
+	elif r.get("stage", "") == "almost":
 		feedback.emit(_grill_pos(i), "조금 덜 익음", Color("#FFD27A"), 20)
 	elif r.get("stage", "") == "over":
 		feedback.emit(_grill_pos(i), "조금 탐", Color("#E97858"), 20)
-	_to_pass(str(r["menu"]), _quality_with_bonus(str(r["menu"]), float(r["quality"])))
+	_to_pass_cooked(r)
 	changed.emit()
 	return r
 
@@ -276,45 +307,105 @@ func _quality_with_bonus(menu_id: String, q: float) -> float:
 
 
 func _to_pass(menu_id: String, quality: float) -> void:
-	pass_items.append({"menu": menu_id, "quality": quality, "age": 0.0})
+	pass_items.append({"menu": menu_id, "quality": quality, "age": 0.0, "decay": 0.0})
 
 
-## 서빙대에서 이 손님 주문에 맞는 음식을 꺼낸다 (최대 n개, 이미 쟁반에 있는 것 제외)
-func pass_take_for(c, n: int, already: Array) -> Array:
-	var need: Array = c.pending.duplicate()
+func _to_pass_cooked(r: Dictionary) -> void:
+	var menu_id := str(r["menu"])
+	var bonus := 0.0
+	var sp: Dictionary = fx.get("special_menus", {})
+	if sp.has(menu_id):
+		bonus = float(sp[menu_id].get("quality_bonus", 0.0))
+	pass_items.append({"menu": menu_id, "quality": clampf(float(r["quality"]) + bonus, 0.0, 100.0), "age": 0.0, "decay": 0.0,
+		"r": float(r["r"]), "pe": float(r["pe"]), "burn": float(r["burn"]),
+		"flip_mul": float(r.get("flip_mul", 1.0)), "flip_sub": float(r.get("flip_sub", 0.0)), "bonus": bonus})
+
+
+## 소맥: 소주 → 맥주 두 단계 따르기
+func pour_finish_mix(menu_id: String, soju: float, beer: float) -> Dictionary:
+	var mx: Dictionary = DataManager.get_menu(menu_id).get("mix", {})
+	var pos := MarketScript.DRINK_POS + Vector2(0, 20)
+	var smin := float(mx.get("soju_min", 0.22))
+	var smax := float(mx.get("soju_max", 0.34))
+	var q1: float = KitchenScript.pour_quality(soju / maxf(0.01, smax) * 0.92, smin / smax * 0.92, 0.92, 1.25)
+	if q1 < 0.0:
+		q1 = 45.0
+	var q2: float = KitchenScript.pour_quality(beer, float(mx.get("beer_min", 0.8)), float(mx.get("beer_max", 0.93)), 1.0)
+	if q2 < 0.0:
+		GameManager.economy.record_waste(menu_id, false)
+		combo = 0
+		feedback.emit(pos, "넘쳤어요!", Color("#E5564A"), 24)
+		changed.emit()
+		return {"ok": false, "spilled": true, "error": "넘쳤어요!"}
+	var q := (q1 + q2) / 2.0
+	if q >= 99.0:
+		feedback.emit(pos, "황금 비율!", Color("#65C99A"), 22)
+	elif q1 < 90.0:
+		feedback.emit(pos, "비율이 아쉬워요", Color("#FFD27A"), 20)
+	_to_pass(menu_id, q)
+	changed.emit()
+	return {"ok": true, "quality": q}
+
+
+## 이 손님의 아직 쟁반에 없는 주문들
+func _open_orders_for(c, already: Array) -> Array:
+	var list: Array = orders_of(c)
+	var out: Array = []
+	var held: Array = []
 	for it in already:
-		need.erase(it["menu"])
+		held.append(it["menu"])
+	for o in list:
+		if held.has(o["menu"]):
+			held.erase(o["menu"])
+			continue
+		out.append(o)
+	return out
+
+
+## 서빙대에서 이 손님 주문에 가장 잘 맞는 음식을 꺼낸다 (최대 n개)
+func pass_take_for(c, n: int, already: Array) -> Array:
 	var taken: Array = []
-	for m in need:
+	for o in _open_orders_for(c, already):
 		if taken.size() >= n:
 			break
+		var best = null
+		var best_q := -1.0
 		for p in pass_items:
-			if p["menu"] == m:
-				pass_items.erase(p)
-				taken.append(p)
-				break
+			if p["menu"] == o["menu"]:
+				var q := item_quality(p, str(o.get("pref", "")))
+				if q > best_q:
+					best_q = q
+					best = p
+		if best != null:
+			pass_items.erase(best)
+			taken.append(best)
 	if taken.size() > 0:
 		changed.emit()
 	return taken
 
 
 func pass_has_for(c, already: Array) -> bool:
-	var need: Array = c.pending.duplicate()
-	for it in already:
-		need.erase(it["menu"])
-	for p in pass_items:
-		if need.has(p["menu"]):
-			return true
+	for o in _open_orders_for(c, already):
+		for p in pass_items:
+			if p["menu"] == o["menu"]:
+				return true
 	return false
 
 
-## 쟁반의 음식을 손님에게 전달
+## 쟁반의 음식을 손님에게 전달 (요청에 가장 잘 맞는 주문에)
 func serve_item(c, item: Dictionary) -> bool:
+	var best = null
+	var best_q := -1.0
 	for o in orders:
 		if o["customer"] == c and o["menu"] == item["menu"]:
-			_serve(o, float(item["quality"]))
-			return true
-	return false
+			var q := item_quality(item, str(o.get("pref", "")))
+			if q > best_q:
+				best_q = q
+				best = o
+	if best == null:
+		return false
+	_serve(best, best_q)
+	return true
 
 
 func _serve(o: Dictionary, quality: float) -> void:
@@ -348,6 +439,10 @@ func tap_seat(i: int) -> Dictionary:
 	var c = seats[i]
 	if c == null or not is_instance_valid(c):
 		return _fail("빈 자리")
+	if c.doze_t > 0.0:
+		c.wake_up()
+		feedback.emit(c.position + Vector2(0, -90), "일어나세요~", Color("#B9C4E8"), 18)
+		return {"ok": true, "action": "wake"}
 	if not c.can_receive():
 		feedback.emit(c.position + Vector2(0, -90), "먹는 중" if c.state_name() == "EATING" else "아직 주문 전", Color("#B9B5B0"), 18)
 		return _fail("")
@@ -379,7 +474,7 @@ func tick(delta: float) -> void:
 	var decay := float(DataManager.pocha.get("pass_decay_time", 22.0))
 	for p in pass_items.duplicate():
 		p["age"] = float(p["age"]) + delta
-		p["quality"] = maxf(40.0, float(p["quality"]) - delta * 1.2)
+		p["decay"] = float(p.get("decay", 0.0)) + delta * 1.2
 		if float(p["age"]) > decay:
 			pass_items.erase(p)
 			GameManager.economy.record_waste(str(p["menu"]), false)
@@ -396,7 +491,11 @@ func _auto_cook() -> void:
 	if auto_burner < 0 or auto_burner >= kitchen.burners.size():
 		return
 	if kitchen.is_busy(auto_burner):
-		if kitchen.auto_ready(auto_burner) and pass_space() > 0:
+		if kitchen.needs_flip(auto_burner):
+			var f: Dictionary = kitchen.burners[auto_burner]["flip"]
+			if kitchen.ratio(auto_burner) >= (float(f.get("good_min", 0.3)) + float(f.get("good_max", 0.9))) / 2.0:
+				kitchen.try_flip(auto_burner)
+		elif kitchen.auto_ready(auto_burner) and pass_space() > 0:
 			var r: Dictionary = kitchen.collect(auto_burner)
 			if r.get("ok", false):
 				_to_pass(str(r["menu"]), _quality_with_bonus(str(r["menu"]), float(fx.get("auto_quality", 80.0))))
@@ -412,7 +511,8 @@ func _auto_cook() -> void:
 func _unclaimed_demand(station: String) -> String:
 	var need := {}
 	for o in orders:
-		if str(DataManager.get_menu(o["menu"]).get("station", "")) == station:
+		var st: String = str(DataManager.get_menu(o["menu"]).get("station", ""))
+		if st == station or (station == "drink" and st == "mix"):
 			need[o["menu"]] = int(need.get(o["menu"], 0)) + 1
 	for b in kitchen.burners:
 		if b["menu"] != "" and need.has(b["menu"]):
@@ -457,12 +557,12 @@ func _auto_serve(delta: float) -> void:
 			clear_seat(i)
 			return
 	for p in pass_items:
-		if str(DataManager.get_menu(p["menu"]).get("station", "")) != "drink":
+		if not is_drink_menu(str(p["menu"])):
 			continue
 		for o in orders:
 			if o["menu"] == p["menu"] and o["customer"].can_receive():
 				pass_items.erase(p)
-				_serve(o, float(p["quality"]))
+				_serve(o, item_quality(p, str(o.get("pref", ""))))
 				return
 
 

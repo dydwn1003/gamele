@@ -56,7 +56,7 @@ func build() -> void:
 	# 메뉴판
 	section("메뉴판")
 	content.add_child(UIKit.label("메뉴판에 올린 메뉴만 손님이 주문합니다. 음식은 화구에서 직접 굽고, 음료는 탭해서 따릅니다.", "caption"))
-	for station in ["grill", "drink"]:
+	for station in ["grill", "drink", "mix"]:
 		for id in DataManager.pocha_menu_ids():
 			var m: Dictionary = DataManager.get_menu(id)
 			if str(m.get("station", "")) != station:

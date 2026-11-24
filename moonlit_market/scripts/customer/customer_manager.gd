@@ -18,6 +18,7 @@ var event_mods: Dictionary = {}
 var spawning: bool = false
 var spawn_timer: float = 0.0
 var next_uid: int = 1
+var specials_spawned: int = 0
 var rng := RandomNumberGenerator.new()
 
 
@@ -30,6 +31,7 @@ func begin(p_market_mods: Dictionary) -> void:
 	event_mods = {}
 	spawning = true
 	spawn_timer = 0.5
+	specials_spawned = 0
 
 
 func stop_spawning() -> void:
@@ -58,7 +60,31 @@ func tick(delta: float) -> void:
 			c.tick(delta)
 
 
-func spawn_customer(type_id: String = ""):
+func _roll_special() -> String:
+	var meta: Dictionary = DataManager.specials_meta
+	if specials_spawned >= int(meta.get("max_per_session", 3)) or rng.randf() > float(meta.get("chance_per_spawn", 0.08)):
+		return ""
+	var pool: Array = []
+	var total := 0.0
+	for id in DataManager.specials.keys():
+		var d: Dictionary = DataManager.specials[id]
+		if GameManager.state.day >= int(d.get("min_day", 1)):
+			pool.append(id)
+			total += float(d.get("weight", 1.0))
+	var roll := rng.randf() * total
+	for id in pool:
+		roll -= float(DataManager.specials[id].get("weight", 1.0))
+		if roll <= 0.0:
+			return str(id)
+	return ""
+
+
+func spawn_customer(type_id: String = "", special_id: String = ""):
+	if special_id == "" and type_id == "":
+		special_id = _roll_special()
+	if special_id != "":
+		specials_spawned += 1
+		type_id = str(DataManager.specials.get(special_id, {}).get("base_type", "office_worker"))
 	if type_id == "":
 		var tourist_mult := float(market_mods.get("tourist_mult", 1.0)) * float(event_mods.get("tourist_mult", 1.0))
 		type_id = CustomerAI.pick_type(DataManager.customers, tourist_mult, rng, float(event_mods.get("office_mult", 1.0)))
@@ -66,7 +92,7 @@ func spawn_customer(type_id: String = ""):
 		return null
 	var c = CustomerScene.instantiate()
 	world.add_child(c)
-	c.setup(self, next_uid, type_id, rng, market.spawn_point(rng))
+	c.setup(self, next_uid, type_id, rng, market.spawn_point(rng), special_id)
 	next_uid += 1
 	customers.append(c)
 	GameManager.economy.record_visit()
@@ -91,7 +117,8 @@ func pocha_menus(station: String) -> Array:
 	var out: Array = []
 	for id in GameManager.state.enabled_menus():
 		var m: Dictionary = DataManager.get_menu(id).duplicate()
-		if str(m.get("station", "")) != station or GameManager.state.stock_of(id) <= 0:
+		var st := str(m.get("station", ""))
+		if (st != station and not (station == "drink" and st == "mix")) or GameManager.state.stock_of(id) <= 0:
 			continue
 		m["id"] = id
 		m["_ratio"] = float(GameManager.state.menu_entry(id).get("price_ratio", 1.0))
@@ -117,7 +144,7 @@ func pocha_score(c) -> float:
 		ctx["appeal"] = float(DataManager.get_pocha_level(GameManager.state.pocha_level()).get("appeal", 0.0)) \
 			+ float(sp.get(m["id"], {}).get("attraction", 0.0))
 		var s := CustomerAI.stall_score(c.ctype, m, ctx)
-		if str(m.get("station", "")) == "drink":
+		if str(m.get("station", "")) != "grill":
 			s *= 0.6 # 음료만 보고 들어오는 손님은 적다
 		best = maxf(best, s)
 	return best * 1.7 # 앉아서 먹는 포차 분위기 + 플레이어 가게 존재감
@@ -135,7 +162,10 @@ func rival_score(c, id: String) -> float:
 
 
 ## 반환: "pocha" / 경쟁 노점 id / "" (아무것도 안 삼)
+## 특별 손님은 내 포차를 찾아온다 (그래서 특별)
 func choose_target(c) -> String:
+	if c.special_id != "" and pocha_manager.is_open and pocha_score(c) > 0.0:
+		return "pocha"
 	var candidates: Array = []
 	var ps := pocha_score(c)
 	if ps > 0.0:
@@ -165,7 +195,20 @@ func pick_pocha_order(c, reorder: bool) -> Array:
 	var fx := _pair_fx()
 	var drink_bonus := float(fx.get("drink_chance", 0.0))
 	var items: Array
-	if reorder:
+	if c.behavior == "group":
+		# 회식 단체: 안주 여러 개 + 술
+		items = []
+		var n := int(c.special.get("items", 3))
+		for k in n:
+			var want_food: bool = foods.size() > 0 and (drinks.is_empty() or (k % 2 == 0 and not reorder))
+			var pick: Array = []
+			if want_food:
+				pick = CustomerAI.pick_order(c.ctype, foods, [], ctx, 0.0, rng)
+			elif drinks.size() > 0:
+				pick = CustomerAI.pick_order(c.ctype, [], drinks, ctx, 1.0, rng)
+			if pick.size() > 0:
+				items.append(pick[0])
+	elif reorder:
 		# 추가 주문은 술/음료 위주, 가끔 안주
 		if drinks.size() > 0 and rng.randf() < 0.65:
 			items = CustomerAI.pick_order(c.ctype, [], drinks, ctx, 1.0, rng)
@@ -184,7 +227,74 @@ func pick_pocha_order(c, reorder: bool) -> Array:
 	return out
 
 
+## 익힘 요청 ("" / "well" / "rare")
+func pick_prefs(c, items: Array) -> Array:
+	var out: Array = []
+	var chance := float(DataManager.specials_meta.get("doneness_request_chance", 0.25))
+	for m in items:
+		var pref := ""
+		if bool(DataManager.get_menu(m).get("allow_pref", false)) and c.behavior != "drunk" and rng.randf() < chance:
+			pref = "well" if rng.randf() < 0.5 else "rare"
+		out.append(pref)
+	return out
+
+
+## 취객이 주문을 바꿈: 아직 안 나온 메뉴 하나를 같은 종류의 다른 메뉴로
+func drunk_change_order(c) -> bool:
+	for o in pocha_manager.orders_of(c):
+		var old: String = o["menu"]
+		var station := str(DataManager.get_menu(old).get("station", ""))
+		var choices: Array = []
+		for m in pocha_menus("drink" if station != "grill" else "grill"):
+			if m["id"] != old:
+				choices.append(m["id"])
+		if choices.is_empty():
+			continue
+		var nm: String = choices[rng.randi() % choices.size()]
+		o["menu"] = nm
+		o["pref"] = ""
+		var idx: int = c.pending.find(old)
+		if idx >= 0:
+			c.pending[idx] = nm
+		for p in c.order_prefs:
+			if p[0] == old:
+				p[0] = nm
+				p[1] = ""
+				break
+		pocha_manager.changed.emit()
+		return true
+	return false
+
+
+## 특별 손님이 계산하고 떠날 때
+func special_on_leave(c, sat: float) -> void:
+	if c.special_id == "" or c.purchases <= 0:
+		return
+	var critic_rep := 0
+	var influencer := 0.0
+	var pos: Vector2 = c.position + Vector2(0, -120)
+	match c.behavior:
+		"critic":
+			if c.avg_quality() >= float(c.special.get("success_quality", 95)):
+				critic_rep = int(c.special.get("rep_success", 8))
+				market.spawn_float_text(pos, "평론가 호평! 평판 +%d" % critic_rep, Color("#C9A0FF"), 22)
+			else:
+				critic_rep = int(c.special.get("rep_fail", -5))
+				market.spawn_float_text(pos, "평론가 혹평... 평판 %d" % critic_rep, Color("#E5564A"), 22)
+		"influencer":
+			if sat >= float(c.special.get("bonus_satisfaction", 80)):
+				influencer = float(c.special.get("next_day_visitor_bonus", 0.3))
+				market.spawn_float_text(pos, "SNS 후기 업로드! 다음 영업 손님 +%d%%" % int(influencer * 100), Color("#FF8FB8"), 20)
+		"group":
+			market.spawn_float_text(pos, "회식 끝! 잘 먹었습니다~", Color("#FFD27A"), 20)
+	GameManager.economy.record_special(c.special_id, critic_rep, influencer)
+
+
 func wants_reorder(c) -> bool:
+	if c.behavior == "group":
+		return c.rounds < int(c.special.get("max_rounds", 4)) and rng.randf() < 0.85
+	if c.behavior == "drunk" and c.rounds < 4 and rng.randf() < 0.6:
+		return true
 	if c.rounds >= 3:
 		return false
 	var cheapest := 99999
@@ -215,11 +325,15 @@ func pocha_satisfaction(c) -> float:
 		+ float(market_mods.get("satisfaction", 0.0)) + float(event_mods.get("satisfaction", 0.0))
 	if c.type_id in ["family", "student"]:
 		bonus += float(fx.get("satisfaction_family", 0.0))
+	if c.behavior == "critic":
+		return clampf(c.avg_quality() - c.total_wait * 0.5, 0.0, 100.0)
 	return CustomerAI.pocha_satisfaction(c.ctype, c.avg_quality(), pref, ratio, c.total_wait / maxf(1.0, c.rounds), bonus,
 		float(DataManager.bal("satisfaction_base", 68.0)), float(DataManager.bal("satisfaction_wait_penalty", 0.9)))
 
 
 func tip_for(c, sat: float) -> int:
+	if c.behavior == "drunk":
+		return int(c.spent * (0.5 if rng.randf() < 0.4 else 0.0))
 	var threshold := float(DataManager.bal("tip_threshold", 80.0))
 	var q: float = c.avg_quality()
 	if q < threshold or sat < 70.0:

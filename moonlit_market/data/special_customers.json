@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "note": "특별 손님. base_type 의 취향/예산을 쓰고 behavior 로 행동이 달라진다",
+  "chance_per_spawn": 0.08,
+  "max_per_session": 3,
+  "doneness_request_chance": 0.25,
+  "specials": [
+    {
+      "id": "critic",
+      "name": "음식 평론가",
+      "base_type": "office_worker",
+      "behavior": "critic",
+      "weight": 1.0,
+      "min_day": 2,
+      "desc": "완벽한 요리만 인정. 성공하면 평판 대박, 실패하면 혹평",
+      "rep_success": 8,
+      "rep_fail": -5,
+      "success_quality": 95,
+      "color": "#3A3A4A",
+      "accent": "#C9A0FF"
+    },
+    {
+      "id": "group",
+      "name": "회식 단체",
+      "base_type": "office_worker",
+      "behavior": "group",
+      "weight": 1.2,
+      "min_day": 1,
+      "desc": "한 테이블에서 잔뜩 시키고 술을 계속 추가. 큰돈이 되지만 정신없다",
+      "items": 3,
+      "max_rounds": 4,
+      "budget_mult": 3.5,
+      "patience_mult": 1.4,
+      "color": "#4A5C9A",
+      "accent": "#E5483A"
+    },
+    {
+      "id": "drunk",
+      "name": "취객",
+      "base_type": "office_worker",
+      "behavior": "drunk",
+      "weight": 0.9,
+      "min_day": 2,
+      "desc": "주문을 바꾸고, 기다리다 졸기도 한다. 팁은 복불복",
+      "change_chance": 0.5,
+      "doze_chance": 0.4,
+      "color": "#C96A5A",
+      "accent": "#7A2E2A"
+    },
+    {
+      "id": "influencer",
+      "name": "인플루언서",
+      "base_type": "tourist",
+      "behavior": "influencer",
+      "weight": 0.8,
+      "min_day": 3,
+      "desc": "만족시키면 SNS 후기 덕에 다음 영업 손님 증가",
+      "bonus_satisfaction": 80,
+      "next_day_visitor_bonus": 0.3,
+      "color": "#FF8FB8",
+      "accent": "#FFFFFF"
+    }
+  ]
+}

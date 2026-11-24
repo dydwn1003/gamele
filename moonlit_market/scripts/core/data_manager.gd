@@ -21,6 +21,10 @@ var pairings: Array = []
 var pocha: Dictionary = {}
 var pocha_levels: Array = []
 var rivals: Dictionary = {}
+var specials: Dictionary = {}
+var specials_meta: Dictionary = {}
+var goals: Array = []
+var goals_meta: Dictionary = {}
 var stages: Array = []
 var balance: Dictionary = {}
 var bm: Dictionary = {}
@@ -135,6 +139,16 @@ func load_all() -> bool:
 		load_errors.append("pocha.json: levels 누락 → 기본 레벨 사용")
 	d = _load_json("rivals.json")
 	rivals = _index(d.get("rivals", []), RIVAL_DEFAULTS)
+	d = _load_json("special_customers.json")
+	specials = _index(d.get("specials", []), {"name": "특별 손님", "base_type": "office_worker", "behavior": "", "weight": 1.0, "min_day": 1, "desc": "", "color": "#B9B5B0", "accent": "#555555"})
+	specials_meta = {"chance_per_spawn": float(d.get("chance_per_spawn", 0.08)), "max_per_session": int(d.get("max_per_session", 3)),
+		"doneness_request_chance": float(d.get("doneness_request_chance", 0.25))}
+	d = _load_json("goals.json")
+	goals = []
+	for g in d.get("goals", []):
+		if g is Dictionary and g.has("id") and g.has("stat"):
+			goals.append(_with_defaults(g, {"text": "%d", "compare": "min", "base": 1, "per_day": 0, "max": 99999, "reward_coins": 100, "reward_rep": 2}))
+	goals_meta = {"goals_per_day": int(d.get("goals_per_day", 3)), "showdown": d.get("showdown", {})}
 	d = _load_json("progression.json")
 	stages = []
 	for st in d.get("stages", []):
@@ -222,7 +236,7 @@ func get_rival(id: String) -> Dictionary:
 func pocha_menu_ids() -> Array:
 	var out: Array = []
 	for id in menus.keys():
-		if str(menus[id].get("station", "rival")) in ["grill", "drink"]:
+		if str(menus[id].get("station", "rival")) in ["grill", "drink", "mix"]:
 			out.append(id)
 	return out
 

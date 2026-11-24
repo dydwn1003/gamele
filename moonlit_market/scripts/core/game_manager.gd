@@ -10,6 +10,7 @@ const ProgressionScript := preload("res://scripts/core/progression_manager.gd")
 const OfflineScript := preload("res://scripts/core/offline_manager.gd")
 const StaffScript := preload("res://scripts/staff/staff_manager.gd")
 const SynergyScript := preload("res://scripts/market/synergy_manager.gd")
+const GoalScript := preload("res://scripts/core/goal_manager.gd")
 const AdServiceScript := preload("res://scripts/services/rewarded_ad_service.gd")
 const PurchaseServiceScript := preload("res://scripts/services/purchase_service.gd")
 
@@ -29,6 +30,7 @@ var progression
 var offline
 var staff
 var synergy
+var goals
 var ads
 var purchases
 
@@ -60,8 +62,10 @@ func _create_managers() -> void:
 	staff = StaffScript.new()
 	offline = OfflineScript.new()
 	synergy = SynergyScript.new()
+	goals = GoalScript.new()
 	progression.setup(state, DataManager)
-	economy.setup(state, DataManager, staff)
+	goals.setup(state, DataManager, progression)
+	economy.setup(state, DataManager, staff, goals)
 	staff.setup(state, DataManager, economy, progression)
 	offline.setup(state, DataManager)
 	synergy.setup(DataManager)
@@ -118,6 +122,7 @@ func new_game(save_now: bool = true) -> void:
 func _after_state_loaded() -> void:
 	progression.update_market_level()
 	progression.refresh_unlocks()
+	prepare_day()
 	refresh_synergy()
 	_emit_all()
 
@@ -403,6 +408,8 @@ func market_modifiers() -> Dictionary:
 	var g: Dictionary = synergy_cache.get("effects", {})
 	if state.today_weather == "rain":
 		m["visitor_mult"] *= 1.0 + float(g.get("rain_visitor_bonus", 0.0))
+	# 인플루언서 효과 (전날 SNS 후기)
+	m["visitor_mult"] *= 1.0 + state.next_visitor_bonus
 	# 관광객은 시장 평판에 민감
 	m["tourist_mult"] *= clampf(0.5 + state.reputation / 150.0, 0.5, 2.5)
 	return m
@@ -415,11 +422,19 @@ func set_operating(value: bool, phase: String) -> void:
 	session_phase_changed.emit(phase)
 
 
+## 오늘의 목표/대결 준비 (하루에 한 번)
+func prepare_day() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	goals.prepare_day(rng)
+
+
 func on_session_closed(result: Dictionary) -> void:
 	state.weather_history.append(state.today_weather)
 	while state.weather_history.size() > 5:
 		state.weather_history.pop_front()
 	roll_weather()
+	prepare_day()
 	save_game("session_closed")
 	session_result_ready.emit(result)
 

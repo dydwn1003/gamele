@@ -301,7 +301,10 @@ func _on_phase(phase: String) -> void:
 	var was_running := running
 	running = phase == "open" or phase == "closing"
 	if phase == "open" and not was_running:
-		show_banner("%d일차 영업 시작!" % GameManager.state.day)
+		if GameManager.goals.is_showdown_today():
+			show_banner("대결의 밤! vs %s" % DataManager.get_rival(str(GameManager.state.showdown["rival"])).get("name", ""), UIKit.SECONDARY)
+		else:
+			show_banner("%d일차 영업 시작!" % GameManager.state.day)
 	elif phase == "closing":
 		show_banner("마감 시간!", UIKit.SECONDARY)
 	session_card.visible = running
@@ -320,7 +323,13 @@ func update_session(remaining: float, stats: Dictionary) -> void:
 	timer_label.text = "%d:%02d" % [sec / 60, sec % 60]
 	if stats.get("phase", "") == "closing":
 		timer_label.text = "마감"
-	stats_label.text = "손님 %d · 판매 %d · 팁 %s" % [stats.get("buyers", 0), stats.get("sales", 0), UIKit.fmt(int(stats.get("tips", 0)))]
+	var sd: Dictionary = stats.get("showdown", {})
+	if not sd.is_empty():
+		var ahead: bool = int(sd["mine"]) >= int(sd["theirs"])
+		stats_label.text = "대결 %s : %s %s" % [UIKit.fmt(int(sd["mine"])), UIKit.fmt(int(sd["theirs"])), "앞섬!" if ahead else "뒤짐"]
+		stats_label.add_theme_color_override("font_color", UIKit.SUCCESS if ahead else UIKit.SECONDARY)
+	else:
+		stats_label.text = "손님 %d · 판매 %d · 팁 %s" % [stats.get("buyers", 0), stats.get("sales", 0), UIKit.fmt(int(stats.get("tips", 0)))]
 	speed_button.text = "x%d" % int(stats.get("speed", 1.0))
 
 

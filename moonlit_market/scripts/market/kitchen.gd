@@ -33,7 +33,8 @@ func resize(count: int) -> void:
 
 
 static func _empty() -> Dictionary:
-	return {"menu": "", "t": 0.0, "cook": 1.0, "perfect_end": 1.4, "burn": 1.9, "auto": false, "for_order": -1}
+	return {"menu": "", "t": 0.0, "cook": 1.0, "perfect_end": 1.4, "burn": 1.9, "auto": false, "for_order": -1,
+		"flip": {}, "flipped": false, "flip_result": ""}
 
 
 func free_burner(allow_auto_reserved: bool = false, auto_index: int = -1) -> int:
@@ -59,8 +60,46 @@ func start(i: int, menu: Dictionary, cook_speed: float = 1.0, auto: bool = false
 		"burn": float(menu.get("burn", 1.9)),
 		"auto": auto,
 		"for_order": for_order,
+		"flip": menu.get("flip", {}),
+		"flipped": false,
+		"flip_result": "",
 	}
 	return true
+
+
+## 뒤집기가 필요한 메뉴인데 아직 안 뒤집었나
+func needs_flip(i: int) -> bool:
+	if not is_busy(i):
+		return false
+	var f: Dictionary = burners[i].get("flip", {})
+	return not f.is_empty() and not bool(burners[i]["flipped"])
+
+
+## 뒤집기 시도. 반환 {ok, result: "good"|"bad"|"early"}
+func try_flip(i: int) -> Dictionary:
+	if not needs_flip(i):
+		return {"ok": false, "result": "none"}
+	var f: Dictionary = burners[i]["flip"]
+	var r := ratio(i)
+	if r < float(f.get("min", 0.3)):
+		return {"ok": false, "result": "early"}
+	var good := r >= float(f.get("good_min", 0.3)) and r <= float(f.get("good_max", 0.9))
+	burners[i]["flipped"] = true
+	burners[i]["flip_result"] = "good" if good else "bad"
+	return {"ok": true, "result": burners[i]["flip_result"]}
+
+
+## 뒤집기 결과에 따른 품질 보정 [곱, 뺄셈]
+func flip_mods(i: int) -> Array:
+	var b: Dictionary = burners[i]
+	var f: Dictionary = b.get("flip", {})
+	if f.is_empty():
+		return [1.0, 0.0]
+	if not bool(b["flipped"]):
+		return [float(f.get("miss_penalty", 0.55)), 0.0]
+	if b["flip_result"] == "bad":
+		return [1.0, float(f.get("bad_penalty", 0.0))]
+	return [1.0, 0.0]
 
 
 func tick(delta: float) -> void:
@@ -115,8 +154,13 @@ func collect(i: int) -> Dictionary:
 	var st := stage(i)
 	if st == STAGE_RAW:
 		return {"ok": false, "too_early": true, "menu": b["menu"]}
+	var mods := flip_mods(i)
+	var base := quality_for(ratio(i), float(b["perfect_end"]), float(b["burn"]), too_early)
 	var out := {"ok": true, "menu": b["menu"], "burnt": st == STAGE_BURNT, "stage": st,
-		"quality": quality_for(ratio(i), float(b["perfect_end"]), float(b["burn"]), too_early),
+		"quality": base * float(mods[0]) - float(mods[1]) if base >= 0.0 else base,
+		"r": ratio(i), "pe": float(b["perfect_end"]), "burn": float(b["burn"]),
+		"flip_mul": float(mods[0]), "flip_sub": float(mods[1]),
+		"flip_missed": not (b.get("flip", {}) as Dictionary).is_empty() and not bool(b["flipped"]),
 		"for_order": int(b["for_order"]), "auto": bool(b["auto"])}
 	burners[i] = _empty()
 	return out
@@ -148,3 +192,25 @@ static func pour_quality(level: float, target_min: float, target_max: float, ove
 	if level <= target_max:
 		return 100.0
 	return 100.0 - 30.0 * (level - target_max) / maxf(0.01, overflow - target_max)
+
+
+
+## 손님 요청에 따른 익힘 품질. pref: "" (보통) / "well" (바싹) / "rare" (덜 익혀)
+static func quality_for_pref(r: float, perfect_end: float, burn: float, pref: String, early: float = 0.8) -> float:
+	if pref == "":
+		return quality_for(r, perfect_end, burn, early)
+	if r < early or r > burn:
+		return -1.0
+	var lo := 1.0
+	var hi := perfect_end
+	if pref == "well":
+		lo = perfect_end - (perfect_end - 1.0) * 0.25
+		hi = perfect_end + (burn - perfect_end) * 0.55
+	elif pref == "rare":
+		lo = early
+		hi = 1.0 + (perfect_end - 1.0) * 0.25
+	if r < lo:
+		return 60.0 + 40.0 * (r - early) / maxf(0.01, lo - early)
+	if r <= hi:
+		return 100.0
+	return maxf(45.0, 100.0 - 55.0 * (r - hi) / maxf(0.01, burn - hi))

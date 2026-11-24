@@ -166,7 +166,16 @@
       ],
       "color": "#D9733F",
       "unlock": {},
-      "icon": "skewer"
+      "icon": "skewer",
+      "flip": {
+        "min": 0.3,
+        "max": 0.9,
+        "good_min": 0.3,
+        "good_max": 0.9,
+        "miss_penalty": 0.55,
+        "bad_penalty": 0
+      },
+      "allow_pref": true
     },
     {
       "id": "eomuk_tang",
@@ -214,7 +223,8 @@
       "unlock": {
         "pocha_level": 2
       },
-      "icon": "roll"
+      "icon": "roll",
+      "allow_pref": true
     },
     {
       "id": "samgyeop_skewer",
@@ -240,7 +250,16 @@
         "pocha_level": 2,
         "reputation": 20
       },
-      "icon": "skewer"
+      "icon": "skewer",
+      "flip": {
+        "min": 0.3,
+        "max": 0.9,
+        "good_min": 0.3,
+        "good_max": 0.9,
+        "miss_penalty": 0.55,
+        "bad_penalty": 0
+      },
+      "allow_pref": true
     },
     {
       "id": "haemul_jeon",
@@ -266,7 +285,16 @@
       "unlock": {
         "market_level": 2
       },
-      "icon": "pancake"
+      "icon": "pancake",
+      "flip": {
+        "min": 0.3,
+        "max": 0.9,
+        "good_min": 0.45,
+        "good_max": 0.65,
+        "miss_penalty": 0.5,
+        "bad_penalty": 25
+      },
+      "allow_pref": true
     },
     {
       "id": "draft_beer",
@@ -355,6 +383,34 @@
         "market_level": 2
       },
       "icon": "glass"
+    },
+    {
+      "id": "somaek",
+      "name": "소맥",
+      "category": "drink",
+      "station": "mix",
+      "price": 160,
+      "cost": 45,
+      "cook_time": 0.0,
+      "eat_time": 6.0,
+      "popularity": 0.9,
+      "warm": false,
+      "local_specialty": true,
+      "alcohol": true,
+      "preferred_customers": [
+        "office_worker"
+      ],
+      "color": "#F2C14E",
+      "icon": "beer",
+      "unlock": {
+        "reputation": 10
+      },
+      "mix": {
+        "soju_min": 0.22,
+        "soju_max": 0.34,
+        "beer_min": 0.8,
+        "beer_max": 0.93
+      }
     }
   ]
 }

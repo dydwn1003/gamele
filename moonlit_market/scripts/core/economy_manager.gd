@@ -17,13 +17,15 @@ signal stock_changed(menu_id: String)
 var state
 var data
 var staff
+var goals ## GoalManager (선택)
 var ledger: Dictionary = {}
 
 
-func setup(p_state, p_data, p_staff = null) -> void:
+func setup(p_state, p_data, p_staff = null, p_goals = null) -> void:
 	state = p_state
 	data = p_data
 	staff = p_staff
+	goals = p_goals
 
 
 # ───────── 기본 재화 ─────────
@@ -77,7 +79,7 @@ func _staff_effects() -> Dictionary:
 ## 레벨/평판 조건을 만족해 메뉴판에 올릴 수 있는가
 func is_menu_unlocked(menu_id: String, progression = null) -> bool:
 	var m: Dictionary = data.get_menu(menu_id)
-	if m.is_empty() or not (str(m.get("station", "")) in ["grill", "drink"]):
+	if m.is_empty() or not (str(m.get("station", "")) in ["grill", "drink", "mix"]):
 		return false
 	var cond: Dictionary = m.get("unlock", {})
 	if cond.has("pocha_level") and state.pocha_level() < int(cond["pocha_level"]):
@@ -217,6 +219,7 @@ func begin_session(session_id: int, weather_id: String) -> void:
 		"burnt": 0, "perfect": 0, "quality_sum": 0.0,
 		"sat_sum": 0.0, "sat_count": 0, "rep_points": 0.0,
 		"menu_sales": {}, "rival_sales": {}, "rival_revenue": {},
+		"drink_sales": 0, "specials_served": 0, "specials_list": [], "critic_rep": 0, "influencer_bonus": 0.0,
 		"weather": weather_id, "events": [], "result": {},
 	}
 
@@ -264,6 +267,8 @@ func record_sale(menu_id: String, price: int, quality: float) -> bool:
 	if quality >= 99.0:
 		ledger["perfect"] += 1
 	ledger["menu_sales"][menu_id] = int(ledger["menu_sales"].get(menu_id, 0)) + 1
+	if str(data.get_menu(menu_id).get("station", "")) in ["drink", "mix"]:
+		ledger["drink_sales"] += 1
 	var st: Dictionary = state.pocha["stats"]
 	st["sold_total"] = int(st.get("sold_total", 0)) + 1
 	st["revenue_total"] = int(st.get("revenue_total", 0)) + price
@@ -296,6 +301,16 @@ func record_waste(menu_id: String, burnt: bool) -> void:
 		ledger["burnt"] += 1
 
 
+## 특별 손님을 대접하고 보냄 (critic_rep: 평론가 평판 변화, influencer: 다음 영업 방문객 보너스)
+func record_special(special_id: String, critic_rep: int = 0, influencer_bonus: float = 0.0) -> void:
+	if not is_session_active():
+		return
+	ledger["specials_served"] += 1
+	(ledger["specials_list"] as Array).append(special_id)
+	ledger["critic_rep"] += critic_rep
+	ledger["influencer_bonus"] = maxf(float(ledger["influencer_bonus"]), influencer_bonus)
+
+
 func record_rival_sale(rival_id: String, price: int) -> void:
 	if not is_session_active():
 		return
@@ -305,7 +320,7 @@ func record_rival_sale(rival_id: String, price: int) -> void:
 
 
 ## 영업 종료: 결과를 계산해 state.pending_result 에 저장. 두 번 호출해도 한 번만 처리된다.
-func close_session(duration_sec: float) -> Dictionary:
+func close_session(duration_sec: float, extra: Dictionary = {}) -> Dictionary:
 	if ledger.is_empty():
 		return {}
 	if ledger.get("closed", false):
@@ -388,7 +403,32 @@ func close_session(duration_sec: float) -> Dictionary:
 		"best_menu": best_menu, "best_menu_sales": best_sales,
 		"ranking": ranking, "my_rank": my_rank,
 		"weather": ledger["weather"], "events": (ledger["events"] as Array).duplicate(),
+		"best_combo": int(extra.get("best_combo", 0)),
+		"drink_sales": int(ledger["drink_sales"]),
+		"specials_served": int(ledger["specials_served"]),
+		"specials_list": (ledger["specials_list"] as Array).duplicate(),
+		"critic_rep": int(ledger["critic_rep"]),
+		"influencer_bonus": float(ledger["influencer_bonus"]),
+		"goals": [], "goal_coins": 0, "goal_rep": 0, "showdown": {},
 	}
+	# 오늘의 목표 / 대결의 밤
+	if goals != null:
+		var ev: Array = goals.evaluate(result)
+		result["goals"] = ev
+		for g in ev:
+			result["goal_coins"] += int(g["coins"])
+			result["goal_rep"] += int(g["rep"])
+		if goals.is_showdown_today():
+			var rid := str(state.showdown["rival"])
+			var sd: Dictionary = data.goals_meta.get("showdown", {})
+			var theirs := int(ledger["rival_revenue"].get(rid, 0))
+			var win := revenue > theirs
+			result["showdown"] = {"rival": rid, "rival_name": str(data.get_rival(rid).get("name", rid)), "mine": revenue,
+				"theirs": theirs, "win": win, "coins": int(sd.get("win_coins", 500)) if win else 0,
+				"rep": int(sd.get("win_rep", 12)) if win else int(sd.get("lose_rep", -4)),
+				"rival_rep_loss": int(sd.get("rival_rep_loss", 10)) if win else 0}
+	# 인플루언서 효과는 다음 영업에 적용
+	state.next_visitor_bonus = float(ledger["influencer_bonus"])
 	ledger["result"] = result
 	state.pending_result = result.duplicate(true)
 	# 오프라인 기준이 되는 "정상 영업" 기록 (60초 이상 영업한 경우만)
@@ -421,11 +461,20 @@ func claim_result() -> Dictionary:
 		state.pending_result = {}
 		return _fail("이미 정산이 완료되었습니다.")
 	var r: Dictionary = state.pending_result
-	var bonus := maxi(0, int(r.get("bonus_coins", 0)))
-	var rep := maxi(0, int(r.get("rep_gain", 0)))
+	var sd: Dictionary = r.get("showdown", {})
+	var bonus := maxi(0, int(r.get("bonus_coins", 0))) + maxi(0, int(r.get("goal_coins", 0))) + maxi(0, int(sd.get("coins", 0)))
+	var rep := maxi(0, int(r.get("rep_gain", 0))) + maxi(0, int(r.get("goal_rep", 0))) + int(r.get("critic_rep", 0)) + int(sd.get("rep", 0))
 	state.settled_session_id = int(r["session_id"])
 	state.pending_result = {}
-	state.reputation += rep
+	state.reputation = maxi(0, state.reputation + rep)
+	if not sd.is_empty():
+		if bool(sd.get("win", false)):
+			state.showdown_record["wins"] = int(state.showdown_record.get("wins", 0)) + 1
+			var rid := str(sd.get("rival", ""))
+			if state.rivals.has(rid):
+				state.rivals[rid]["rep"] = maxf(0.0, float(state.rivals[rid].get("rep", 20.0)) - float(sd.get("rival_rep_loss", 0)))
+		else:
+			state.showdown_record["losses"] = int(state.showdown_record.get("losses", 0)) + 1
 	earn(bonus)
 	return {"ok": true, "bonus_coins": bonus, "rep_gain": rep}
 

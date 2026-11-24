@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "note": "오늘의 목표 풀. target = base + per_day × (일차-1), 최대 max. 하루 3개 무작위",
+  "goals_per_day": 3,
+  "goals": [
+    {
+      "id": "sales",
+      "text": "판매 %d개",
+      "stat": "sales",
+      "base": 15,
+      "per_day": 2,
+      "max": 60,
+      "reward_coins": 120,
+      "reward_rep": 3
+    },
+    {
+      "id": "perfect",
+      "text": "완벽한 요리 %d개",
+      "stat": "perfect",
+      "base": 6,
+      "per_day": 1,
+      "max": 30,
+      "reward_coins": 150,
+      "reward_rep": 4
+    },
+    {
+      "id": "no_walkout",
+      "text": "이탈 손님 %d명 이하",
+      "stat": "walkouts",
+      "compare": "max",
+      "base": 3,
+      "per_day": 0,
+      "max": 3,
+      "reward_coins": 150,
+      "reward_rep": 4
+    },
+    {
+      "id": "revenue",
+      "text": "매출 %d 이상",
+      "stat": "revenue",
+      "base": 1800,
+      "per_day": 250,
+      "max": 9000,
+      "reward_coins": 200,
+      "reward_rep": 3
+    },
+    {
+      "id": "tips",
+      "text": "팁 %d 이상",
+      "stat": "tips",
+      "base": 120,
+      "per_day": 30,
+      "max": 800,
+      "reward_coins": 120,
+      "reward_rep": 3
+    },
+    {
+      "id": "combo",
+      "text": "콤보 %d 달성",
+      "stat": "best_combo",
+      "base": 4,
+      "per_day": 1,
+      "max": 15,
+      "reward_coins": 150,
+      "reward_rep": 4
+    },
+    {
+      "id": "no_burn",
+      "text": "태운 요리 %d개 이하",
+      "stat": "burnt",
+      "compare": "max",
+      "base": 0,
+      "per_day": 0,
+      "max": 0,
+      "reward_coins": 120,
+      "reward_rep": 3
+    },
+    {
+      "id": "special",
+      "text": "특별 손님 %d명 대접",
+      "stat": "specials_served",
+      "base": 1,
+      "per_day": 0,
+      "max": 1,
+      "reward_coins": 180,
+      "reward_rep": 5
+    },
+    {
+      "id": "drinks",
+      "text": "음료·술 %d잔 판매",
+      "stat": "drink_sales",
+      "base": 8,
+      "per_day": 1,
+      "max": 30,
+      "reward_coins": 120,
+      "reward_rep": 3
+    }
+  ],
+  "showdown": {
+    "interval_days": 5,
+    "first_day": 3,
+    "win_coins": 500,
+    "win_rep": 12,
+    "lose_rep": -4,
+    "rival_rep_loss": 10,
+    "rival_quality_bonus": 6
+  }
+}

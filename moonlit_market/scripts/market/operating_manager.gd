@@ -111,10 +111,20 @@ func stats() -> Dictionary:
 		"revenue": int(l.get("revenue", 0)), "phase": phase, "speed": speed,
 		"customers_now": customer_manager.active_count(),
 		"tips": int(l.get("tips", 0)), "rival_buyers": int(l.get("rival_buyers", 0)),
+		"combo": pocha_manager.combo,
+		"showdown": _showdown_stats(l),
 	}
 
 
 ## 마감: 새 손님은 받지 않고, 이미 자리에 앉았거나 줄 선 손님은 유예 시간 동안 마저 대접한다
+func _showdown_stats(l: Dictionary) -> Dictionary:
+	if not GameManager.goals.is_showdown_today():
+		return {}
+	var rid := str(GameManager.state.showdown["rival"])
+	return {"rival": rid, "rival_name": str(DataManager.get_rival(rid).get("name", rid)),
+		"mine": int(l.get("revenue", 0)), "theirs": int(l.get("rival_revenue", {}).get(rid, 0))}
+
+
 func _begin_closing() -> void:
 	elapsed = duration
 	customer_manager.stop_spawning()
@@ -132,7 +142,7 @@ func _finish() -> void:
 	pocha_manager.close()
 	rival_manager.clear_all()
 	market_release()
-	var result: Dictionary = GameManager.economy.close_session(duration)
+	var result: Dictionary = GameManager.economy.close_session(duration, {"best_combo": pocha_manager.best_combo})
 	_set_phase("idle")
 	GameManager.set_operating(false, "result")
 	GameManager.on_session_closed(result)

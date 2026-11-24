@@ -7,6 +7,7 @@ const ProgressionScript := preload("res://scripts/core/progression_manager.gd")
 const StaffScript := preload("res://scripts/staff/staff_manager.gd")
 const OfflineScript := preload("res://scripts/core/offline_manager.gd")
 const SynergyScript := preload("res://scripts/market/synergy_manager.gd")
+const GoalScript := preload("res://scripts/core/goal_manager.gd")
 
 var state
 var economy
@@ -203,3 +204,44 @@ func test_market_level_and_rivals(t) -> void:
 	state.reputation = 10
 	progression.update_market_level()
 	t.eq(state.market_level, 2, "단계는 내려가지 않음")
+
+
+func test_daily_goals_and_showdown(t) -> void:
+	_fresh(0)
+	var goals = GoalScript.new()
+	goals.setup(state, DataManager, progression)
+	economy.setup(state, DataManager, staff, goals)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 3
+	state.day = 3
+	t.ok(goals.prepare_day(rng), "오늘의 목표 생성")
+	t.eq(state.daily_goals.size(), 3, "목표 3개")
+	t.ok(not goals.prepare_day(rng), "같은 날 다시 만들지 않음")
+	t.ok(goals.is_showdown_today(), "3일차는 대결의 밤")
+	state.daily_goals = [{"id": "sales", "target": 2}, {"id": "no_burn", "target": 0}, {"id": "revenue", "target": 99999}]
+	var rid := str(state.showdown["rival"])
+	state.rivals[rid] = {"rep": 40.0, "sales_total": 0, "last_sales": 0}
+	economy.begin_session(9, "cloudy")
+	for i in 3:
+		economy.record_sale("dak_skewer", 120, 100.0)
+	economy.record_rival_sale(rid, 100)
+	var res: Dictionary = economy.close_session(240.0)
+	var done := 0
+	for g in res["goals"]:
+		if g["done"]:
+			done += 1
+	t.eq(done, 2, "목표 2개 달성 (판매·태우지 않기)")
+	t.ok(res["showdown"]["win"], "대결 승리 (360 > 100)")
+	var coins_before: int = state.coins
+	var rep_before: int = state.reputation
+	economy.claim_result()
+	t.eq(state.coins, coins_before + int(res["bonus_coins"]) + int(res["goal_coins"]) + int(res["showdown"]["coins"]), "목표·대결 보상 지급")
+	t.ok(state.reputation > rep_before, "평판 상승")
+	t.eq(float(state.rivals[rid]["rep"]), 30.0, "진 라이벌 평판 하락")
+	t.eq(int(state.showdown_record["wins"]), 1, "대결 전적 기록")
+	var coins_after: int = state.coins
+	economy.claim_result()
+	t.eq(state.coins, coins_after, "목표 보상도 중복 지급 없음")
+	state.day = 4
+	goals.prepare_day(rng)
+	t.ok(not goals.is_showdown_today(), "4일차는 대결 없음")

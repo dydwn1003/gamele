@@ -93,7 +93,7 @@ func update_market_level() -> Array:
 
 func is_menu_unlocked(id: String) -> bool:
 	var m: Dictionary = data.get_menu(id)
-	if m.is_empty() or not (str(m.get("station", "")) in ["grill", "drink"]):
+	if m.is_empty() or not (str(m.get("station", "")) in ["grill", "drink", "mix"]):
 		return false
 	return check_condition(m.get("unlock", {}))
 
