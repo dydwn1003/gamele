@@ -8,7 +8,7 @@ extends RefCounted
 
 const EFFECT_KEYS := ["cook_speed", "satisfaction", "price_tolerance", "patience",
 	"spoilage_reduction", "restock_discount", "attraction", "reorder_chance",
-	"auto_cook", "auto_quality", "auto_drink"]
+	"auto_cook", "auto_quality", "auto_drink", "auto_serve"]
 
 var state
 var data
@@ -78,7 +78,7 @@ func _add_effects(out: Dictionary, emp_id: String) -> void:
 	for k in eff.keys():
 		if k == "auto_quality":
 			out[k] = maxf(float(out.get(k, 0.0)), minf(98.0, float(eff[k]) + 4.0 * (level_of(emp_id) - 1)))
-		elif k in ["auto_cook", "auto_drink"]:
+		elif k in ["auto_cook", "auto_drink", "auto_serve"]:
 			out[k] = float(out.get(k, 0.0)) + float(eff[k])
 		else:
 			out[k] = float(out.get(k, 0.0)) + float(eff[k]) * mult
@@ -163,6 +163,8 @@ func describe_effects(emp_id: String) -> String:
 		parts.append("화구 1개 자동 요리 (품질 %d)" % int(e.get("auto_quality", 80)))
 	if float(e.get("auto_drink", 0)) > 0.0:
 		parts.append("음료 자동 서빙")
+	if float(e.get("auto_serve", 0)) > 0.0:
+		parts.append("음료 나르기 · 테이블 치우기 자동")
 	if float(e.get("cook_speed", 0)) > 0.0:
 		parts.append("조리 속도 +%d%%" % int(round(e["cook_speed"] * 100)))
 	if float(e.get("satisfaction", 0)) > 0.0:

@@ -33,55 +33,63 @@ func _draw() -> void:
 
 
 func _draw_ground() -> void:
-	# 하늘 (화면 비율이 달라도 빈 곳이 없도록 넓게)
+	# ── 거리 ──
 	var sky_top := Color("#0F1220")
-	var sky_bottom := Color("#232236")
-	draw_polygon(PackedVector2Array([Vector2(-800, -1200), Vector2(1520, -1200), Vector2(1520, 110), Vector2(-800, 110)]),
+	var sky_bottom := Color("#262338")
+	draw_polygon(PackedVector2Array([Vector2(-800, -1200), Vector2(1520, -1200), Vector2(1520, 200), Vector2(-800, 200)]),
 		PackedColorArray([sky_top, sky_top, sky_bottom, sky_bottom]))
 	for s in stars:
 		var a := 0.35 + 0.35 * sin(anim_t * 1.5 + s.z)
-		draw_circle(Vector2(s.x, s.y * 0.6), 1.6, Color(1, 0.97, 0.9, a))
-	DrawUtil.glow(self, Vector2(632, 40), 80, Color(1.0, 0.95, 0.75, 0.5))
-	draw_circle(Vector2(632, 40), 24, Color("#FFF1B8"))
-	# 한옥 지붕 실루엣
-	var roof_col := Color("#191C2A")
-	for i in 7:
-		var cx := -60.0 + i * 140.0
-		var top := 62.0 + (i % 2) * 12.0
-		draw_colored_polygon(PackedVector2Array([Vector2(cx - 90, top + 28), Vector2(cx - 60, top + 8), Vector2(cx, top),
-			Vector2(cx + 60, top + 8), Vector2(cx + 90, top + 28), Vector2(cx + 70, top + 24), Vector2(cx + 70, 120), Vector2(cx - 70, 120), Vector2(cx - 70, top + 24)]), roof_col)
-		draw_rect(Rect2(Vector2(cx - 20, top + 32), Vector2(14, 10)), Color(1, 0.75, 0.4, 0.35))
-	# 광장 바닥
-	draw_rect(Rect2(Vector2(-800, 110), Vector2(2320, 1400)), Color("#2A2430"))
-	var grid_col := Color(1, 1, 1, 0.045)
-	for i in range(-14, 26):
-		var x0 := i * 64.0
-		draw_line(Vector2(x0 - 600, -190), Vector2(x0 + 1400, 810), grid_col, 2.0)
-		draw_line(Vector2(x0 + 600, -190), Vector2(x0 - 1400, 810), grid_col, 2.0)
-	# 경쟁 노점 주변 빛
-	for p in MarketScript.RIVAL_POSITIONS:
-		DrawUtil.ellipse(self, p + Vector2(0, 10), 140, 72, Color(1.0, 0.6, 0.25, 0.05))
-	# 중앙 광장 길
-	draw_rect(Rect2(Vector2(262, 110), Vector2(196, 700)), Color("#3B3240"))
-	for row in 18:
-		var y := 110.0 + row * 40.0
-		for col in 5:
-			var cx := 262.0 + 19.6 + col * 39.2
-			var shade := Color("#463C4B") if (row + col) % 2 == 0 else Color("#40364A")
-			draw_colored_polygon(DrawUtil.diamond(Vector2(cx, y + 20), 18, 18), shade)
-	# 먹자 테이블 (드럼통 테이블)
-	for t in MarketScript.TABLES:
-		DrawUtil.ellipse(self, t + Vector2(0, 14), 30, 12, Color(0, 0, 0, 0.35))
-		draw_rect(Rect2(t + Vector2(-20, -18), Vector2(40, 30)), Color("#4D6C8A"))
+		draw_circle(Vector2(s.x, 6 + s.y * 0.15 + 40), 1.5, Color(1, 0.97, 0.9, a))
+	DrawUtil.glow(self, Vector2(640, 36), 70, Color(1.0, 0.95, 0.75, 0.45))
+	draw_circle(Vector2(640, 36), 20, Color("#FFF1B8"))
+	# 먼 건물 실루엣
+	for i in 9:
+		var bx := -40.0 + i * 92.0
+		var bh := 60.0 + float((i * 37) % 40)
+		draw_rect(Rect2(Vector2(bx, 70 - bh * 0.4), Vector2(80, bh)), Color("#1B1E2C"))
 		for k in 3:
-			draw_line(t + Vector2(-20, -10 + k * 9), t + Vector2(20, -10 + k * 9), Color("#3A5570"), 2.0)
-		DrawUtil.ellipse(self, t + Vector2(0, -18), 24, 9, Color("#6B8BAA"))
-		DrawUtil.ellipse(self, t + Vector2(0, -18), 18, 6, Color("#5A7898"))
-	# 벤치
-	for b in [Vector2(78, 668), Vector2(66, 590)]:
-		draw_colored_polygon(DrawUtil.diamond(b, 40, 12), Color("#8A5A3C"))
-		draw_line(b + Vector2(-28, 2), b + Vector2(-28, 14), Color("#5A3A28"), 4.0)
-		draw_line(b + Vector2(28, 2), b + Vector2(28, 14), Color("#5A3A28"), 4.0)
+			draw_rect(Rect2(Vector2(bx + 12 + k * 22, 80 - bh * 0.4 + 8), Vector2(10, 8)), Color(1, 0.75, 0.4, 0.25 + 0.1 * (k % 2)))
+	# 보도 + 길
+	draw_rect(Rect2(Vector2(-800, 200), Vector2(2320, 80)), Color("#3B3240"))
+	for i in 24:
+		var x := -60.0 + i * 36.0
+		draw_line(Vector2(x, 200), Vector2(x - 14, 280), Color(1, 1, 1, 0.05), 2.0)
+	draw_line(Vector2(-800, 212), Vector2(1520, 212), Color(1, 1, 1, 0.08), 2.0)
+	# 드럼통 테이블 (경쟁 노점 손님이 먹는 곳)
+	for t in MarketScript.STREET_TABLES:
+		DrawUtil.ellipse(self, t + Vector2(0, 6), 26, 8, Color(0, 0, 0, 0.35))
+		draw_rect(Rect2(t + Vector2(-17, -22), Vector2(34, 26)), Color("#4D6C8A"))
+		for k in 3:
+			draw_line(t + Vector2(-17, -15 + k * 8), t + Vector2(17, -15 + k * 8), Color("#3A5570"), 2.0)
+		DrawUtil.ellipse(self, t + Vector2(0, -22), 21, 7, Color("#6B8BAA"))
+	# ── 포차 내부 ──
+	# 뒷벽 (천막 안쪽)
+	draw_rect(Rect2(Vector2(-800, 280), Vector2(2320, 180)), Color("#5A2E1C"))
+	draw_rect(Rect2(Vector2(-800, 280), Vector2(2320, 180)), Color(1.0, 0.55, 0.2, 0.18))
+	for i in 18:
+		draw_line(Vector2(-20 + i * 44, 280), Vector2(-20 + i * 44, 460), Color(0, 0, 0, 0.08), 3.0)
+	# 메뉴판 (메뉴판에 올린 메뉴와 가격)
+	var menus: Array = GameManager.state.enabled_menus()
+	var n := menus.size()
+	for i in n:
+		var mx := 360.0 + (i - (n - 1) / 2.0) * minf(84.0, 640.0 / maxf(1, n))
+		var r := Rect2(Vector2(mx - 36, 322), Vector2(72, 92))
+		draw_line(Vector2(mx, 304), r.position + Vector2(36, 0), Color("#3A2418"), 2.0)
+		DrawUtil.rounded_rect(self, r, 6, Color("#E8C99A"))
+		DrawUtil.rounded_rect(self, r.grow(-4), 4, Color("#F4E2C0"))
+		var m: Dictionary = DataManager.get_menu(str(menus[i]))
+		DrawUtil.menu_icon(self, m, r.position + Vector2(36, 26), 12)
+		DrawUtil.text_center(self, r.position + Vector2(36, 56), str(m.get("name", "")), 13, Color("#3A2418"), 0)
+		DrawUtil.text_center(self, r.position + Vector2(36, 76), "%d" % GameManager.economy.unit_price(str(menus[i])), 15, Color("#B8443A"), 0)
+	# 바닥
+	draw_rect(Rect2(Vector2(-800, 456), Vector2(2320, 400)), Color("#463A3A"))
+	for i in 16:
+		var y := 470.0 + i * 22.0
+		draw_line(Vector2(-800, y), Vector2(1520, y), Color(0, 0, 0, 0.06), 2.0)
+	DrawUtil.ellipse(self, Vector2(360, 560), 380, 120, Color(1.0, 0.7, 0.35, 0.10))
+	# 통로 표시
+	draw_rect(Rect2(Vector2(-800, 582), Vector2(2320, 36)), Color(0, 0, 0, 0.10))
 	# 장식
 	_draw_decorations()
 
@@ -97,7 +105,7 @@ func _draw_decorations() -> void:
 		if i < GameManager.state.deco_spots.size():
 			id = str(GameManager.state.deco_spots[i])
 		if id == "" or i >= usable:
-			if i < usable and not GameManager.is_operating:
+			if false:
 				DrawUtil.ellipse(self, p, 30, 15, Color(1, 1, 1, 0.05))
 				var ring := PackedVector2Array()
 				for k in 17:
@@ -151,35 +159,46 @@ func _draw_deco(id: String, p: Vector2) -> void:
 
 
 func _draw_overhead() -> void:
-	# 줄 조명
-	var rows := [190.0, 372.0]
-	for ri in rows.size():
-		var y: float = rows[ri]
-		var pa := Vector2(200, y)
-		var pb := Vector2(520, y)
-		var pts := PackedVector2Array()
-		var n := 14
-		for k in n + 1:
-			var t := float(k) / n
-			pts.append(pa.lerp(pb, t) + Vector2(0, sin(t * PI) * 30.0))
-		draw_polyline(pts, Color("#1A1418"), 2.0, true)
-		var colors := [Color("#FFB45C"), Color("#FF6F8E"), Color("#FFE08A"), Color("#7FD4E8")]
-		for k in range(1, n):
-			var c: Color = colors[(k + ri) % colors.size()]
-			var fl := 0.7 + 0.3 * sin(anim_t * 3.0 + k * 1.3 + ri)
-			DrawUtil.glow(self, pts[k] + Vector2(0, 6), 16, Color(c, 0.5 * fl), 3)
-			draw_circle(pts[k] + Vector2(0, 6), 4.0, Color(c.lightened(0.3), fl))
-	# 메인 입구 (위쪽) + 시장 간판
-	var gy := 112.0
-	for x in [272.0, 448.0]:
-		draw_rect(Rect2(Vector2(x - 8, gy - 70), Vector2(16, 72)), Color("#7A2E2A"))
-	var roof := PackedVector2Array([Vector2(238, gy - 64), Vector2(260, gy - 82), Vector2(360, gy - 90), Vector2(460, gy - 82),
-		Vector2(482, gy - 64), Vector2(460, gy - 70), Vector2(360, gy - 76), Vector2(260, gy - 70)])
-	draw_colored_polygon(roof, Color("#2C3346"))
-	var sign_rect := Rect2(Vector2(296, gy - 62), Vector2(128, 38))
-	var fl2 := 0.8 + 0.2 * sin(anim_t * 2.2)
-	DrawUtil.rounded_rect(self, sign_rect.grow(6), 12, Color(1.0, 0.7, 0.36, 0.25 * fl2))
+	# 거리 줄 조명
+	var pa := Vector2(-20, 150)
+	var pb := Vector2(740, 150)
+	var pts := PackedVector2Array()
+	var n := 22
+	for k in n + 1:
+		var t := float(k) / n
+		pts.append(pa.lerp(pb, t) + Vector2(0, sin(t * PI * 3.0) * 10.0 + 8))
+	draw_polyline(pts, Color("#1A1418"), 2.0, true)
+	var colors := [Color("#FFB45C"), Color("#FF6F8E"), Color("#FFE08A"), Color("#7FD4E8")]
+	for k in range(1, n):
+		var c: Color = colors[k % colors.size()]
+		var fl := 0.7 + 0.3 * sin(anim_t * 3.0 + k * 1.3)
+		DrawUtil.glow(self, pts[k] + Vector2(0, 5), 14, Color(c, 0.45 * fl), 3)
+		draw_circle(pts[k] + Vector2(0, 5), 3.5, Color(c.lightened(0.3), fl))
+	# 포차 천막 앞 처마 (입구 가운데)
+	var tarp := Color("#E8742E")
+	draw_rect(Rect2(Vector2(-800, 268), Vector2(2320, 16)), tarp.darkened(0.25))
+	for k in 30:
+		var x0 := -40.0 + k * 28.0
+		if absf(x0 + 14.0 - 360.0) < 44.0:
+			continue
+		var col := tarp if k % 2 == 0 else Color("#F7C04A")
+		draw_colored_polygon(PackedVector2Array([Vector2(x0, 282), Vector2(x0 + 28, 282), Vector2(x0 + 25, 304), Vector2(x0 + 3, 304)]), col)
+	# 입구 비닐 커튼
+	for k in 4:
+		var cx := 326.0 + k * 22.0
+		draw_rect(Rect2(Vector2(cx, 284), Vector2(16, 22)), Color(0.85, 0.92, 1.0, 0.18))
+	# 포차 간판
+	var sign_rect := Rect2(Vector2(290, 236), Vector2(140, 34))
+	var fl2 := 0.8 + 0.2 * sin(anim_t * 2.4)
+	DrawUtil.rounded_rect(self, sign_rect.grow(6), 12, Color(1.0, 0.6, 0.3, 0.3 * fl2))
 	DrawUtil.rounded_rect(self, sign_rect.grow(2), 9, Color("#FFB45C"))
 	DrawUtil.rounded_rect(self, sign_rect, 7, Color("#2A1E2E"))
-	DrawUtil.text_center(self, sign_rect.get_center() + Vector2(0, -5), "달빛장터", 20, Color("#FFF1B8"), 0)
-	DrawUtil.text_center(self, sign_rect.get_center() + Vector2(0, 12), "MOONLIT MARKET", 9, Color("#FFB45C"), 0)
+	DrawUtil.text_center(self, sign_rect.get_center(), "달빛포차 Lv.%d" % GameManager.state.pocha_level(), 18, Color("#FFF1B8"), 0)
+	# 포차 안 전구 줄
+	var bulbs: int = 9 + GameManager.state.pocha_level() * 2
+	for k in bulbs:
+		var t2 := float(k) / (bulbs - 1)
+		var p := Vector2(lerpf(20, 700, t2), 316 + sin(t2 * PI * 2.0) * 6)
+		var f := 0.75 + 0.25 * sin(anim_t * 3.0 + k)
+		DrawUtil.glow(self, p, 16, Color(1.0, 0.8, 0.45, 0.55 * f), 3)
+		draw_circle(p, 4, Color(1.0, 0.92, 0.7, f))

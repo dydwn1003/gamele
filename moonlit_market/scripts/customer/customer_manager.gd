@@ -113,7 +113,7 @@ func pocha_score(c) -> float:
 		ctx["stall_rep"] = float(GameManager.state.pocha.get("rep", 10.0))
 		ctx["queue_len"] = pocha_manager.choice_queue_len()
 		ctx["queue_cap"] = pocha_manager.choice_queue_cap()
-		ctx["distance"] = c.position.distance_to(MarketScript.POCHA_POS)
+		ctx["distance"] = c.position.distance_to(MarketScript.ENTRANCE)
 		ctx["appeal"] = float(DataManager.get_pocha_level(GameManager.state.pocha_level()).get("appeal", 0.0)) \
 			+ float(sp.get(m["id"], {}).get("attraction", 0.0))
 		var s := CustomerAI.stall_score(c.ctype, m, ctx)
@@ -225,7 +225,8 @@ func tip_for(c, sat: float) -> int:
 	if q < threshold or sat < 70.0:
 		return 0
 	var k := clampf((q - threshold) / maxf(1.0, 100.0 - threshold), 0.0, 1.0)
-	return int(round(c.spent * float(DataManager.bal("tip_rate", 0.25)) * k * (1.0 + float(_pair_fx().get("tip_mult", 0.0)))))
+	var combo_bonus := minf(float(DataManager.bal("combo_max_bonus", 0.5)), pocha_manager.combo * float(DataManager.bal("combo_tip_bonus", 0.05)))
+	return int(round(c.spent * float(DataManager.bal("tip_rate", 0.12)) * k * (1.0 + float(_pair_fx().get("tip_mult", 0.0)) + combo_bonus)))
 
 
 func on_tip_feedback(c, tip: int) -> void:

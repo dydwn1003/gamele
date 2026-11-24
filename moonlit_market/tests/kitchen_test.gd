@@ -55,3 +55,10 @@ func test_cook_speed_and_resize(t) -> void:
 	t.eq(k.burners.size(), 4, "화구 늘리기")
 	t.eq(k.free_burner(false, 3), 1, "자동 요리 화구는 건너뛰고 빈 화구 찾기")
 	t.eq(k.clear(), ["dak_skewer"], "정리 시 남은 음식 반환")
+
+
+func test_pour_quality(t) -> void:
+	t.eq(KitchenScript.pour_quality(0.85, 0.78, 0.92, 1.0), 100.0, "선 안에서 떼면 완벽")
+	t.ok(KitchenScript.pour_quality(0.5, 0.78, 0.92, 1.0) < 90.0, "덜 채우면 품질 하락")
+	t.ok(KitchenScript.pour_quality(0.97, 0.78, 0.92, 1.0) < 100.0, "선을 넘기면 품질 하락")
+	t.eq(KitchenScript.pour_quality(1.02, 0.78, 0.92, 1.0), -1.0, "넘치면 버림")

@@ -1,32 +1,44 @@
 extends Node2D
-## MarketManager — 시장 월드 루트. 레이아웃(고정 좌표), 내 포차/경쟁 노점 노드, 먹는 자리 배정,
-## 터치 입력, 연출을 담당한다. 디자인 좌표계 720x720, fit_to_rect() 로 화면에 맞춘다.
+## MarketManager — 시장 월드 루트 (디자인 좌표 720x760).
 ##
-## 배치: 위쪽 입구 → 중앙 통로(가운데 먹자 테이블) → 양옆 경쟁 노점 → 맨 아래 내 포장마차
+##  ┌ 거리 (y 0~270) ─ 밤하늘, 경쟁 노점 가게 5칸, 손님이 좌우로 걷는 길, 드럼통 테이블
+##  └ 포차 내부 (y 270~760) ─ 천막 천장/뒷벽 메뉴판, 손님 테이블 줄, 사장님이 걷는 통로,
+##                              맨 앞 카운터(화구 · 서빙대 · 술 냉장고)
+##
+## 레이아웃(고정 좌표), 노드 생성, 터치 입력(손님/테이블 탭 → 서빙/치우기), 연출을 담당한다.
 
 const StallScene := preload("res://scenes/market/stall.tscn")
 const PochaScene := preload("res://scenes/market/pocha.tscn")
+const TableScene := preload("res://scenes/market/seat_table.tscn")
+const ServerScene := preload("res://scenes/market/server.tscn")
 const UIKit := preload("res://scripts/ui/ui_kit.gd")
 
 signal pocha_tapped
 signal rival_tapped(rival_id: String)
 
-const DESIGN_SIZE := Vector2(720, 720)
-const SKY_CROP := 20.0
-## 경쟁 노점 자리 (등장 순서대로 사용)
-const RIVAL_POSITIONS := [Vector2(132, 262), Vector2(588, 262), Vector2(112, 440), Vector2(608, 440), Vector2(636, 598)]
-const RIVAL_SCALE := 0.78
-const POCHA_POS := Vector2(360, 600)
-const LANE_IN_X := 300.0
-const LANE_OUT_X := 420.0
-const SPAWN_POINT := Vector2(330, 88)
-const EXIT_POINT := Vector2(392, 84)
-## 먹자 테이블 / 벤치 (테이블 중심, 손님이 서는 자리)
-const TABLES := [Vector2(360, 232), Vector2(360, 318)]
-const EAT_SPOTS := [Vector2(326, 243), Vector2(394, 243), Vector2(360, 258),
-	Vector2(326, 329), Vector2(394, 329), Vector2(360, 344),
-	Vector2(60, 640), Vector2(96, 656), Vector2(48, 560), Vector2(84, 572)]
-const DECO_SPOTS := [Vector2(236, 120), Vector2(484, 120), Vector2(28, 470), Vector2(692, 470)]
+const DESIGN_SIZE := Vector2(720, 760)
+const SKY_CROP := 30.0
+# ── 거리 ──
+const STOREFRONT_X := [76.0, 218.0, 360.0, 502.0, 644.0]
+const STOREFRONT_Y := 206.0 ## 가게 앞 (대기줄 발 위치)
+const STREET_Y := 238.0 ## 걷는 길 (발 위치)
+const STREET_LEFT := 10.0
+const STREET_RIGHT := 710.0
+const STREET_TABLES := [Vector2(150, 258), Vector2(570, 258)]
+const EAT_SPOTS := [Vector2(118, 262), Vector2(182, 262), Vector2(538, 262), Vector2(602, 262),
+	Vector2(30, 258), Vector2(690, 258)]
+# ── 포차 ──
+const ENTRANCE := Vector2(360, 300)
+const WAIT_SPOTS := [Vector2(52, 470), Vector2(40, 520), Vector2(60, 566)]
+const SEAT_Y := 478.0
+const SEAT_SPACING := 104.0
+const AISLE_Y := 600.0
+const PASS_POS := Vector2(360, 600)
+const GRILL_POS := Vector2(130, 600)
+const DRINK_POS := Vector2(590, 600)
+const COUNTER_Y := 690.0
+const POCHA_POS := Vector2(360, 690) ## 앞 카운터 노드 위치 (이전 버전 호환 이름)
+const DECO_SPOTS := [Vector2(40, 330), Vector2(680, 330), Vector2(40, 560), Vector2(680, 560)]
 const TAP_SLOP := 24.0
 
 @onready var ground: Node2D = $Ground
@@ -38,9 +50,11 @@ const TAP_SLOP := 24.0
 @onready var customer_manager = $CustomerManager
 @onready var operating = $OperatingManager
 
-var pocha_node
-var rival_nodes: Dictionary = {} ## rival_id -> node
-var rival_slots: Dictionary = {} ## rival_id -> position index
+var pocha_node ## 앞 카운터 (화구·서빙대·냉장고)
+var server ## 사장님 아바타
+var table_nodes: Array = []
+var rival_nodes: Dictionary = {}
+var rival_slots: Dictionary = {}
 var eat_spot_owner: Array = []
 var _press_pos: Vector2 = Vector2.ZERO
 var _pressing: bool = false
@@ -52,21 +66,50 @@ class FloatText extends Node2D:
 	var size: int = 26
 	var life: float = 1.2
 	var t: float = 0.0
+	var rise: float = 46.0
 	var font: Font
 
 	func _process(delta: float) -> void:
 		t += delta
-		position.y -= 46.0 * delta
-		modulate.a = clampf(1.0 - (t / life) * (t / life), 0.0, 1.0)
+		position.y -= rise * delta
+		var k := t / life
+		scale = Vector2.ONE * (1.0 + 0.25 * maxf(0.0, 0.15 - t) / 0.15)
+		modulate.a = clampf(1.0 - k * k, 0.0, 1.0)
 		if t >= life:
 			queue_free()
 		queue_redraw()
 
 	func _draw() -> void:
-		var w := 300.0
+		var w := 320.0
 		var p := Vector2(-w / 2.0, 0)
-		draw_string_outline(font, p, text, HORIZONTAL_ALIGNMENT_CENTER, w, size, 6, Color(0.1, 0.06, 0.03, 0.9))
+		draw_string_outline(font, p, text, HORIZONTAL_ALIGNMENT_CENTER, w, size, 7, Color(0.1, 0.06, 0.03, 0.9))
 		draw_string(font, p, text, HORIZONTAL_ALIGNMENT_CENTER, w, size, color)
+
+
+## 동전 튀는 연출
+class CoinBurst extends Node2D:
+	var t: float = 0.0
+	var coins: Array = []
+
+	func setup(n: int, rng: RandomNumberGenerator) -> void:
+		for i in n:
+			coins.append({"v": Vector2(rng.randf_range(-90, 90), rng.randf_range(-260, -160)), "p": Vector2.ZERO})
+
+	func _process(delta: float) -> void:
+		t += delta
+		for c in coins:
+			c["v"].y += 620.0 * delta
+			c["p"] += c["v"] * delta
+		modulate.a = clampf(1.4 - t * 1.6, 0.0, 1.0)
+		if t > 0.9:
+			queue_free()
+		queue_redraw()
+
+	func _draw() -> void:
+		for c in coins:
+			draw_circle(c["p"], 7, Color("#FFB45C"))
+			draw_circle(c["p"] + Vector2(-1.5, -1.5), 3.5, Color("#FFE0A0"))
+			draw_arc(c["p"], 7, 0, TAU, 12, Color("#9A5A1C"), 1.5, true)
 
 
 func _ready() -> void:
@@ -76,8 +119,14 @@ func _ready() -> void:
 	pocha_node.position = POCHA_POS
 	pocha_node.market = self
 	world.add_child(pocha_node)
+	server = ServerScene.instantiate()
+	server.market = self
+	server.position = PASS_POS
+	world.add_child(server)
 	rival_manager.market = self
 	pocha_manager.market = self
+	pocha_manager.server = server
+	server.pocha = pocha_manager
 	customer_manager.market = self
 	customer_manager.rival_manager = rival_manager
 	customer_manager.pocha_manager = pocha_manager
@@ -90,11 +139,13 @@ func _ready() -> void:
 	GameManager.state_changed.connect(refresh)
 	pocha_manager.served.connect(_on_served)
 	pocha_manager.feedback.connect(spawn_float_text)
+	pocha_manager.tip_collected.connect(_on_tip)
+	pocha_manager.seats_changed.connect(_rebuild_tables)
 	customer_manager.walkout_feedback.connect(_on_walkout)
 	refresh()
 
 
-## 단계에 맞는 경쟁 노점 노드를 만들고, 상태를 다시 그린다
+## 단계에 맞는 경쟁 노점/테이블 노드 구성
 func refresh() -> void:
 	var ids: Array = GameManager.progression.active_rivals()
 	for id in rival_nodes.keys():
@@ -102,20 +153,42 @@ func refresh() -> void:
 			rival_nodes[id].queue_free()
 			rival_nodes.erase(id)
 			rival_slots.erase(id)
+	# 등장 순서대로 가게 자리 배정 (가운데부터 바깥으로)
+	var order := [1, 3, 0, 4, 2]
 	for i in ids.size():
 		var id: String = ids[i]
-		if not rival_nodes.has(id) and i < RIVAL_POSITIONS.size():
+		if not rival_nodes.has(id) and i < order.size():
+			var slot: int = order[i]
 			var n = StallScene.instantiate()
-			n.position = RIVAL_POSITIONS[i]
-			n.scale = Vector2(RIVAL_SCALE, RIVAL_SCALE)
-			n.facing = 1 if RIVAL_POSITIONS[i].x < 360 else -1
+			n.position = Vector2(STOREFRONT_X[slot], STOREFRONT_Y)
 			n.rival_id = id
 			n.market = self
 			world.add_child(n)
 			rival_nodes[id] = n
-			rival_slots[id] = i
-	if pocha_node:
-		pocha_node.queue_redraw()
+			rival_slots[id] = slot
+	_rebuild_tables()
+
+
+func _rebuild_tables() -> void:
+	var n := seat_count()
+	if table_nodes.size() == n:
+		return
+	for t in table_nodes:
+		t.queue_free()
+	table_nodes = []
+	for i in n:
+		var t = TableScene.instantiate()
+		t.index = i
+		t.market = self
+		t.position = Vector2(seat_x(i, n), SEAT_Y + 24)
+		world.add_child(t)
+		table_nodes.append(t)
+
+
+func seat_count() -> int:
+	if pocha_manager and pocha_manager.is_open:
+		return pocha_manager.seats.size()
+	return int(DataManager.get_pocha_level(GameManager.state.pocha_level()).get("seats", 3))
 
 
 func rival_ids() -> Array:
@@ -134,36 +207,45 @@ func fit_to_rect(rect: Rect2) -> void:
 # ───────── 레이아웃 ─────────
 
 func rival_pos(rival_id: String) -> Vector2:
-	return RIVAL_POSITIONS[int(rival_slots.get(rival_id, 0))]
+	return Vector2(STOREFRONT_X[int(rival_slots.get(rival_id, 0))], STOREFRONT_Y)
 
 
 func rival_queue_spot(rival_id: String, k: int) -> Vector2:
 	var p := rival_pos(rival_id)
-	var s := RIVAL_SCALE
-	if p.x < 360:
-		return p + Vector2(92, 40) * s + Vector2(12, 20) * k
-	return p + Vector2(-92, 40) * s + Vector2(-12, 20) * k
+	var dir := 1.0 if p.x < 360.0 else -1.0
+	return Vector2(p.x + dir * (8.0 + 22.0 * k), STOREFRONT_Y + 4.0 + 3.0 * k)
+
+
+func seat_x(i: int, count: int) -> float:
+	var spacing := minf(SEAT_SPACING, 600.0 / maxf(1.0, count))
+	return 360.0 + (i - (count - 1) / 2.0) * spacing
 
 
 func seat_pos(i: int, count: int) -> Vector2:
-	var spacing := 48.0
-	var x0 := POCHA_POS.x - spacing * (count - 1) / 2.0
-	return Vector2(x0 + spacing * i, POCHA_POS.y + 58)
+	return Vector2(seat_x(i, count), SEAT_Y)
+
+
+func serve_pos(i: int, count: int) -> Vector2:
+	return Vector2(seat_x(i, count), AISLE_Y)
 
 
 func wait_pos(k: int) -> Vector2:
-	return Vector2(206 - 26 * k, POCHA_POS.y + 74 + 10 * k)
+	return WAIT_SPOTS[clampi(k, 0, WAIT_SPOTS.size() - 1)]
 
 
 func spawn_point(rng: RandomNumberGenerator) -> Vector2:
-	return SPAWN_POINT + Vector2(rng.randf_range(-10, 10), rng.randf_range(-4, 4))
+	return Vector2(STREET_LEFT if rng.randf() < 0.5 else STREET_RIGHT, STREET_Y + rng.randf_range(-4, 4))
 
 
 func browse_point(rng: RandomNumberGenerator) -> Vector2:
-	return Vector2(LANE_IN_X + rng.randf_range(-12, 12), rng.randf_range(140, 168))
+	return Vector2(rng.randf_range(140, 580), STREET_Y + rng.randf_range(-3, 3))
 
 
-## 먹을 자리 배정 (없으면 -1 → 걸으면서 먹기)
+func exit_point(from: Vector2) -> Vector2:
+	return Vector2(STREET_LEFT if from.x < 360.0 else STREET_RIGHT, STREET_Y)
+
+
+## 먹을 자리 배정 (없으면 -1 → 서서 먹기)
 func claim_eat_spot(customer, rng: RandomNumberGenerator) -> int:
 	var free: Array = []
 	for i in eat_spot_owner.size():
@@ -188,8 +270,8 @@ func release_all_spots() -> void:
 
 # ───────── 입력 ─────────
 
-## 터치는 Android 에서 마우스 이벤트로도 전달(emulate_mouse_from_touch)되므로 마우스 버튼만 처리.
-## GUI 위의 입력은 GUI 가 먼저 소비하므로 버튼과 시장 탭이 겹치지 않는다.
+## 터치는 Android 에서 마우스 이벤트로도 전달되므로 마우스 버튼만 처리.
+## 영업 중: 손님/테이블 탭 → 사장님이 서빙/치우기. 평소: 포차/경쟁 노점 정보.
 func _unhandled_input(event: InputEvent) -> void:
 	var mb := event as InputEventMouseButton
 	if mb == null or mb.button_index != MOUSE_BUTTON_LEFT:
@@ -205,16 +287,36 @@ func _unhandled_input(event: InputEvent) -> void:
 	_pressing = false
 	if pos.distance_to(_press_pos) > TAP_SLOP / maxf(0.1, scale.x):
 		return
-	if Rect2(POCHA_POS + Vector2(-165, -250), Vector2(330, 330)).has_point(pos):
+	if handle_tap(pos):
 		get_viewport().set_input_as_handled()
+
+
+func handle_tap(pos: Vector2) -> bool:
+	if pocha_manager.is_open:
+		var seat := seat_at(pos)
+		if seat >= 0:
+			pocha_manager.tap_seat(seat)
+			return true
+		return false
+	if pos.y > 280.0:
 		pocha_tapped.emit()
-		return
+		return true
 	for id in rival_nodes.keys():
 		var p := rival_pos(id)
-		if Rect2(p + Vector2(-80, -180), Vector2(160, 220)).has_point(pos):
-			get_viewport().set_input_as_handled()
+		if Rect2(p + Vector2(-66, -150), Vector2(132, 160)).has_point(pos):
 			rival_tapped.emit(id)
-			return
+			return true
+	return false
+
+
+func seat_at(pos: Vector2) -> int:
+	var n := seat_count()
+	var half := minf(SEAT_SPACING, 600.0 / maxf(1.0, n)) / 2.0
+	for i in n:
+		var x := seat_x(i, n)
+		if Rect2(Vector2(x - half, SEAT_Y - 130), Vector2(half * 2.0, 200)).has_point(pos):
+			return i
+	return -1
 
 
 # ───────── 연출 ─────────
@@ -229,11 +331,23 @@ func spawn_float_text(pos: Vector2, text: String, color: Color, size: int = 26) 
 	effects.add_child(ft)
 
 
+func spawn_coins(pos: Vector2, n: int) -> void:
+	var cb := CoinBurst.new()
+	cb.setup(clampi(n, 3, 10), pocha_manager.rng)
+	cb.position = pos
+	effects.add_child(cb)
+
+
 func _on_served(_seat: int, _menu: String, quality: float, price: int, pos: Vector2) -> void:
-	pocha_node.flash()
-	spawn_float_text(pos + Vector2(0, -80), "+%d" % price, Color("#FFD27A"), 26)
+	spawn_float_text(pos + Vector2(0, -86), "+%d" % price, Color("#FFD27A"), 26)
 	if quality >= 99.0:
-		spawn_float_text(pos + Vector2(0, -110), "완벽!", Color("#65C99A"), 22)
+		var combo: int = pocha_manager.combo
+		spawn_float_text(pos + Vector2(0, -116), "완벽!" if combo < 2 else "완벽! 콤보 x%d" % combo, Color("#65C99A"), 22)
+
+
+func _on_tip(pos: Vector2, amount: int) -> void:
+	spawn_coins(pos + Vector2(0, -20), amount / 10 + 3)
+	spawn_float_text(pos + Vector2(0, -60), "팁 +%d" % amount, Color("#65C99A"), 24)
 
 
 func _on_walkout(pos: Vector2) -> void:

@@ -92,25 +92,38 @@ func _setup_state() -> void:
 	GameManager.refresh_synergy()
 
 
-## 플레이어 대신 요리하는 봇: 주문된 음식을 굽고, 딱 좋을 때 꺼내고, 음료를 따른다
-func _bot_cook(pm) -> void:
+## 플레이어 대신 일하는 봇: 주문된 음식을 굽고, 딱 좋을 때 꺼내고, 음료를 따르고,
+## 손님을 탭해 서빙하고, 빈 테이블을 치운다 (실제 플레이와 같은 API 사용)
+func _bot_play(pm) -> void:
 	for i in pm.kitchen.burners.size():
-		if i != pm.auto_burner and pm.kitchen.stage(i) == "perfect":
+		if i != pm.auto_burner and pm.kitchen.stage(i) == "perfect" and pm.pass_space() > 0:
 			pm.tap_burner(i)
-	var cooking := {}
+	for i in pm.seat_state.size():
+		var st: Dictionary = pm.seat_state[i]
+		if st["state"] == "dirty":
+			pm.tap_seat(i)
+		elif pm.seats[i] != null and is_instance_valid(pm.seats[i]) and pm.seats[i].can_receive():
+			if pm.pass_has_for(pm.seats[i], pm.server.tray) or pm.server.tray_has_for(pm.seats[i]):
+				pm.tap_seat(i)
+	var making := {}
 	for b in pm.kitchen.burners:
 		if b["menu"] != "":
-			cooking[b["menu"]] = int(cooking.get(b["menu"], 0)) + 1
+			making[b["menu"]] = int(making.get(b["menu"], 0)) + 1
+	for p in pm.pass_items:
+		making[p["menu"]] = int(making.get(p["menu"], 0)) + 1
+	for it in pm.server.tray:
+		making[it["menu"]] = int(making.get(it["menu"], 0)) + 1
 	for o in pm.orders:
 		var m: String = o["menu"]
 		if not o["customer"].can_receive():
 			continue
-		if str(DataManager.get_menu(m).get("station", "")) == "drink":
-			pm.pour(m)
-			return
-		if int(cooking.get(m, 0)) > 0:
-			cooking[m] = int(cooking[m]) - 1
+		if int(making.get(m, 0)) > 0:
+			making[m] = int(making[m]) - 1
 			continue
+		if str(DataManager.get_menu(m).get("station", "")) == "drink":
+			if pm.pour_start(m).get("ok", false):
+				pm.pour_finish(m, 0.85)
+			return
 		if pm.cook(m).get("ok", false):
 			return
 
@@ -135,7 +148,7 @@ func _run_session(t, cook: bool) -> Dictionary:
 	while op.is_running() and steps < 4000:
 		op._process(0.1)
 		if cook:
-			_bot_cook(market.pocha_manager)
+			_bot_play(market.pocha_manager)
 		steps += 1
 		for c in market.customer_manager.customers:
 			if not is_instance_valid(c):
@@ -174,7 +187,8 @@ func test_full_session_with_cooking(t) -> void:
 	t.ok((r.get("ranking", []) as Array).size() >= 2, "경쟁 노점과 순위 비교")
 	for sname in ["ENTERING", "BROWSING", "SELECTING", "QUEUING", "SERVING", "SEATED", "EATING", "LEAVING"]:
 		t.ok(out["states"].has(sname), "손님 상태 %s 관찰" % sname)
-	t.ok(int(out["eaters"]) > 0, "경쟁 노점 손님이 테이블/벤치에서 먹음")
+	t.ok(int(out["eaters"]) > 0, "경쟁 노점 손님이 거리 테이블에서 먹음")
+	t.ok(int(r.get("tips", 0)) > 0, "테이블을 치워서 팁 수령 (%d)" % int(r.get("tips", 0)))
 	t.ok(int(r["buyers"]) + int(r["rival_buyers"]) + int(r["walkouts"]) <= int(r["visitors"]) + int(r["buyers"]), "집계 일관성")
 	var coins := int(st.coins)
 	t.ok(GameManager.claim_session_result().get("ok", false), "정산 수령")

@@ -135,3 +135,16 @@ func clear() -> Array:
 			left.append(burners[i]["menu"])
 		burners[i] = _empty()
 	return left
+
+
+## 음료 따르기 미니게임 품질. level: 0~1+ (1.0 = 잔 가득)
+##   목표 구간 [target_min, target_max] → 100
+##   덜 채움 → 40~95, 조금 넘침(target_max~overflow) → 100→70, overflow 이상 → 넘침(-1, 버림)
+static func pour_quality(level: float, target_min: float, target_max: float, overflow: float) -> float:
+	if level >= overflow:
+		return -1.0
+	if level < target_min:
+		return 40.0 + 55.0 * clampf(level / maxf(0.01, target_min), 0.0, 1.0)
+	if level <= target_max:
+		return 100.0
+	return 100.0 - 30.0 * (level - target_max) / maxf(0.01, overflow - target_max)

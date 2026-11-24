@@ -70,9 +70,9 @@ func _build_top() -> void:
 	top_margin = MarginContainer.new()
 	top_margin.add_theme_constant_override("margin_left", 22)
 	top_margin.add_theme_constant_override("margin_right", 22)
-	top_margin.add_theme_constant_override("margin_bottom", 14)
+	top_margin.add_theme_constant_override("margin_bottom", 10)
 	top_bar.add_child(top_margin)
-	var col := UIKit.vbox(10)
+	var col := UIKit.vbox(6)
 	top_margin.add_child(col)
 	var row1 := UIKit.hbox(12)
 	col.add_child(row1)
@@ -80,6 +80,7 @@ func _build_top() -> void:
 	title_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row1.add_child(title_box)
 	name_label = UIKit.label("달빛장터", "title", UIKit.ACCENT)
+	name_label.add_theme_font_size_override("font_size", 30)
 	title_box.add_child(name_label)
 	stage_label = UIKit.label("", "caption")
 	stage_label.autowrap_mode = TextServer.AUTOWRAP_OFF
@@ -87,17 +88,17 @@ func _build_top() -> void:
 	var wbox := UIKit.vbox(0)
 	wbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	row1.add_child(wbox)
-	weather_icon = UIKit.icon("cloud", 40)
+	weather_icon = UIKit.icon("cloud", 32)
 	weather_icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	wbox.add_child(weather_icon)
 	weather_label = UIKit.label("흐림", "caption")
 	weather_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	weather_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	wbox.add_child(weather_label)
-	var settings := UIKit.button("", "secondary", 76)
-	settings.custom_minimum_size = Vector2(76, 76)
-	var gear := UIKit.icon("settings", 36)
-	gear.position = Vector2(20, 20)
+	var settings := UIKit.button("", "secondary", 64)
+	settings.custom_minimum_size = Vector2(64, 64)
+	var gear := UIKit.icon("settings", 32)
+	gear.position = Vector2(16, 16)
 	settings.add_child(gear)
 	settings.pressed.connect(func(): settings_pressed.emit())
 	row1.add_child(settings)
@@ -159,7 +160,8 @@ func _build_event() -> void:
 	ecol.add_child(erow)
 	erow.add_child(UIKit.icon("event", 28))
 	event_title = UIKit.label("", "section")
-	event_title.add_theme_font_size_override("font_size", 22)
+	event_title.add_theme_font_size_override("font_size", 20)
+	event_title.autowrap_mode = TextServer.AUTOWRAP_OFF
 	erow.add_child(event_title)
 	event_desc = UIKit.label("", "caption", UIKit.TEXT)
 	event_desc.autowrap_mode = TextServer.AUTOWRAP_OFF
@@ -215,7 +217,7 @@ func _build_bottom() -> void:
 func apply_layout(safe_top: float, safe_bottom: float) -> void:
 	_safe_top = safe_top
 	_safe_bottom = safe_bottom
-	top_margin.add_theme_constant_override("margin_top", 14 + int(safe_top))
+	top_margin.add_theme_constant_override("margin_top", 8 + int(safe_top))
 	bottom_margin.add_theme_constant_override("margin_bottom", 14 + int(safe_bottom))
 	top_bar.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	top_bar.offset_bottom = top_height()
@@ -231,11 +233,11 @@ func apply_layout(safe_top: float, safe_bottom: float) -> void:
 
 
 func top_height() -> float:
-	return 166.0 + _safe_top
+	return maxf(144.0, top_bar.get_combined_minimum_size().y if top_bar else 144.0) + _safe_top * 0.0
 
 
 func kitchen_height() -> float:
-	return maxf(500.0, kitchen.get_combined_minimum_size().y) + _safe_bottom
+	return 412.0 + _safe_bottom
 
 
 func bottom_height() -> float:
@@ -296,7 +298,12 @@ func _update_main_button() -> void:
 
 
 func _on_phase(phase: String) -> void:
+	var was_running := running
 	running = phase == "open" or phase == "closing"
+	if phase == "open" and not was_running:
+		show_banner("%d일차 영업 시작!" % GameManager.state.day)
+	elif phase == "closing":
+		show_banner("마감 시간!", UIKit.SECONDARY)
 	session_card.visible = running
 	rep_card.visible = not running
 	bottom_bar.visible = not running
@@ -322,13 +329,41 @@ func show_event(ev: Dictionary) -> void:
 	event_title.text = str(ev.get("name", "이벤트"))
 	var desc := str(ev.get("desc", ""))
 	if ev.has("trend_name"):
-		desc += " (유행: %s)" % ev["trend_name"]
+		desc = "유행 메뉴: %s" % ev["trend_name"]
 	event_desc.text = desc
+	event_desc.visible = false
+	event_title.text = "%s  ·  %s" % [ev.get("name", "이벤트"), desc]
+	event_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	event_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	event_card.visible = true
 
 
 func hide_event() -> void:
 	event_card.visible = false
+
+
+## 화면 가운데 큰 배너 (영업 시작/마감)
+func show_banner(text: String, color: Color = UIKit.ACCENT) -> void:
+	var l := UIKit.label(text, "title", color)
+	l.add_theme_font_size_override("font_size", 52)
+	l.add_theme_constant_override("outline_size", 14)
+	l.add_theme_color_override("font_outline_color", Color(0.1, 0.06, 0.03, 0.9))
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(l)
+	l.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
+	l.anchor_right = 1.0
+	l.offset_top = -200
+	l.offset_bottom = -120
+	l.pivot_offset = Vector2(size.x / 2.0, 40)
+	l.scale = Vector2(0.6, 0.6)
+	l.modulate.a = 0.0
+	var tw := l.create_tween()
+	tw.tween_property(l, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(l, "modulate:a", 1.0, 0.2)
+	tw.tween_interval(1.1)
+	tw.tween_property(l, "modulate:a", 0.0, 0.35)
+	tw.tween_callback(l.queue_free)
 
 
 ## 이전 버전 호환 (배치 모드 제거됨)

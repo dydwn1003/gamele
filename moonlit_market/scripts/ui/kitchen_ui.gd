@@ -1,9 +1,9 @@
 extends PanelContainer
-## KitchenUI — 영업 중 화면 하단의 주방. 플레이어가 직접 요리한다.
-##  1) 주문서: 앉은 손님이 기다리는 메뉴와 인내심
-##  2) 화구: 메뉴를 올리면 익어 간다. 링이 초록색(딱 좋음)일 때 탭해서 꺼내면 완벽!
-##  3) 메뉴 버튼: 탭하면 빈 화구에 올라간다 (재료 1개 사용)
-##  4) 음료 버튼: 주문한 손님이 있으면 바로 따라서 서빙
+## KitchenUI — 영업 중 화면 하단의 주방 조작부. 플레이어가 직접 요리한다.
+##  1) 화구: 메뉴를 올리면 익어 간다. 링이 초록색(지금!)일 때 탭 → 서빙대로
+##  2) 메뉴 버튼: 탭하면 빈 화구에 올라간다 (재료 1개 사용)
+##  3) 음료 탭: 꾹 눌러 잔을 채우고, 초록 선 안에서 떼면 완벽 → 서빙대로 (넘치면 버림)
+##  서빙은 시장 화면에서 손님을 탭 → 사장님이 걸어가서 전달. 빈 테이블도 탭해서 치운다.
 ## 실제 규칙은 PochaManager/Kitchen 이 처리하고, 이 화면은 입력과 표시만 담당한다.
 
 const UIKit := preload("res://scripts/ui/ui_kit.gd")
@@ -19,7 +19,7 @@ class BurnerView extends Control:
 	var t: float = 0.0
 
 	func _ready() -> void:
-		custom_minimum_size = Vector2(150, 150)
+		custom_minimum_size = Vector2(140, 140)
 		mouse_filter = Control.MOUSE_FILTER_STOP
 
 	func _gui_input(event: InputEvent) -> void:
@@ -101,6 +101,68 @@ class BurnerView extends Control:
 		draw_string(font, Vector2(p.x - w / 2.0, p.y + fs * 0.35), text, HORIZONTAL_ALIGNMENT_CENTER, w, fs, col)
 
 
+## 음료 따르기 (꾹 누르기)
+class DrinkTap extends Control:
+	signal pour_started(menu_id: String)
+	signal pour_released(menu_id: String)
+	var menu_id: String = ""
+	var level: float = 0.0
+	var pouring: bool = false
+	var hot: bool = false
+	var stock: int = 0
+	var t: float = 0.0
+
+	func _ready() -> void:
+		custom_minimum_size = Vector2(0, 104)
+		size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		mouse_filter = Control.MOUSE_FILTER_STOP
+
+	func _gui_input(event: InputEvent) -> void:
+		var mb := event as InputEventMouseButton
+		if mb == null or mb.button_index != MOUSE_BUTTON_LEFT:
+			return
+		if mb.pressed and not pouring:
+			pour_started.emit(menu_id)
+		elif not mb.pressed and pouring:
+			pour_released.emit(menu_id)
+		accept_event()
+
+	func _process(delta: float) -> void:
+		t += delta
+		queue_redraw()
+
+	func _draw() -> void:
+		var font: Font = UIKit.bold_font()
+		var m: Dictionary = DataManager.get_menu(menu_id)
+		var bg := Color("#7FD4E8") if hot else (UIKit.PANEL_LIGHT if stock > 0 else Color("#3A3F4A"))
+		draw_style_box(UIKit.box(bg if not pouring else bg.lightened(0.15), 14, 0), Rect2(Vector2.ZERO, size))
+		var fg := UIKit.TEXT_DARK if hot else (UIKit.TEXT if stock > 0 else UIKit.TEXT_SUB)
+		# 잔
+		var gw := 34.0
+		var gh := 70.0
+		var gp := Vector2(16, (size.y - gh) / 2.0)
+		var pc: Dictionary = DataManager.pocha.get("pour", {})
+		var tmin := float(pc.get("target_min", 0.78))
+		var tmax := float(pc.get("target_max", 0.92))
+		draw_rect(Rect2(gp, Vector2(gw, gh)), Color(1, 1, 1, 0.25))
+		var fill := clampf(level, 0.0, 1.0)
+		var liquid := DataManager.color(m.get("color", "#F2C14E"))
+		draw_rect(Rect2(gp + Vector2(3, gh * (1.0 - fill)), Vector2(gw - 6, gh * fill - 3)), liquid)
+		if fill > 0.05 and str(m.get("icon", "")) == "beer":
+			draw_rect(Rect2(gp + Vector2(3, gh * (1.0 - fill) - 5), Vector2(gw - 6, 6)), Color("#FFF8E6"))
+		draw_rect(Rect2(gp + Vector2(-4, gh * (1.0 - tmax)), Vector2(gw + 8, gh * (tmax - tmin))), Color(0.4, 0.85, 0.6, 0.45))
+		draw_rect(Rect2(gp, Vector2(gw, gh)), Color(1, 1, 1, 0.7), false, 2.0)
+		if level >= 1.0:
+			draw_circle(gp + Vector2(gw / 2.0, -4 + sin(t * 20.0) * 2.0), 5, liquid)
+		var tx := gp.x + gw + 12
+		var tw := size.x - tx - 6
+		draw_string(font, Vector2(tx, 40), str(m.get("name", "")), HORIZONTAL_ALIGNMENT_LEFT, tw, 20, fg)
+		var want: int = 0
+		var sub := "재고 %d" % stock
+		draw_string(font, Vector2(tx, 66), sub, HORIZONTAL_ALIGNMENT_LEFT, tw, 16, fg)
+		draw_string(font, Vector2(tx, 92), "꾹 눌러 따르기" if not pouring else "선에서 떼기!", HORIZONTAL_ALIGNMENT_LEFT, tw, 15, fg if not pouring else Color("#2E7A55"))
+
+
 var pocha ## PochaManager
 var status_label: Label
 var tickets_box: HBoxContainer
@@ -108,8 +170,11 @@ var burners_box: HBoxContainer
 var food_box: HBoxContainer
 var drink_box: HBoxContainer
 var pass_label: Label
+var combo_label: Label
 var ticket_bars: Array = []
 var menu_buttons: Dictionary = {}
+var drink_taps: Dictionary = {}
+var pouring_menu: String = ""
 var _status_t: float = 0.0
 var _dirty: bool = true
 
@@ -129,25 +194,24 @@ func _ready() -> void:
 	add_child(margin)
 	var col := UIKit.vbox(8)
 	margin.add_child(col)
-	var head := UIKit.hbox(8)
+	var head := UIKit.hbox(10)
 	col.add_child(head)
-	head.add_child(UIKit.label("주문", "section", UIKit.ACCENT))
+	pass_label = UIKit.label("", "body", UIKit.ACCENT)
+	pass_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	head.add_child(pass_label)
+	combo_label = UIKit.label("", "body", UIKit.SUCCESS)
+	combo_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	head.add_child(combo_label)
 	status_label = UIKit.label("", "caption", UIKit.TEXT)
 	status_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	status_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	head.add_child(status_label)
-	tickets_box = UIKit.hbox(8)
-	tickets_box.custom_minimum_size = Vector2(0, 104)
-	col.add_child(tickets_box)
+	tickets_box = UIKit.hbox(0)
 	burners_box = UIKit.hbox(10)
 	burners_box.alignment = BoxContainer.ALIGNMENT_CENTER
 	col.add_child(burners_box)
-	pass_label = UIKit.label("", "caption", UIKit.TEXT_SUB)
-	pass_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	pass_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	col.add_child(pass_label)
 	food_box = UIKit.hbox(8)
 	col.add_child(food_box)
 	drink_box = UIKit.hbox(8)
@@ -182,7 +246,7 @@ func _process(delta: float) -> void:
 	if _status_t > 0.0:
 		_status_t -= delta
 		if _status_t <= 0.0:
-			status_label.text = "초록색일 때 화구를 탭!"
+			status_label.text = "손님을 탭하면 서빙!"
 			status_label.add_theme_color_override("font_color", UIKit.TEXT_SUB)
 
 
@@ -202,44 +266,11 @@ func _rebuild() -> void:
 			bv.pocha = pocha
 			bv.tapped.connect(_on_burner)
 			burners_box.add_child(bv)
-	# 주문서 (좌석 순서)
-	_clear(tickets_box)
-	ticket_bars = []
-	var shown := 0
-	for s in pocha.seats.size():
-		var c = pocha.seats[s]
-		if c == null or not is_instance_valid(c):
-			continue
-		var list: Array = pocha.orders_of(c)
-		if list.is_empty():
-			continue
-		shown += 1
-		var card := UIKit.card(UIKit.PANEL_LIGHT, 8)
-		card.custom_minimum_size = Vector2(112, 0)
-		card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var v := UIKit.vbox(2)
-		card.add_child(v)
-		var t := UIKit.label("%d번 · %s" % [s + 1, c.ctype.get("name", "")], "caption", UIKit.TEXT_SUB)
-		t.autowrap_mode = TextServer.AUTOWRAP_OFF
-		t.add_theme_font_size_override("font_size", 16)
-		v.add_child(t)
-		for o in list:
-			var nm := UIKit.label(str(DataManager.get_menu(o["menu"]).get("name", "")), "body", UIKit.TEXT)
-			nm.autowrap_mode = TextServer.AUTOWRAP_OFF
-			nm.add_theme_font_size_override("font_size", 19)
-			v.add_child(nm)
-		var bar := UIKit.progress_bar(1, 1, UIKit.SUCCESS, 8)
-		v.add_child(bar)
-		ticket_bars.append([bar, c])
-		tickets_box.add_child(card)
-	if shown == 0:
-		var empty := UIKit.label("손님 주문을 기다리는 중…", "caption")
-		empty.autowrap_mode = TextServer.AUTOWRAP_OFF
-		tickets_box.add_child(empty)
 	# 메뉴/음료 버튼
 	_clear(food_box)
 	_clear(drink_box)
 	menu_buttons = {}
+	drink_taps = {}
 	for id in GameManager.state.enabled_menus():
 		var m: Dictionary = DataManager.get_menu(id)
 		var station := str(m.get("station", ""))
@@ -247,7 +278,7 @@ func _rebuild() -> void:
 			continue
 		var b := Button.new()
 		b.focus_mode = Control.FOCUS_NONE
-		b.custom_minimum_size = Vector2(0, 76 if station == "grill" else 64)
+		b.custom_minimum_size = Vector2(0, 70 if station == "grill" else 64)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.add_theme_font_size_override("font_size", 19)
 		b.add_theme_font_override("font", UIKit.bold_font())
@@ -255,20 +286,23 @@ func _rebuild() -> void:
 		if station == "grill":
 			b.pressed.connect(func(): _on_cook(menu_id))
 			food_box.add_child(b)
+			menu_buttons[id] = b
 		else:
-			b.pressed.connect(func(): _on_pour(menu_id))
-			drink_box.add_child(b)
-		menu_buttons[id] = b
+			b.queue_free()
+			var tap := DrinkTap.new()
+			tap.menu_id = menu_id
+			tap.pour_started.connect(_on_pour_start)
+			tap.pour_released.connect(_on_pour_release)
+			drink_box.add_child(tap)
+			drink_taps[id] = tap
 	_update_live()
 
 
 func _update_live() -> void:
-	for pair in ticket_bars:
-		var bar: ProgressBar = pair[0]
-		var c = pair[1]
-		if is_instance_valid(c):
-			bar.max_value = maxf(1.0, c.patience_max)
-			bar.value = c.patience_left
+	for id in drink_taps.keys():
+		var tap = drink_taps[id]
+		tap.stock = GameManager.state.stock_of(id)
+		tap.hot = pocha.pending_count(id) > 0 and tap.stock > 0
 	for id in menu_buttons.keys():
 		var b: Button = menu_buttons[id]
 		var m: Dictionary = DataManager.get_menu(id)
@@ -285,11 +319,18 @@ func _update_live() -> void:
 		var fg := UIKit.TEXT_DARK if hot else (UIKit.TEXT if stock > 0 else UIKit.TEXT_SUB)
 		for k in ["font_color", "font_hover_color", "font_pressed_color"]:
 			b.add_theme_color_override(k, fg)
-	var parts: Array = []
-	for p in pocha.pass_items:
-		parts.append("%s(%d)" % [DataManager.get_menu(p["menu"]).get("name", ""), int(p["quality"])])
-	pass_label.text = ("완성 대기: " + ", ".join(parts)) if parts.size() > 0 else ""
-	pass_label.visible = parts.size() > 0
+	pass_label.text = "서빙대 %d/%d" % [pocha.pass_items.size(), pocha.pass_capacity()]
+	pass_label.add_theme_color_override("font_color", UIKit.DANGER if pocha.pass_space() <= 0 else UIKit.ACCENT)
+	combo_label.text = ("콤보 x%d" % pocha.combo) if pocha.combo >= 2 else ""
+	if pocha.dirty_count() > 0 and _status_t <= 0.0:
+		status_label.text = "빈 테이블 %d곳을 탭해서 치우세요" % pocha.dirty_count()
+	# 음료 따르기 진행
+	if pouring_menu != "" and drink_taps.has(pouring_menu):
+		var tap = drink_taps[pouring_menu]
+		var fill_time := float(DataManager.pocha.get("pour", {}).get("fill_time", 1.6))
+		tap.level += get_process_delta_time() / maxf(0.2, fill_time)
+		if tap.level >= float(DataManager.pocha.get("pour", {}).get("overflow", 1.0)) + 0.08:
+			_on_pour_release(pouring_menu)
 
 
 func _on_burner(i: int) -> void:
@@ -303,7 +344,7 @@ func _on_burner(i: int) -> void:
 		GameManager.vibrate(40)
 		return
 	var q := int(round(float(r.get("quality", 0))))
-	show_message("%s 완성 · 품질 %d" % [DataManager.get_menu(str(r["menu"])).get("name", ""), q], q >= 90)
+	show_message("%s 완성 · 품질 %d → 손님을 탭!" % [DataManager.get_menu(str(r["menu"])).get("name", ""), q], q >= 90)
 
 
 func _on_cook(menu_id: String) -> void:
@@ -312,9 +353,38 @@ func _on_cook(menu_id: String) -> void:
 		show_message(str(r.get("error", "")))
 
 
-func _on_pour(menu_id: String) -> void:
-	var r: Dictionary = pocha.pour(menu_id)
+func _on_pour_start(menu_id: String) -> void:
+	if pouring_menu != "":
+		return
+	var r: Dictionary = pocha.pour_start(menu_id)
 	if not r.get("ok", false):
 		show_message(str(r.get("error", "")))
+		return
+	pouring_menu = menu_id
+	var tap = drink_taps[menu_id]
+	tap.level = 0.0
+	tap.pouring = true
+
+
+func _on_pour_release(menu_id: String) -> void:
+	if pouring_menu != menu_id or not drink_taps.has(menu_id):
+		return
+	var tap = drink_taps[menu_id]
+	var r: Dictionary = pocha.pour_finish(menu_id, tap.level)
+	tap.pouring = false
+	pouring_menu = ""
+	if r.get("ok", false):
+		var q := int(round(float(r.get("quality", 0))))
+		show_message("%s 완성 · 품질 %d → 손님을 탭!" % [DataManager.get_menu(menu_id).get("name", ""), q], q >= 99)
 	else:
-		show_message("%s 서빙!" % DataManager.get_menu(menu_id).get("name", ""), true)
+		show_message(str(r.get("error", "")))
+	var tw := create_tween()
+	tw.tween_property(tap, "level", 0.0, 0.25)
+
+
+## 테스트/자동 플레이용: 정해진 양만큼 따르기
+func pour_amount(menu_id: String, level: float) -> Dictionary:
+	var r: Dictionary = pocha.pour_start(menu_id)
+	if not r.get("ok", false):
+		return r
+	return pocha.pour_finish(menu_id, level)

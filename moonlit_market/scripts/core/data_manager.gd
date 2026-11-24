@@ -34,7 +34,7 @@ const MENU_DEFAULTS := {
 	"perfect_end": 1.4, "burn": 1.9, "eat_time": 7.0, "alcohol": false, "unlock": {},
 }
 const POCHA_LEVEL_DEFAULTS := {
-	"upgrade_cost": 0, "seats": 3, "burners": 2, "stock_max": 15, "staff_slots": 1, "appeal": 0.0,
+	"upgrade_cost": 0, "seats": 3, "burners": 2, "stock_max": 15, "staff_slots": 1, "appeal": 0.0, "tray": 2,
 }
 const RIVAL_DEFAULTS := {
 	"name": "노점", "owner": "", "stall_type": "skewer", "menus": [], "price_ratio": 1.0,
@@ -74,6 +74,7 @@ const BALANCE_DEFAULTS := {
 	"reputation_walkout_penalty": 0.3, "satisfaction_bonus_threshold": 70.0,
 	"satisfaction_bonus_rate": 0.05, "spoilage_rate": 0.15,
 	"tip_threshold": 80.0, "tip_rate": 0.12, "rival_eat_time": 6.0,
+	"combo_tip_bonus": 0.05, "combo_max_bonus": 0.5,
 	"offline_efficiency": 0.35, "offline_max_minutes": 240.0, "offline_min_minutes": 1.0,
 	"autosave_interval": 30.0, "stall_reputation_max": 100.0, "debug_rewards_enabled": false,
 }

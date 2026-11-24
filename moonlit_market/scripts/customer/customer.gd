@@ -44,6 +44,7 @@ var eat_t: float = 0.0
 var eat_total: float = 6.0
 var eating_item: String = ""
 var eat_spot: int = -1
+var pending_tip: int = 0
 var facing_back: bool = false
 var reselect_count: int = 0
 var exit_counted: bool = false
@@ -84,7 +85,7 @@ func setup(p_manager, p_uid: int, p_type_id: String, p_rng: RandomNumberGenerato
 	lane_offset = rng.randf_range(-10.0, 10.0)
 	position = spawn
 	anim_t = rng.randf() * 10.0
-	waypoints = [Vector2(MarketScript.LANE_IN_X + lane_offset, spawn.y + 30), manager.market.browse_point(rng)]
+	waypoints = [manager.market.browse_point(rng)]
 	state = State.ENTERING
 
 
@@ -176,17 +177,37 @@ func _on_arrive() -> void:
 			arrived = true
 		State.QUEUING, State.SEATED, State.EATING:
 			arrived = true
-			if state == State.SEATED:
-				facing_back = true
+			pass
 
 
-func _lane_path(dest: Vector2, lane_x: float) -> Array:
+func in_pocha() -> bool:
+	return position.y > MarketScript.ENTRANCE.y - 10.0
+
+
+## 거리 위 목적지 (가게 앞 / 드럼통 테이블)
+func _street_path(dest: Vector2) -> Array:
 	var path: Array = []
-	if absf(position.x - lane_x) > 6.0:
-		path.append(Vector2(lane_x, position.y))
-	path.append(Vector2(lane_x, dest.y - 24))
+	if in_pocha():
+		path.append_array(_exit_pocha_path())
+	path.append(Vector2(dest.x, MarketScript.STREET_Y + lane_offset * 0.3))
 	path.append(dest)
 	return path
+
+
+## 포차 안 목적지 (대기 자리 / 좌석)
+func _pocha_path(dest: Vector2) -> Array:
+	var path: Array = []
+	if not in_pocha():
+		path.append(Vector2(MarketScript.ENTRANCE.x + lane_offset, MarketScript.STREET_Y))
+		path.append(MarketScript.ENTRANCE)
+	if dest.y > 420.0:
+		path.append(Vector2(dest.x, 420.0))
+	path.append(dest)
+	return path
+
+
+func _exit_pocha_path() -> Array:
+	return [Vector2(position.x, 420.0), MarketScript.ENTRANCE, Vector2(MarketScript.ENTRANCE.x - lane_offset, MarketScript.STREET_Y)]
 
 
 # ───────── 선택 ─────────
@@ -214,7 +235,7 @@ func _select() -> void:
 func set_queue_slot(k: int, spot: Vector2) -> void:
 	queue_index = k
 	if state == State.SELECTING:
-		waypoints = _lane_path(spot, MarketScript.LANE_IN_X + lane_offset)
+		waypoints = _street_path(spot)
 		arrived = false
 	elif state == State.QUEUING:
 		waypoints = [spot]
@@ -236,7 +257,7 @@ func go_to_wait(k: int, pos: Vector2) -> void:
 	state = State.QUEUING
 	queue_index = k
 	if first:
-		waypoints = _lane_path(pos, MarketScript.LANE_IN_X + lane_offset)
+		waypoints = _pocha_path(pos)
 		wait_time = 0.0
 	else:
 		waypoints = [pos]
@@ -249,7 +270,7 @@ func go_to_seat(_i: int, pos: Vector2) -> void:
 	ordered = false
 	arrived = false
 	facing_back = false
-	waypoints = [pos] if from_line else _lane_path(pos, MarketScript.LANE_IN_X + lane_offset)
+	waypoints = _pocha_path(pos)
 	patience_left = patience_max
 
 
@@ -324,13 +345,11 @@ func _leave_pocha() -> void:
 	if not exit_counted and purchases > 0:
 		satisfaction = manager.pocha_satisfaction(self)
 		GameManager.economy.record_satisfaction(satisfaction)
-		var tip: int = manager.tip_for(self, satisfaction)
-		if tip > 0:
-			GameManager.economy.record_tip(tip)
-			manager.on_tip_feedback(self, tip)
+		pending_tip = manager.tip_for(self, satisfaction)
 		_react("heart" if satisfaction >= 75.0 else ("smile" if satisfaction >= 50.0 else "meh"))
 		exit_counted = true
-	manager.pocha_manager.customer_left(self)
+	# 빈 그릇과 팁은 테이블에 남는다 → 사장님이 치워야 다음 손님이 앉는다
+	manager.pocha_manager.customer_left(self, pending_tip, purchases > 0)
 	_leave("done")
 
 
@@ -350,8 +369,7 @@ func on_rival_purchase(_rival_id: String, price: int, quality: float) -> void:
 	eat_spot = manager.market.claim_eat_spot(self, rng)
 	if eat_spot >= 0:
 		var spot: Vector2 = MarketScript.EAT_SPOTS[eat_spot]
-		var lane := MarketScript.LANE_OUT_X if spot.x >= 360.0 else MarketScript.LANE_IN_X
-		waypoints = _lane_path(spot, lane + lane_offset * 0.5)
+		waypoints = _street_path(spot)
 		arrived = false
 	else:
 		# 자리가 없으면 서서 먹는다
@@ -374,7 +392,7 @@ func _give_up() -> void:
 			satisfaction = manager.pocha_satisfaction(self) - 25.0
 			GameManager.economy.record_satisfaction(satisfaction)
 			exit_counted = true
-		manager.pocha_manager.customer_left(self)
+		manager.pocha_manager.customer_left(self, 0, purchases > 0)
 	elif target != "":
 		manager.rival_manager.remove_customer(target, self)
 	_leave("walkout")
@@ -389,7 +407,7 @@ func force_leave() -> void:
 			satisfaction = manager.pocha_satisfaction(self)
 			GameManager.economy.record_satisfaction(satisfaction)
 		exit_counted = true
-		manager.pocha_manager.customer_left(self)
+		manager.pocha_manager.customer_left(self, 0, false)
 	elif target != "" and purchases == 0:
 		manager.rival_manager.remove_customer(target, self)
 	manager.market.release_eat_spot(eat_spot)
@@ -409,8 +427,14 @@ func _leave(reason: String) -> void:
 				GameManager.economy.record_browser()
 	state = State.LEAVING
 	facing_back = false
-	var out_x: float = MarketScript.LANE_OUT_X + lane_offset * 0.5
-	waypoints = [Vector2(out_x, position.y - 10), Vector2(out_x, MarketScript.EXIT_POINT.y + 20), MarketScript.EXIT_POINT]
+	var path: Array = []
+	if in_pocha():
+		path.append_array(_exit_pocha_path())
+	else:
+		path.append(Vector2(position.x, MarketScript.STREET_Y + lane_offset * 0.3))
+	var from: Vector2 = path[path.size() - 1]
+	path.append(manager.market.exit_point(from if rng.randf() < 0.7 else Vector2(720.0 - from.x, from.y)))
+	waypoints = path
 
 
 func _react(kind: String) -> void:

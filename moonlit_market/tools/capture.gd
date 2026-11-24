@@ -57,30 +57,39 @@ func _ready() -> void:
 	get_tree().quit()
 
 
-## 화면 확인용 봇: 대부분 딱 좋을 때 꺼내지만 가끔 늦게 꺼낸다
+## 화면 확인용 봇: 실제 플레이와 같은 API 로 요리·따르기·서빙·치우기
 func _process(_delta: float) -> void:
 	if not bot_on or main == null:
 		return
 	var pm = main.market.pocha_manager
 	for i in pm.kitchen.burners.size():
-		var st: String = pm.kitchen.stage(i)
-		if i != pm.auto_burner and (st == "over" or (st == "perfect" and pm.kitchen.ratio(i) > 1.15)):
+		if i != pm.auto_burner and pm.kitchen.stage(i) == "perfect" and pm.kitchen.ratio(i) > 1.1 and pm.pass_space() > 0:
 			main.ui.hud.kitchen._on_burner(i)
-	var cooking := {}
+	for i in pm.seat_state.size():
+		if pm.seat_state[i]["state"] == "dirty" and randf() < 0.02:
+			pm.tap_seat(i)
+		elif pm.seats[i] != null and is_instance_valid(pm.seats[i]) and pm.seats[i].can_receive() and randf() < 0.05:
+			if pm.pass_has_for(pm.seats[i], pm.server.tray) or pm.server.tray_has_for(pm.seats[i]):
+				pm.tap_seat(i)
+	var making := {}
 	for b in pm.kitchen.burners:
 		if b["menu"] != "":
-			cooking[b["menu"]] = int(cooking.get(b["menu"], 0)) + 1
+			making[b["menu"]] = int(making.get(b["menu"], 0)) + 1
+	for p in pm.pass_items:
+		making[p["menu"]] = int(making.get(p["menu"], 0)) + 1
+	for it in pm.server.tray:
+		making[it["menu"]] = int(making.get(it["menu"], 0)) + 1
 	for o in pm.orders:
 		var m: String = o["menu"]
 		if not o["customer"].can_receive():
 			continue
-		if str(DataManager.get_menu(m).get("station", "")) == "drink":
-			if randf() < 0.05:
-				main.ui.hud.kitchen._on_pour(m)
-			return
-		if int(cooking.get(m, 0)) > 0:
-			cooking[m] = int(cooking[m]) - 1
+		if int(making.get(m, 0)) > 0:
+			making[m] = int(making[m]) - 1
 			continue
+		if str(DataManager.get_menu(m).get("station", "")) == "drink":
+			if randf() < 0.04:
+				main.ui.hud.kitchen.pour_amount(m, 0.86)
+			return
 		main.ui.hud.kitchen._on_cook(m)
 		return
 

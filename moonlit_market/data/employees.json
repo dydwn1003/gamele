@@ -33,7 +33,7 @@
       "name": "박 숙련 요리사",
       "role": "숙련 요리사",
       "role_type": "chef",
-      "desc": "화구 하나를 맡아 주문을 자동으로 요리합니다 (품질 80+).",
+      "desc": "화구 하나를 맡아 주문을 자동으로 요리해 서빙대에 올립니다 (품질 80+).",
       "effects": {
         "auto_cook": 1,
         "auto_quality": 80
@@ -83,10 +83,10 @@
       "name": "정 재빠른 직원",
       "role": "재빠른 직원",
       "role_type": "quick",
-      "desc": "음료 주문을 자동으로 따라 내고 대기 인내심을 늘립니다.",
+      "desc": "알바생처럼 완성된 음료를 손님에게 나르고 빈 테이블을 치웁니다.",
       "effects": {
-        "auto_drink": 1,
-        "patience": 0.25
+        "auto_serve": 1,
+        "patience": 0.2
       },
       "unlock": {
         "lifetime_sales": 60
