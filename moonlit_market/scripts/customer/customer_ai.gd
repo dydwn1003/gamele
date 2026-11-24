@@ -94,7 +94,7 @@ static func satisfaction(ctype: Dictionary, pref: float, price_ratio: float, wai
 
 
 ## 손님 유형 선택 (가중치 × 관광객 배수 등)
-static func pick_type(types: Dictionary, tourist_mult: float, rng: RandomNumberGenerator) -> String:
+static func pick_type(types: Dictionary, tourist_mult: float, rng: RandomNumberGenerator, office_mult: float = 1.0) -> String:
 	var total := 0.0
 	var ids: Array = types.keys()
 	var weights: Array = []
@@ -102,6 +102,8 @@ static func pick_type(types: Dictionary, tourist_mult: float, rng: RandomNumberG
 		var w := float(types[id].get("spawn_weight", 1.0))
 		if id == "tourist":
 			w *= tourist_mult
+		elif id == "office_worker":
+			w *= office_mult
 		weights.append(maxf(0.0, w))
 		total += maxf(0.0, w)
 	if total <= 0.0 or ids.is_empty():
@@ -112,3 +114,47 @@ static func pick_type(types: Dictionary, tourist_mult: float, rng: RandomNumberG
 		if roll <= 0.0:
 			return str(ids[i])
 	return str(ids[ids.size() - 1])
+
+
+## 포차 주문 고르기. foods/drinks: 메뉴 딕셔너리 배열 (각각 "_ratio" = 가격 비율 포함)
+## 반환: 메뉴 id 배열 (음식 0~1개 + 음료 0~1개)
+static func pick_order(ctype: Dictionary, foods: Array, drinks: Array, ctx: Dictionary, drink_bonus: float, rng: RandomNumberGenerator) -> Array:
+	var items: Array = []
+	var no_alcohol := bool(ctype.get("no_alcohol", false))
+	var ok_drinks: Array = []
+	for d in drinks:
+		if not (no_alcohol and bool(d.get("alcohol", false))):
+			ok_drinks.append(d)
+	var food := _pick_weighted(ctype, foods, ctx, rng)
+	if food != "":
+		items.append(food)
+	var chance := float(ctype.get("drink_chance", 0.6)) + drink_bonus
+	if ok_drinks.size() > 0 and (items.is_empty() or rng.randf() < chance):
+		var drink := _pick_weighted(ctype, ok_drinks, ctx, rng)
+		if drink != "":
+			items.append(drink)
+	return items
+
+
+static func _pick_weighted(ctype: Dictionary, menus: Array, ctx: Dictionary, rng: RandomNumberGenerator) -> String:
+	var total := 0.0
+	var weights: Array = []
+	for m in menus:
+		var w := pow(preference(ctype, m, ctx), 2.0) * price_factor(ctype, float(m.get("_ratio", 1.0)), float(ctx.get("price_tolerance", 0.0)))
+		weights.append(w)
+		total += w
+	if total <= 0.0:
+		return ""
+	var roll := rng.randf() * total
+	for i in menus.size():
+		roll -= float(weights[i])
+		if roll <= 0.0:
+			return str(menus[i].get("id", ""))
+	return str(menus[menus.size() - 1].get("id", ""))
+
+
+## 포차 손님 만족도: 음식 품질과 대기 시간이 핵심
+static func pocha_satisfaction(ctype: Dictionary, avg_quality: float, pref: float, price_ratio: float, wait_sec: float, bonus: float, base: float, wait_penalty: float) -> float:
+	var s := satisfaction(ctype, pref, price_ratio, wait_sec, bonus, base, wait_penalty)
+	s += (avg_quality - 75.0) * 0.6
+	return clampf(s, 0.0, 100.0)

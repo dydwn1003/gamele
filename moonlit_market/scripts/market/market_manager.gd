@@ -1,39 +1,49 @@
 extends Node2D
-## MarketManager — 시장 월드의 루트. 레이아웃(고정 좌표), 슬롯 생성, 터치 입력, 배치/이동 모드,
-## 판매 연출을 담당한다. 디자인 좌표계는 720x960 이며 fit_to_rect() 로 화면에 맞춘다.
+## MarketManager — 시장 월드 루트. 레이아웃(고정 좌표), 내 포차/경쟁 노점 노드, 먹는 자리 배정,
+## 터치 입력, 연출을 담당한다. 디자인 좌표계 720x720, fit_to_rect() 로 화면에 맞춘다.
+##
+## 배치: 위쪽 입구 → 중앙 통로(가운데 먹자 테이블) → 양옆 경쟁 노점 → 맨 아래 내 포장마차
 
-const SlotScene := preload("res://scenes/market/market_slot.tscn")
+const StallScene := preload("res://scenes/market/stall.tscn")
+const PochaScene := preload("res://scenes/market/pocha.tscn")
 const UIKit := preload("res://scripts/ui/ui_kit.gd")
 
-signal slot_tapped(idx: int)
-signal mode_changed(mode: String)
+signal pocha_tapped
+signal rival_tapped(rival_id: String)
 
-const DESIGN_SIZE := Vector2(720, 960)
-## 슬롯 0~2: 통로 왼쪽(위→아래), 3~5: 통로 오른쪽(위→아래). 인접 관계는 synergies.json
-const SLOT_POSITIONS := [Vector2(172, 300), Vector2(172, 490), Vector2(172, 680),
-	Vector2(548, 300), Vector2(548, 490), Vector2(548, 680)]
-const DECO_SPOTS := [Vector2(84, 868), Vector2(636, 868), Vector2(306, 170), Vector2(414, 170)]
-const LANE_IN_X := 346.0
-const LANE_OUT_X := 380.0
-const SPAWN_POINT := Vector2(350, 948)
-const EXIT_POINT := Vector2(380, 952)
+const DESIGN_SIZE := Vector2(720, 720)
+const SKY_CROP := 20.0
+## 경쟁 노점 자리 (등장 순서대로 사용)
+const RIVAL_POSITIONS := [Vector2(132, 262), Vector2(588, 262), Vector2(112, 440), Vector2(608, 440), Vector2(636, 598)]
+const RIVAL_SCALE := 0.78
+const POCHA_POS := Vector2(360, 600)
+const LANE_IN_X := 300.0
+const LANE_OUT_X := 420.0
+const SPAWN_POINT := Vector2(330, 88)
+const EXIT_POINT := Vector2(392, 84)
+## 먹자 테이블 / 벤치 (테이블 중심, 손님이 서는 자리)
+const TABLES := [Vector2(360, 232), Vector2(360, 318)]
+const EAT_SPOTS := [Vector2(326, 243), Vector2(394, 243), Vector2(360, 258),
+	Vector2(326, 329), Vector2(394, 329), Vector2(360, 344),
+	Vector2(60, 640), Vector2(96, 656), Vector2(48, 560), Vector2(84, 572)]
+const DECO_SPOTS := [Vector2(236, 120), Vector2(484, 120), Vector2(28, 470), Vector2(692, 470)]
 const TAP_SLOP := 24.0
 
 @onready var ground: Node2D = $Ground
 @onready var world: Node2D = $World
 @onready var overhead: Node2D = $Overhead
 @onready var effects: Node2D = $Effects
-@onready var stall_manager = $StallManager
+@onready var rival_manager = $RivalManager
+@onready var pocha_manager = $PochaManager
 @onready var customer_manager = $CustomerManager
 @onready var operating = $OperatingManager
 
-var slot_nodes: Array = []
-var mode: String = "normal" ## normal / place / move
-var place_type: String = ""
-var move_from: int = -1
-var selected_slot: int = -1
+var pocha_node
+var rival_nodes: Dictionary = {} ## rival_id -> node
+var rival_slots: Dictionary = {} ## rival_id -> position index
+var eat_spot_owner: Array = []
 var _press_pos: Vector2 = Vector2.ZERO
-var _press_index: int = -1
+var _pressing: bool = false
 
 
 class FloatText extends Node2D:
@@ -62,63 +72,87 @@ class FloatText extends Node2D:
 func _ready() -> void:
 	ground.market = self
 	overhead.market = self
-	for i in SLOT_POSITIONS.size():
-		var n = SlotScene.instantiate()
-		n.slot_index = i
-		n.facing = 1 if i < 3 else -1
-		n.position = SLOT_POSITIONS[i]
-		world.add_child(n)
-		slot_nodes.append(n)
-	stall_manager.market = self
+	pocha_node = PochaScene.instantiate()
+	pocha_node.position = POCHA_POS
+	pocha_node.market = self
+	world.add_child(pocha_node)
+	rival_manager.market = self
+	pocha_manager.market = self
 	customer_manager.market = self
-	customer_manager.stall_manager = stall_manager
+	customer_manager.rival_manager = rival_manager
+	customer_manager.pocha_manager = pocha_manager
 	customer_manager.world = world
-	operating.stall_manager = stall_manager
+	operating.rival_manager = rival_manager
+	operating.pocha_manager = pocha_manager
 	operating.customer_manager = customer_manager
-	GameManager.slots_changed.connect(refresh_slots)
-	GameManager.state_changed.connect(refresh_slots)
-	stall_manager.sale_made.connect(_on_sale)
+	for i in EAT_SPOTS.size():
+		eat_spot_owner.append(null)
+	GameManager.state_changed.connect(refresh)
+	pocha_manager.served.connect(_on_served)
+	pocha_manager.feedback.connect(spawn_float_text)
 	customer_manager.walkout_feedback.connect(_on_walkout)
-	refresh_slots()
+	refresh()
 
 
-func _process(_delta: float) -> void:
-	if operating.is_running():
-		refresh_slots()
+## 단계에 맞는 경쟁 노점 노드를 만들고, 상태를 다시 그린다
+func refresh() -> void:
+	var ids: Array = GameManager.progression.active_rivals()
+	for id in rival_nodes.keys():
+		if not ids.has(id):
+			rival_nodes[id].queue_free()
+			rival_nodes.erase(id)
+			rival_slots.erase(id)
+	for i in ids.size():
+		var id: String = ids[i]
+		if not rival_nodes.has(id) and i < RIVAL_POSITIONS.size():
+			var n = StallScene.instantiate()
+			n.position = RIVAL_POSITIONS[i]
+			n.scale = Vector2(RIVAL_SCALE, RIVAL_SCALE)
+			n.facing = 1 if RIVAL_POSITIONS[i].x < 360 else -1
+			n.rival_id = id
+			n.market = self
+			world.add_child(n)
+			rival_nodes[id] = n
+			rival_slots[id] = i
+	if pocha_node:
+		pocha_node.queue_redraw()
 
 
-func refresh_slots() -> void:
-	if slot_nodes.is_empty():
-		return
-	for i in slot_nodes.size():
-		var s: Dictionary = GameManager.state.get_slot(i)
-		slot_nodes[i].update_data(s, stall_manager.get_runtime(i), GameManager.slot_synergies(i),
-			GameManager.economy.stock_max(i), GameManager.is_operating)
-	_update_highlights()
+func rival_ids() -> Array:
+	return rival_nodes.keys()
 
 
-## 화면의 사용 가능 영역(HUD 사이)에 시장 전체가 보이도록 배치
-## 디자인 상단 SKY_CROP 픽셀(밤하늘)은 영역 밖으로 나가도 되도록 계산
-const SKY_CROP := 30.0
-
-
+## 화면의 사용 가능 영역에 시장 전체가 보이도록 배치
 func fit_to_rect(rect: Rect2) -> void:
 	var content := Vector2(DESIGN_SIZE.x, DESIGN_SIZE.y - SKY_CROP)
 	var s := minf(rect.size.x / content.x, rect.size.y / content.y)
-	s = clampf(s, 0.4, 1.3)
+	s = clampf(s, 0.3, 1.4)
 	scale = Vector2(s, s)
 	position = rect.position + (rect.size - content * s) / 2.0 - Vector2(0, SKY_CROP * s)
 
 
 # ───────── 레이아웃 ─────────
 
-func queue_spot(slot_idx: int, k: int) -> Vector2:
-	if slot_idx < 0 or slot_idx >= SLOT_POSITIONS.size():
-		return SPAWN_POINT
-	var p: Vector2 = SLOT_POSITIONS[slot_idx]
-	if slot_idx < 3:
-		return p + Vector2(92, 40) + Vector2(14, 24) * k
-	return p + Vector2(-92, 40) + Vector2(-14, 24) * k
+func rival_pos(rival_id: String) -> Vector2:
+	return RIVAL_POSITIONS[int(rival_slots.get(rival_id, 0))]
+
+
+func rival_queue_spot(rival_id: String, k: int) -> Vector2:
+	var p := rival_pos(rival_id)
+	var s := RIVAL_SCALE
+	if p.x < 360:
+		return p + Vector2(92, 40) * s + Vector2(12, 20) * k
+	return p + Vector2(-92, 40) * s + Vector2(-12, 20) * k
+
+
+func seat_pos(i: int, count: int) -> Vector2:
+	var spacing := 48.0
+	var x0 := POCHA_POS.x - spacing * (count - 1) / 2.0
+	return Vector2(x0 + spacing * i, POCHA_POS.y + 58)
+
+
+func wait_pos(k: int) -> Vector2:
+	return Vector2(206 - 26 * k, POCHA_POS.y + 74 + 10 * k)
 
 
 func spawn_point(rng: RandomNumberGenerator) -> Vector2:
@@ -126,18 +160,36 @@ func spawn_point(rng: RandomNumberGenerator) -> Vector2:
 
 
 func browse_point(rng: RandomNumberGenerator) -> Vector2:
-	return Vector2(LANE_IN_X + rng.randf_range(-22, 22), rng.randf_range(790, 840))
+	return Vector2(LANE_IN_X + rng.randf_range(-12, 12), rng.randf_range(140, 168))
 
 
-func slot_world_pos(idx: int) -> Vector2:
-	return SLOT_POSITIONS[idx]
+## 먹을 자리 배정 (없으면 -1 → 걸으면서 먹기)
+func claim_eat_spot(customer, rng: RandomNumberGenerator) -> int:
+	var free: Array = []
+	for i in eat_spot_owner.size():
+		if eat_spot_owner[i] == null or not is_instance_valid(eat_spot_owner[i]):
+			free.append(i)
+	if free.is_empty():
+		return -1
+	var idx: int = free[rng.randi() % free.size()]
+	eat_spot_owner[idx] = customer
+	return idx
+
+
+func release_eat_spot(idx: int) -> void:
+	if idx >= 0 and idx < eat_spot_owner.size():
+		eat_spot_owner[idx] = null
+
+
+func release_all_spots() -> void:
+	for i in eat_spot_owner.size():
+		eat_spot_owner[i] = null
 
 
 # ───────── 입력 ─────────
 
-## 터치는 Android 에서 마우스 이벤트로도 전달(emulate_mouse_from_touch)되므로
-## 마우스 버튼만 처리한다. GUI 컨트롤 위의 입력은 GUI 가 먼저 소비하므로
-## 버튼 영역과 시장 터치 영역이 겹쳐 동시에 눌리는 일이 없다.
+## 터치는 Android 에서 마우스 이벤트로도 전달(emulate_mouse_from_touch)되므로 마우스 버튼만 처리.
+## GUI 위의 입력은 GUI 가 먼저 소비하므로 버튼과 시장 탭이 겹치지 않는다.
 func _unhandled_input(event: InputEvent) -> void:
 	var mb := event as InputEventMouseButton
 	if mb == null or mb.button_index != MOUSE_BUTTON_LEFT:
@@ -146,75 +198,23 @@ func _unhandled_input(event: InputEvent) -> void:
 	var pos: Vector2 = local_event.position
 	if mb.pressed:
 		_press_pos = pos
-		_press_index = 1
+		_pressing = true
 		return
-	if _press_index != 1:
+	if not _pressing:
 		return
-	_press_index = -1
+	_pressing = false
 	if pos.distance_to(_press_pos) > TAP_SLOP / maxf(0.1, scale.x):
 		return
-	var idx := slot_at(pos)
-	if idx >= 0:
+	if Rect2(POCHA_POS + Vector2(-165, -250), Vector2(330, 330)).has_point(pos):
 		get_viewport().set_input_as_handled()
-		slot_tapped.emit(idx)
-
-
-func slot_at(local_pos: Vector2) -> int:
-	# 아래쪽(앞쪽) 슬롯이 위에 그려지므로 역순으로 검사
-	var order := [2, 5, 1, 4, 0, 3]
-	for i in order:
-		if slot_nodes[i].hit_rect().has_point(local_pos):
-			return i
-	return -1
-
-
-# ───────── 모드 ─────────
-
-func enter_place_mode(structure_type: String) -> void:
-	mode = "place"
-	place_type = structure_type
-	move_from = -1
-	_update_highlights()
-	mode_changed.emit(mode)
-
-
-func enter_move_mode(from_idx: int) -> void:
-	mode = "move"
-	move_from = from_idx
-	place_type = ""
-	_update_highlights()
-	mode_changed.emit(mode)
-
-
-func cancel_mode() -> void:
-	mode = "normal"
-	place_type = ""
-	move_from = -1
-	_update_highlights()
-	mode_changed.emit(mode)
-
-
-func set_selected(idx: int) -> void:
-	selected_slot = idx
-	_update_highlights()
-
-
-func _update_highlights() -> void:
-	for i in slot_nodes.size():
-		var h := ""
-		match mode:
-			"place":
-				if GameManager.state.is_slot_empty(i):
-					h = "place"
-			"move":
-				if i == move_from:
-					h = "move_source"
-				else:
-					h = "move_target"
-			_:
-				if i == selected_slot:
-					h = "selected"
-		slot_nodes[i].set_highlight(h)
+		pocha_tapped.emit()
+		return
+	for id in rival_nodes.keys():
+		var p := rival_pos(id)
+		if Rect2(p + Vector2(-80, -180), Vector2(160, 220)).has_point(pos):
+			get_viewport().set_input_as_handled()
+			rival_tapped.emit(id)
+			return
 
 
 # ───────── 연출 ─────────
@@ -229,10 +229,11 @@ func spawn_float_text(pos: Vector2, text: String, color: Color, size: int = 26) 
 	effects.add_child(ft)
 
 
-func _on_sale(slot_idx: int, price: int, _sat: float) -> void:
-	slot_nodes[slot_idx].flash()
-	var p: Vector2 = SLOT_POSITIONS[slot_idx] + Vector2(0, -150)
-	spawn_float_text(p, "+%d" % price, Color("#FFD27A"), 28)
+func _on_served(_seat: int, _menu: String, quality: float, price: int, pos: Vector2) -> void:
+	pocha_node.flash()
+	spawn_float_text(pos + Vector2(0, -80), "+%d" % price, Color("#FFD27A"), 26)
+	if quality >= 99.0:
+		spawn_float_text(pos + Vector2(0, -110), "완벽!", Color("#65C99A"), 22)
 
 
 func _on_walkout(pos: Vector2) -> void:

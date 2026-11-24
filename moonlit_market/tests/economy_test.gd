@@ -1,5 +1,5 @@
 extends RefCounted
-## 경제/정산/오프라인 테스트 (GameState 를 새로 만들어 격리된 상태에서 검증)
+## 경제/정산/오프라인/상인/궁합 테스트 (GameState 를 새로 만들어 격리된 상태에서 검증)
 
 const GameStateScript := preload("res://scripts/core/game_state.gd")
 const EconomyScript := preload("res://scripts/core/economy_manager.gd")
@@ -19,6 +19,8 @@ func _fresh(coins: int = 500) -> void:
 	state = GameStateScript.new()
 	state.reset_empty()
 	state.coins = coins
+	for id in ["dak_skewer", "eomuk_tang", "draft_beer", "cider"]:
+		state.pocha["menus"][id] = GameStateScript.make_menu_entry(true, 0)
 	progression = ProgressionScript.new()
 	economy = EconomyScript.new()
 	staff = StaffScript.new()
@@ -29,72 +31,95 @@ func _fresh(coins: int = 500) -> void:
 	offline.setup(state, DataManager)
 
 
-func test_build_reduces_coins(t) -> void:
+func test_upgrade_reduces_coins(t) -> void:
 	_fresh(500)
-	var cost := int(DataManager.get_stall("drink")["build_cost"])
-	var r: Dictionary = economy.build_stall(0, "drink")
-	t.ok(r["ok"], "노점 구매 성공")
-	t.eq(state.coins, 500 - cost, "코인이 건설비만큼 감소")
-	var r2: Dictionary = economy.build_stall(0, "skewer")
-	t.ok(not r2["ok"], "같은 자리 중복 건설 실패")
-	t.eq(state.coins, 500 - cost, "중복 클릭 시 코인 추가 차감 없음")
-	state.coins = 10
-	var r3: Dictionary = economy.build_stall(1, "dessert")
-	t.ok(not r3["ok"], "코인 부족 시 실패")
-	t.eq(state.coins, 10, "실패 시 코인 변화 없음")
-	t.ok(state.is_slot_empty(1), "실패 시 슬롯 비어 있음")
+	var cost: int = economy.upgrade_cost()
+	t.eq(cost, 500, "Lv.2 업그레이드 비용 500")
+	var r: Dictionary = economy.upgrade_pocha(3)
+	t.ok(r["ok"], "업그레이드 성공")
+	t.eq(state.coins, 0, "코인이 업그레이드 비용만큼 감소")
+	t.eq(state.pocha_level(), 2, "포차 Lv.2")
+	var r2: Dictionary = economy.upgrade_pocha(3)
+	t.ok(not r2["ok"], "코인 부족 시 실패 (연타해도 추가 차감 없음)")
+	t.eq(state.coins, 0, "실패 시 코인 변화 없음")
+	state.coins = 99999
+	economy.upgrade_pocha(3)
+	t.ok(not economy.upgrade_pocha(3)["ok"], "시장 단계 제한 (1단계 최대 Lv.3)")
 
 
 func test_sales_revenue_cogs_net(t) -> void:
-	_fresh(0)
-	state.slots[1] = GameStateScript.make_stall("skewer", "skewer_grill", 20, 10.0)
-	t.ok(not economy.record_sale(1, 110, 70.0), "영업 전에는 판매 기록 불가")
+	_fresh(1000)
+	t.ok(not economy.record_sale("dak_skewer", 120, 100.0), "영업 전에는 판매 기록 불가")
+	economy.restock("dak_skewer")
+	t.eq(state.stock_of("dak_skewer"), 15, "재료 최대 15 (Lv.1)")
+	t.eq(state.coins, 1000 - 15 * 40, "재료 구매 시 원가 차감")
+	state.coins = 0
 	economy.begin_session(1, "cloudy")
-	var price: int = economy.unit_price(1)
-	t.eq(price, 110, "기준 가격 110")
+	var price: int = economy.unit_price("dak_skewer")
+	t.eq(price, 120, "기준 가격 120")
 	for i in 3:
-		t.ok(economy.record_sale(1, price, 80.0), "판매 %d 성공" % (i + 1))
-	t.eq(economy.ledger["revenue"], 330, "총매출 = 판매 수량 × 판매 가격")
-	t.eq(economy.ledger["cogs"], 120, "재료 원가 = 판매 수량 × 메뉴 원가(40)")
-	t.eq(state.coins, 330, "판매 즉시 코인 증가")
-	t.eq(int(state.slots[1]["stock"]), 17, "판매 수량만큼 재고 감소")
+		t.ok(economy.consume_stock("dak_skewer"), "화구에 올릴 때 재료 사용")
+		t.ok(economy.record_sale("dak_skewer", price, 100.0), "판매 %d 성공" % (i + 1))
+	t.ok(economy.consume_stock("dak_skewer"), "4번째 재료 사용")
+	economy.record_waste("dak_skewer", true)
+	t.eq(economy.ledger["revenue"], 360, "총매출 = 판매 수량 × 판매 가격")
+	t.eq(economy.ledger["cogs"], 120, "재료 원가 = 판매 수량 × 원가(40)")
+	t.eq(economy.ledger["other_costs"], 40, "태운 요리는 기타 비용")
+	t.eq(state.coins, 360, "판매 즉시 코인 증가")
+	economy.record_tip(20)
+	t.eq(state.coins, 380, "팁 지급")
+	t.eq(state.stock_of("dak_skewer"), 11, "재고 = 15 - 사용 4")
 	var res: Dictionary = economy.close_session(240.0)
-	var spoil := int(floor(17 * float(DataManager.bal("spoilage_rate", 0.15))))
-	t.eq(res["other_costs"], spoil * 40, "기타 비용 = 재고 손실 × 원가")
-	t.eq(res["net_profit"], 330 - 120 - spoil * 40, "순수익 = 총매출 - 원가 - 기타 비용")
-	t.eq(int(state.slots[1]["stock"]), 17 - spoil, "재고 손실 반영")
+	var spoil := int(floor(11 * float(DataManager.bal("spoilage_rate", 0.15))))
+	t.eq(res["other_costs"], 40 + spoil * 40, "기타 비용 = 탄 요리 + 상한 재료")
+	t.eq(res["net_profit"], 360 + 20 - 120 - (40 + spoil * 40), "순수익 = 매출 + 팁 - 원가 - 기타 비용")
+	t.eq(res["burnt"], 1, "탄 요리 집계")
 	var res2: Dictionary = economy.close_session(240.0)
 	t.eq(res2["net_profit"], res["net_profit"], "영업 종료 중복 호출 시 동일 결과")
-	t.eq(int(state.slots[1]["stock"]), 17 - spoil, "재고 손실은 한 번만 적용")
+	t.eq(state.stock_of("dak_skewer"), 11 - spoil, "재고 손실은 한 번만 적용")
+	t.ok(not economy.consume_stock("cider"), "재고 0이면 사용 불가")
 
 
 func test_result_paid_once(t) -> void:
 	_fresh(0)
-	state.slots[0] = GameStateScript.make_stall("skewer", "skewer_grill", 20, 10.0)
 	economy.begin_session(7, "cloudy")
 	for i in 10:
-		economy.record_sale(0, 110, 90.0)
+		economy.record_sale("dak_skewer", 120, 100.0)
+		economy.record_satisfaction(90.0)
+	economy.record_buyer()
 	var res: Dictionary = economy.close_session(240.0)
 	var coins_before: int = state.coins
 	var rep_before: int = state.reputation
 	var c1: Dictionary = economy.claim_result()
 	t.ok(c1["ok"], "첫 정산 성공")
+	t.ok(int(res["rep_gain"]) > 0, "평판 획득")
 	t.eq(state.reputation, rep_before + int(res["rep_gain"]), "평판 지급")
 	t.eq(state.coins, coins_before + int(res["bonus_coins"]), "보너스 코인 지급")
 	var coins_after: int = state.coins
 	var rep_after: int = state.reputation
 	for i in 5:
-		var c2: Dictionary = economy.claim_result()
-		t.ok(not c2["ok"], "중복 정산 거부 %d" % i)
+		t.ok(not economy.claim_result()["ok"], "중복 정산 거부 %d" % i)
 	t.eq(state.coins, coins_after, "중복 정산 시 코인 변화 없음")
 	t.eq(state.reputation, rep_after, "중복 정산 시 평판 변화 없음")
-	# 세이브/로드 후에도 다시 받을 수 없음
-	var d: Dictionary = state.to_dict()
 	var s2 = GameStateScript.new()
-	s2.from_dict(JSON.parse_string(JSON.stringify(d)), DataManager)
+	s2.from_dict(JSON.parse_string(JSON.stringify(state.to_dict())), DataManager)
 	var e2 = EconomyScript.new()
 	e2.setup(s2, DataManager, null)
 	t.ok(not e2.claim_result()["ok"], "재실행 후에도 중복 정산 불가")
+
+
+func test_ranking_vs_rivals(t) -> void:
+	_fresh(0)
+	economy.begin_session(3, "cloudy")
+	economy.record_sale("dak_skewer", 120, 100.0)
+	for i in 3:
+		economy.record_rival_sale("rival_bunsik", 130)
+	economy.record_rival_sale("rival_juice", 90)
+	var res: Dictionary = economy.close_session(240.0)
+	t.eq(res["ranking"][0]["id"], "rival_bunsik", "매출 1위는 분식집")
+	t.eq(res["my_rank"], 2, "내 포차 2위")
+	t.eq(res["rival_buyers"], 4, "경쟁 노점 손님 수")
+	t.eq(int(state.rivals["rival_bunsik"]["last_sales"]), 3, "라이벌 판매 기록 저장")
 
 
 func test_offline_once_and_capped(t) -> void:
@@ -106,95 +131,75 @@ func test_offline_once_and_capped(t) -> void:
 	var info: Dictionary = offline.compute_pending(t0 + 60 * 60)
 	var expected := int(floor(100.0 * 60.0 * 0.35))
 	t.eq(info["pending_amount"], expected, "60분 오프라인 = 분당 순수익 × 60 × 0.35")
-	var again: Dictionary = offline.compute_pending(t0 + 60 * 60)
-	t.eq(again["added"], 0, "같은 시각 재계산 시 추가 없음")
-	var paid: int = offline.claim(economy, t0 + 3600)
-	t.eq(paid, expected, "수령액")
-	t.eq(state.coins, expected, "코인 지급")
+	t.eq(offline.compute_pending(t0 + 60 * 60)["added"], 0, "같은 시각 재계산 시 추가 없음")
+	t.eq(offline.claim(economy, t0 + 3600), expected, "수령액")
 	t.eq(offline.claim(economy, t0 + 3600), 0, "두 번째 수령은 0")
 	t.eq(state.coins, expected, "중복 지급 없음")
-	# 시간을 과거로 되돌림
 	var rb: Dictionary = offline.compute_pending(t0)
 	t.ok(rb["rollback"], "시간 역행 감지")
-	t.eq(int(state.offline["pending_amount"]), 0, "시간 역행 시 보상 없음")
-	# 다시 원래 시각으로 돌아와도 이미 계산된 구간은 재지급 안 됨
-	var back: Dictionary = offline.compute_pending(t0 + 3600)
-	t.eq(back["added"], 0, "시각 복귀 후 중복 보상 없음")
-	# 최대 240분 제한
+	t.eq(offline.compute_pending(t0 + 3600)["added"], 0, "시각 복귀 후 중복 보상 없음")
 	var far: Dictionary = offline.compute_pending(t0 + 3600 + 10 * 3600)
 	t.eq(far["pending_minutes"], 240.0, "최대 240분")
 	t.eq(far["pending_amount"], int(floor(100.0 * 240.0 * 0.35)), "최대 누적 보상")
 
 
-func test_price_restock_menu(t) -> void:
+func test_menu_price_unlock(t) -> void:
 	_fresh(1000)
-	state.slots[0] = GameStateScript.make_stall("skewer", "skewer_grill", 5, 10.0)
-	economy.set_price_ratio(0, 2.0)
-	t.eq(float(state.slots[0]["price_ratio"]), 1.3, "가격 상한 130%")
-	economy.set_price_ratio(0, 0.1)
-	t.eq(float(state.slots[0]["price_ratio"]), 0.8, "가격 하한 80%")
-	economy.set_price_ratio(0, 1.0)
-	var cost: int = economy.restock_cost(0)
-	t.eq(cost, 15 * 40, "재고 15개 × 원가 40")
-	economy.restock(0)
-	t.eq(state.coins, 1000 - cost, "재고 구매 시 원가 차감")
-	t.eq(int(state.slots[0]["stock"]), 20, "최대 재고 20")
-	t.ok(not economy.restock(0)["ok"], "가득 차면 구매 불가")
-	t.ok(not economy.set_menu(0, "twigim")["ok"], "Lv.1 에서 튀김 잠김")
-	state.slots[0]["level"] = 2
-	var coins_before: int = state.coins
-	var r: Dictionary = economy.set_menu(0, "twigim")
-	t.ok(r["ok"], "Lv.2 메뉴 변경")
-	t.eq(state.coins, coins_before + 20 * 40, "남은 재고는 기존 원가로 환급")
-	t.eq(int(state.slots[0]["stock"]), 0, "메뉴 변경 후 재고 0")
-	state.coins = 0
-	t.ok(not economy.restock(0)["ok"], "코인 0이면 재고 구매 불가")
+	economy.set_price_ratio("dak_skewer", 2.0)
+	t.eq(float(state.menu_entry("dak_skewer")["price_ratio"]), 1.3, "가격 상한 130%")
+	economy.set_price_ratio("dak_skewer", 0.1)
+	t.eq(float(state.menu_entry("dak_skewer")["price_ratio"]), 0.8, "가격 하한 80%")
+	t.ok(not economy.set_menu_enabled("gyeranmari", true, progression)["ok"], "Lv.1 에서 계란말이 잠김")
+	state.pocha["level"] = 2
+	t.ok(economy.set_menu_enabled("gyeranmari", true, progression)["ok"], "Lv.2 계란말이 해금")
+	t.ok(state.is_menu_enabled("gyeranmari"), "메뉴판에 올라감")
+	t.ok(not economy.set_menu_enabled("samgyeop_skewer", true, progression)["ok"], "삼겹살 꼬치는 평판 20 필요")
+	t.ok(not economy.set_menu_enabled("haemul_jeon", true, progression)["ok"], "해물파전은 시장 2단계 필요")
+	state.market_level = 2
+	t.ok(economy.set_menu_enabled("haemul_jeon", true, progression)["ok"], "2단계에서 해물파전")
+	for id in state.enabled_menus():
+		if id != "cider":
+			economy.set_menu_enabled(id, false)
+	t.ok(not economy.set_menu_enabled("cider", false)["ok"], "마지막 메뉴는 내릴 수 없음")
 
 
-func test_staff_exclusive_assignment(t) -> void:
+func test_staff_working_slots(t) -> void:
 	_fresh(5000)
-	state.slots[0] = GameStateScript.make_stall("skewer", "skewer_grill", 5, 10.0)
-	state.slots[1] = GameStateScript.make_stall("drink", "lemonade", 5, 10.0)
 	state.employees["emp_basic"] = {"hired": true, "level": 1}
-	staff.assign("emp_basic", 0)
-	staff.assign("emp_basic", 1)
-	t.eq(state.slots[0]["employee"], "", "이전 노점에서 해제")
-	t.eq(state.slots[1]["employee"], "emp_basic", "새 노점에 배치")
-	t.ok(not staff.hire("emp_grandma")["ok"], "해금 전 고용 불가")
 	state.reputation = 999
 	t.ok(staff.hire("emp_chef")["ok"], "해금 후 고용")
-	var e1: float = staff.effects_for("emp_chef")["cook_speed"]
+	t.ok(staff.set_working("emp_basic", true)["ok"], "기본 상인 근무")
+	t.ok(not staff.set_working("emp_chef", true)["ok"], "Lv.1 근무 자리 1개 초과 불가")
+	state.pocha["level"] = 3
+	t.ok(staff.set_working("emp_chef", true)["ok"], "Lv.3 에서 2명 근무")
+	staff.set_working("emp_chef", true)
+	t.eq(state.staff_list().size(), 2, "같은 상인 중복 배치 안 됨")
+	var fx: Dictionary = staff.pocha_effects()
+	t.eq(float(fx["auto_cook"]), 1.0, "요리사 자동 요리 효과")
+	var q1 := float(staff.effects_for("emp_chef")["auto_quality"])
 	staff.level_up("emp_chef")
-	t.ok(staff.effects_for("emp_chef")["cook_speed"] > e1, "레벨업 시 능력 증가")
+	t.ok(float(staff.effects_for("emp_chef")["auto_quality"]) > q1, "레벨업 시 자동 요리 품질 증가")
+	staff.set_working("emp_chef", false)
+	t.eq(float(staff.pocha_effects()["auto_cook"]), 0.0, "근무 해제 시 효과 없음")
 
 
-func test_synergy(t) -> void:
+func test_pairings(t) -> void:
 	var syn = SynergyScript.new()
 	syn.setup(DataManager)
-	var slots: Array = [{}, {}, {}, {}, {}, {}]
-	slots[0] = GameStateScript.make_stall("skewer", "skewer_grill", 5, 10.0)
-	slots[1] = GameStateScript.make_stall("drink", "lemonade", 5, 10.0)
-	var r: Dictionary = syn.compute(slots)
-	t.ok((r["active"] as Array).has("skewer_drink"), "꼬치+음료 인접 시너지")
-	t.eq(SynergyScript.follow_ups(r, 0).size(), 1, "꼬치 노점에 음료 연계 효과")
-	slots[1] = {}
-	slots[2] = GameStateScript.make_stall("drink", "lemonade", 5, 10.0)
-	r = syn.compute(slots)
-	t.ok(not (r["active"] as Array).has("skewer_drink"), "인접하지 않으면 시너지 없음")
-	slots[3] = GameStateScript.make_facility("photo_zone")
-	slots[0] = GameStateScript.make_stall("dessert", "hotteok", 5, 10.0)
-	r = syn.compute(slots)
-	t.ok((r["active"] as Array).has("dessert_photo"), "디저트+포토존 (통로 건너편)")
-	t.ok(float(r["global"].get("tourist_mult", 0.0)) > 0.0, "관광객 증가 전역 효과")
+	var r: Dictionary = syn.compute(["dak_skewer", "draft_beer", "cider"])
+	t.ok((r["active"] as Array).has("chimaek"), "닭꼬치+생맥주 = 치맥")
+	t.ok(float(r["effects"].get("drink_chance", 0.0)) > 0.0, "음료 주문 확률 효과")
+	r = syn.compute(["dak_skewer", "cider"])
+	t.ok(not (r["active"] as Array).has("chimaek"), "맥주가 없으면 치맥 없음")
 
 
-func test_market_level_up(t) -> void:
+func test_market_level_and_rivals(t) -> void:
 	_fresh(0)
+	t.eq(progression.active_rivals().size(), 3, "1단계 경쟁 노점 3곳")
+	t.ok(not progression.active_rivals().has("rival_fire"), "불꽃꼬치는 아직 없음")
 	state.reputation = 85
-	var ups: Array = progression.update_market_level()
-	t.eq(state.market_level, 2, "평판 80 이상 → 2단계")
-	t.eq(ups.size(), 1, "단계 상승 1회")
+	t.eq(progression.update_market_level().size(), 1, "평판 80 이상 → 2단계")
+	t.ok(progression.active_rivals().has("rival_fire"), "2단계에 불꽃꼬치 등장")
 	state.reputation = 10
 	progression.update_market_level()
 	t.eq(state.market_level, 2, "단계는 내려가지 않음")
-	t.ok(progression.is_facility_unlocked("photo_zone"), "2단계에서 포토존 해금")

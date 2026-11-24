@@ -19,17 +19,16 @@ func _ready() -> void:
 	hud.nav_pressed.connect(_on_nav)
 	hud.settings_pressed.connect(func(): ui.open("settings"))
 	hud.speed_pressed.connect(_on_speed)
-	hud.cancel_mode_pressed.connect(_cancel_mode)
+	hud.kitchen.bind(market.pocha_manager)
 	ui.layout_changed.connect(_relayout)
-	market.slot_tapped.connect(_on_slot_tapped)
+	market.pocha_tapped.connect(_on_pocha_tapped)
+	market.rival_tapped.connect(_on_rival_tapped)
 	var op = market.operating
 	op.tick.connect(func(remaining: float, stats: Dictionary): hud.update_session(remaining, stats))
 	op.event_started.connect(_on_event_started)
 	op.event_ended.connect(func(_ev): hud.hide_event())
-	market.stall_manager.sale_made.connect(func(_i, _p, _s): sfx.play("coin"))
+	market.pocha_manager.served.connect(func(_s, _m, _q, _p, _pos): sfx.play("coin"))
 	market.customer_manager.walkout_feedback.connect(func(_pos): sfx.play("bad"))
-	GameManager.placement_requested.connect(_on_placement_requested)
-	GameManager.move_requested.connect(_on_move_requested)
 	GameManager.session_result_ready.connect(_on_result)
 	GameManager.offline_reward_ready.connect(_on_offline_reward)
 	GameManager.stage_up.connect(_on_stage_up)
@@ -48,7 +47,7 @@ func _after_ready() -> void:
 		_on_offline_reward({})
 	if not GameManager.state.tutorial_done and GameManager.boot_status != "corrupt":
 		GameManager.state.tutorial_done = true
-		ui.dialog("달빛장터에 오신 것을 환영합니다!", "작은 꼬치 노점 하나로 시작합니다.\n\n1. 빈 자리(+)를 눌러 노점을 설치하세요.\n2. [영업 준비]에서 메뉴·가격·재고를 정하세요.\n3. 영업을 시작하면 손님들이 실제로 찾아와 줄을 서고 구매합니다.\n\n이웃한 노점 조합(예: 꼬치+음료)은 시너지를 만듭니다.", [{"text": "시작하기", "variant": "primary", "callback": Callable()}])
+		ui.dialog("달빛장터에 오신 것을 환영합니다!", "시장 맨 아래, 주황 천막의 작은 포장마차가 당신의 가게입니다.\n\n1. [영업 준비]에서 재료와 가격을 정하세요.\n2. 영업이 시작되면 손님이 앉아 주문합니다.\n3. 음식 버튼으로 화구에 올리고, 링이 초록색일 때 탭해서 내세요.\n4. 음료는 버튼만 누르면 바로 나갑니다.\n\n주변 노점들은 손님을 두고 경쟁하는 라이벌이에요. 맛있게, 빠르게!", [{"text": "시작하기", "variant": "primary", "callback": Callable()}])
 
 
 func _relayout() -> void:
@@ -58,9 +57,7 @@ func _relayout() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		# Android 뒤로 가기: 열린 패널/모드부터 닫는다
-		if market.mode != "normal":
-			_cancel_mode()
-		elif not ui.handle_back():
+		if not ui.handle_back():
 			ui.confirm("게임 종료", "달빛장터를 종료할까요? (진행 상황은 저장됩니다)", "종료", func():
 				GameManager.save_game("quit")
 				get_tree().quit()
@@ -74,7 +71,6 @@ func can_start_session() -> String:
 
 
 func start_session() -> bool:
-	_cancel_mode()
 	var ok: bool = market.operating.start_session()
 	if ok:
 		ui.close_all()
@@ -100,7 +96,6 @@ func _on_main_button() -> void:
 	if GameManager.economy.has_unclaimed_result():
 		ui.open("result", {})
 		return
-	_cancel_mode()
 	ui.open("preparation")
 
 
@@ -157,61 +152,31 @@ func _try_restore_backup() -> void:
 # ───────── 메뉴 / 슬롯 ─────────
 
 func _on_nav(id: String) -> void:
-	_cancel_mode()
 	match id:
-		"market":
-			ui.open("market")
+		"pocha":
+			ui.open("pocha")
 		"staff":
 			ui.open("employee")
-		"build":
+		"rivals":
+			ui.open("market")
+		"deco":
 			ui.open("build")
 		"shop":
 			ui.open("shop")
 
 
-func _on_slot_tapped(idx: int) -> void:
-	match market.mode:
-		"place":
-			var t: String = market.place_type
-			if not GameManager.state.is_slot_empty(idx):
-				GameManager.notify("빈 자리를 선택하세요.", "error")
-				return
-			var r: Dictionary = GameManager.build_structure(idx, t)
-			if r.get("ok", false):
-				sfx.play("levelup")
-			_cancel_mode()
-		"move":
-			var from: int = market.move_from
-			if idx != from:
-				GameManager.move_structure(from, idx)
-			_cancel_mode()
-		_:
-			if ui.top_panel() != null:
-				return
-			sfx.play("click")
-			market.set_selected(idx)
-			var p = ui.open("stall", {"slot": idx})
-			if p:
-				p.tree_exited.connect(func():
-					if is_instance_valid(market):
-						market.set_selected(-1)
-				)
+func _on_pocha_tapped() -> void:
+	if ui.top_panel() != null or GameManager.is_operating:
+		return
+	sfx.play("click")
+	ui.open("pocha")
 
 
-func _on_placement_requested(structure_type: String) -> void:
-	ui.close_all()
-	market.enter_place_mode(structure_type)
-	var nm := str(DataManager.get_stall(structure_type).get("name", DataManager.get_facility(structure_type).get("name", "")))
-	ui.hud.show_mode("「%s」을(를) 설치할 빈 자리를 누르세요" % nm)
-
-
-func _on_move_requested(from_slot: int) -> void:
-	ui.close_all()
-	market.enter_move_mode(from_slot)
-	ui.hud.show_mode("옮길 자리를 누르세요 (노점이 있으면 서로 바뀝니다)")
-
-
-func _cancel_mode() -> void:
-	if market.mode != "normal":
-		market.cancel_mode()
-	ui.hud.show_mode("")
+func _on_rival_tapped(rival_id: String) -> void:
+	if ui.top_panel() != null or GameManager.is_operating:
+		return
+	var d: Dictionary = DataManager.get_rival(rival_id)
+	var menus: Array = []
+	for m in d.get("menus", []):
+		menus.append(str(DataManager.get_menu(m).get("name", m)))
+	ui.dialog(str(d.get("name", "경쟁 노점")), "%s\n\n사장님: %s\n메뉴: %s\n맛 %d · 평판 %d\n\n경쟁 노점은 직접 조작할 수 없어요. 더 맛있게, 더 빠르게 내서 손님을 데려오세요!" % [d.get("desc", ""), d.get("owner", ""), ", ".join(menus), int(market.rival_manager.quality(rival_id)), int(market.rival_manager.reputation(rival_id))], [{"text": "확인", "variant": "primary", "callback": Callable()}])

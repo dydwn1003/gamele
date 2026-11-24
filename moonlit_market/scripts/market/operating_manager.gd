@@ -9,7 +9,8 @@ signal event_started(event: Dictionary)
 signal event_ended(event: Dictionary)
 signal phase_changed(phase: String)
 
-var stall_manager
+var rival_manager
+var pocha_manager
 var customer_manager
 var phase: String = "idle"
 var elapsed: float = 0.0
@@ -38,12 +39,12 @@ func can_start() -> String:
 		return "이미 영업 중입니다."
 	if GameManager.economy.has_unclaimed_result():
 		return "먼저 지난 영업 정산을 받아 주세요."
-	var has_stock := false
-	for i in GameManager.state.slots.size():
-		if GameManager.state.is_stall(i) and int(GameManager.state.slots[i].get("stock", 0)) > 0:
-			has_stock = true
-	if not has_stock:
-		return "재고가 있는 노점이 없습니다. 재고를 채워 주세요."
+	var has_food := false
+	for id in GameManager.state.enabled_menus():
+		if GameManager.state.stock_of(id) > 0 and str(DataManager.get_menu(id).get("station", "")) == "grill":
+			has_food = true
+	if not has_food:
+		return "음식 재료가 없습니다. 영업 준비에서 재료를 채워 주세요."
 	return ""
 
 
@@ -62,7 +63,8 @@ func start_session() -> bool:
 	GameManager.state.next_session_id += 1
 	GameManager.economy.begin_session(sid, GameManager.state.today_weather)
 	GameManager.refresh_synergy()
-	stall_manager.reset_runtime()
+	rival_manager.reset_runtime()
+	pocha_manager.begin()
 	customer_manager.begin(GameManager.market_modifiers())
 	_schedule_event()
 	_set_phase("open")
@@ -83,7 +85,8 @@ func _process(delta: float) -> void:
 	if not is_running():
 		return
 	var d := delta * speed
-	stall_manager.tick(d, customer_manager.event_mods)
+	rival_manager.tick(d, customer_manager.event_mods)
+	pocha_manager.tick(d)
 	customer_manager.tick(d)
 	if phase == "open":
 		elapsed += d
@@ -92,11 +95,7 @@ func _process(delta: float) -> void:
 			_begin_closing()
 	elif phase == "closing":
 		closing_t += d
-		var busy := false
-		for rt in stall_manager.runtime:
-			if rt["cooking"] or (rt["queue"] as Array).size() > 0:
-				busy = true
-		if (not busy and customer_manager.active_count() == 0) or closing_t >= float(DataManager.bal("closing_grace", 12.0)):
+		if customer_manager.active_count() == 0 or closing_t >= float(DataManager.bal("closing_grace", 12.0)):
 			_finish()
 	_tick_accum += delta
 	if _tick_accum >= 0.2:
@@ -111,17 +110,18 @@ func stats() -> Dictionary:
 		"walkouts": int(l.get("walkouts", 0)), "sales": int(l.get("sales", 0)),
 		"revenue": int(l.get("revenue", 0)), "phase": phase, "speed": speed,
 		"customers_now": customer_manager.active_count(),
+		"tips": int(l.get("tips", 0)), "rival_buyers": int(l.get("rival_buyers", 0)),
 	}
 
 
+## 마감: 새 손님은 받지 않고, 이미 자리에 앉았거나 줄 선 손님은 유예 시간 동안 마저 대접한다
 func _begin_closing() -> void:
 	elapsed = duration
 	customer_manager.stop_spawning()
 	if not active_event.is_empty():
 		_end_event()
-	# 아직 줄 서지 않은 손님은 퇴장, 줄 선 손님은 마감 유예 시간 동안 서비스
 	for c in customer_manager.customers:
-		if is_instance_valid(c) and c.state != CustomerScript.State.QUEUING and c.state != CustomerScript.State.SERVING and c.state != CustomerScript.State.LEAVING:
+		if is_instance_valid(c) and c.state in [CustomerScript.State.ENTERING, CustomerScript.State.BROWSING]:
 			c.force_leave()
 	_set_phase("closing")
 	GameManager.set_operating(true, "closing")
@@ -129,11 +129,18 @@ func _begin_closing() -> void:
 
 func _finish() -> void:
 	customer_manager.dismiss_all()
-	stall_manager.clear_all()
+	pocha_manager.close()
+	rival_manager.clear_all()
+	market_release()
 	var result: Dictionary = GameManager.economy.close_session(duration)
 	_set_phase("idle")
 	GameManager.set_operating(false, "result")
 	GameManager.on_session_closed(result)
+
+
+func market_release() -> void:
+	if pocha_manager.market:
+		pocha_manager.market.release_all_spots()
 
 
 func _set_phase(p: String) -> void:
@@ -196,10 +203,7 @@ func _start_event(id: String) -> void:
 		mods[k] = eff[k]
 	if eff.has("trend_mult"):
 		# 현재 판매 중인 메뉴 중 하나가 유행
-		var menus: Array = []
-		for i in GameManager.state.slots.size():
-			if GameManager.state.is_stall(i):
-				menus.append(str(GameManager.state.slots[i]["menu"]))
+		var menus: Array = GameManager.state.enabled_menus()
 		if menus.size() > 0:
 			mods["trend_menu"] = menus[rng.randi() % menus.size()]
 			ev["trend_name"] = DataManager.get_menu(mods["trend_menu"]).get("name", "")

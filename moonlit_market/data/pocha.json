@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "note": "내 포장마차(플레이어 가게). levels: 좌석/화구/재고/직원 자리",
+  "start_menus": [
+    "dak_skewer",
+    "eomuk_tang",
+    "draft_beer",
+    "cider"
+  ],
+  "start_stock": 12,
+  "waiting_spots": 3,
+  "pass_capacity": 3,
+  "pass_decay_time": 18.0,
+  "too_early_ratio": 0.8,
+  "levels": [
+    {
+      "level": 1,
+      "upgrade_cost": 0,
+      "seats": 3,
+      "burners": 2,
+      "stock_max": 15,
+      "staff_slots": 1,
+      "appeal": 0.0
+    },
+    {
+      "level": 2,
+      "upgrade_cost": 500,
+      "seats": 4,
+      "burners": 2,
+      "stock_max": 20,
+      "staff_slots": 1,
+      "appeal": 0.05
+    },
+    {
+      "level": 3,
+      "upgrade_cost": 1200,
+      "seats": 5,
+      "burners": 3,
+      "stock_max": 25,
+      "staff_slots": 2,
+      "appeal": 0.1
+    },
+    {
+      "level": 4,
+      "upgrade_cost": 2400,
+      "seats": 6,
+      "burners": 3,
+      "stock_max": 30,
+      "staff_slots": 2,
+      "appeal": 0.15
+    },
+    {
+      "level": 5,
+      "upgrade_cost": 4200,
+      "seats": 6,
+      "burners": 4,
+      "stock_max": 40,
+      "staff_slots": 3,
+      "appeal": 0.22
+    }
+  ]
+}

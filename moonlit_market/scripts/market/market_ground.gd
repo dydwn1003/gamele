@@ -36,60 +36,52 @@ func _draw_ground() -> void:
 	# 하늘 (화면 비율이 달라도 빈 곳이 없도록 넓게)
 	var sky_top := Color("#0F1220")
 	var sky_bottom := Color("#232236")
-	draw_polygon(PackedVector2Array([Vector2(-800, -1200), Vector2(1520, -1200), Vector2(1520, 140), Vector2(-800, 140)]),
+	draw_polygon(PackedVector2Array([Vector2(-800, -1200), Vector2(1520, -1200), Vector2(1520, 110), Vector2(-800, 110)]),
 		PackedColorArray([sky_top, sky_top, sky_bottom, sky_bottom]))
 	for s in stars:
 		var a := 0.35 + 0.35 * sin(anim_t * 1.5 + s.z)
-		draw_circle(Vector2(s.x, s.y), 1.6, Color(1, 0.97, 0.9, a))
-	# 달
-	DrawUtil.glow(self, Vector2(612, 58), 90, Color(1.0, 0.95, 0.75, 0.5))
-	draw_circle(Vector2(612, 58), 30, Color("#FFF1B8"))
-	draw_circle(Vector2(602, 52), 6, Color(0.9, 0.85, 0.65, 0.5))
+		draw_circle(Vector2(s.x, s.y * 0.6), 1.6, Color(1, 0.97, 0.9, a))
+	DrawUtil.glow(self, Vector2(632, 40), 80, Color(1.0, 0.95, 0.75, 0.5))
+	draw_circle(Vector2(632, 40), 24, Color("#FFF1B8"))
 	# 한옥 지붕 실루엣
 	var roof_col := Color("#191C2A")
 	for i in 7:
 		var cx := -60.0 + i * 140.0
-		var top := 92.0 + (i % 2) * 14.0
-		draw_colored_polygon(PackedVector2Array([Vector2(cx - 90, top + 30), Vector2(cx - 60, top + 8), Vector2(cx, top),
-			Vector2(cx + 60, top + 8), Vector2(cx + 90, top + 30), Vector2(cx + 70, top + 26), Vector2(cx + 70, 150), Vector2(cx - 70, 150), Vector2(cx - 70, top + 26)]), roof_col)
-		# 창문 불빛
-		draw_rect(Rect2(Vector2(cx - 20, top + 36), Vector2(14, 12)), Color(1, 0.75, 0.4, 0.35))
-		draw_rect(Rect2(Vector2(cx + 8, top + 36), Vector2(14, 12)), Color(1, 0.75, 0.4, 0.25))
+		var top := 62.0 + (i % 2) * 12.0
+		draw_colored_polygon(PackedVector2Array([Vector2(cx - 90, top + 28), Vector2(cx - 60, top + 8), Vector2(cx, top),
+			Vector2(cx + 60, top + 8), Vector2(cx + 90, top + 28), Vector2(cx + 70, top + 24), Vector2(cx + 70, 120), Vector2(cx - 70, 120), Vector2(cx - 70, top + 24)]), roof_col)
+		draw_rect(Rect2(Vector2(cx - 20, top + 32), Vector2(14, 10)), Color(1, 0.75, 0.4, 0.35))
 	# 광장 바닥
-	var ground_col := Color("#2A2430")
-	draw_rect(Rect2(Vector2(-800, 140), Vector2(2320, 1400)), ground_col)
-	# 아이소메트릭 타일 격자
+	draw_rect(Rect2(Vector2(-800, 110), Vector2(2320, 1400)), Color("#2A2430"))
 	var grid_col := Color(1, 1, 1, 0.045)
-	var step := 64.0
 	for i in range(-14, 26):
-		var x0 := i * step
-		draw_line(Vector2(x0 - 600, 140 - 300), Vector2(x0 + 1400, 140 + 700), grid_col, 2.0)
-		draw_line(Vector2(x0 + 600, 140 - 300), Vector2(x0 - 1400, 140 + 700), grid_col, 2.0)
-	# 조명 웅덩이 (노점 주변 따뜻한 빛)
-	if market:
-		for i in MarketScript.SLOT_POSITIONS.size():
-			var p: Vector2 = MarketScript.SLOT_POSITIONS[i]
-			DrawUtil.ellipse(self, p + Vector2(0, 10), 170, 90, Color(1.0, 0.6, 0.25, 0.06))
-			DrawUtil.ellipse(self, p + Vector2(0, 10), 120, 62, Color(1.0, 0.65, 0.3, 0.06))
-	# 중앙 통로
-	var px0 := 282.0
-	var px1 := 438.0
-	draw_rect(Rect2(Vector2(px0, 150), Vector2(px1 - px0, 820)), Color("#3B3240"))
-	var tile_h := 40.0
-	for row in 21:
-		var y := 150.0 + row * tile_h
-		for col in 4:
-			var cx := px0 + 19.5 + col * 39.0
+		var x0 := i * 64.0
+		draw_line(Vector2(x0 - 600, -190), Vector2(x0 + 1400, 810), grid_col, 2.0)
+		draw_line(Vector2(x0 + 600, -190), Vector2(x0 - 1400, 810), grid_col, 2.0)
+	# 경쟁 노점 주변 빛
+	for p in MarketScript.RIVAL_POSITIONS:
+		DrawUtil.ellipse(self, p + Vector2(0, 10), 140, 72, Color(1.0, 0.6, 0.25, 0.05))
+	# 중앙 광장 길
+	draw_rect(Rect2(Vector2(262, 110), Vector2(196, 700)), Color("#3B3240"))
+	for row in 18:
+		var y := 110.0 + row * 40.0
+		for col in 5:
+			var cx := 262.0 + 19.6 + col * 39.2
 			var shade := Color("#463C4B") if (row + col) % 2 == 0 else Color("#40364A")
-			draw_colored_polygon(DrawUtil.diamond(Vector2(cx, y + tile_h / 2.0), 18, tile_h / 2.0 - 2), shade)
-	draw_line(Vector2(px0, 150), Vector2(px0, 970), Color("#5A4A50"), 4.0)
-	draw_line(Vector2(px1, 150), Vector2(px1, 970), Color("#5A4A50"), 4.0)
-	# 손님 대기 구역 표시 (노점 앞 바닥 선)
-	if market:
-		for i in MarketScript.SLOT_POSITIONS.size():
-			var q0: Vector2 = market.queue_spot(i, 0)
-			var q1: Vector2 = market.queue_spot(i, 4)
-			draw_line(q0 + Vector2(0, 14), q1 + Vector2(0, 14), Color(1, 0.71, 0.36, 0.12), 26.0)
+			draw_colored_polygon(DrawUtil.diamond(Vector2(cx, y + 20), 18, 18), shade)
+	# 먹자 테이블 (드럼통 테이블)
+	for t in MarketScript.TABLES:
+		DrawUtil.ellipse(self, t + Vector2(0, 14), 30, 12, Color(0, 0, 0, 0.35))
+		draw_rect(Rect2(t + Vector2(-20, -18), Vector2(40, 30)), Color("#4D6C8A"))
+		for k in 3:
+			draw_line(t + Vector2(-20, -10 + k * 9), t + Vector2(20, -10 + k * 9), Color("#3A5570"), 2.0)
+		DrawUtil.ellipse(self, t + Vector2(0, -18), 24, 9, Color("#6B8BAA"))
+		DrawUtil.ellipse(self, t + Vector2(0, -18), 18, 6, Color("#5A7898"))
+	# 벤치
+	for b in [Vector2(78, 668), Vector2(66, 590)]:
+		draw_colored_polygon(DrawUtil.diamond(b, 40, 12), Color("#8A5A3C"))
+		draw_line(b + Vector2(-28, 2), b + Vector2(-28, 14), Color("#5A3A28"), 4.0)
+		draw_line(b + Vector2(28, 2), b + Vector2(28, 14), Color("#5A3A28"), 4.0)
 	# 장식
 	_draw_decorations()
 
@@ -160,45 +152,34 @@ func _draw_deco(id: String, p: Vector2) -> void:
 
 func _draw_overhead() -> void:
 	# 줄 조명
-	var rows := [218.0, 408.0, 598.0]
+	var rows := [190.0, 372.0]
 	for ri in rows.size():
 		var y: float = rows[ri]
-		var a := Vector2(196, y)
-		var b := Vector2(524, y)
+		var pa := Vector2(200, y)
+		var pb := Vector2(520, y)
 		var pts := PackedVector2Array()
 		var n := 14
 		for k in n + 1:
 			var t := float(k) / n
-			var sag := sin(t * PI) * 34.0
-			pts.append(a.lerp(b, t) + Vector2(0, sag))
+			pts.append(pa.lerp(pb, t) + Vector2(0, sin(t * PI) * 30.0))
 		draw_polyline(pts, Color("#1A1418"), 2.0, true)
+		var colors := [Color("#FFB45C"), Color("#FF6F8E"), Color("#FFE08A"), Color("#7FD4E8")]
 		for k in range(1, n):
-			var colors := [Color("#FFB45C"), Color("#FF6F8E"), Color("#FFE08A"), Color("#7FD4E8")]
 			var c: Color = colors[(k + ri) % colors.size()]
 			var fl := 0.7 + 0.3 * sin(anim_t * 3.0 + k * 1.3 + ri)
-			DrawUtil.glow(self, pts[k] + Vector2(0, 6), 18, Color(c, 0.55 * fl), 3)
-			draw_circle(pts[k] + Vector2(0, 6), 4.5, Color(c.lightened(0.3), fl))
-	# 메인 입구 (게이트 + 시장 간판)
-	var gy := 905.0
-	var pillar := Color("#7A2E2A")
-	for x in [262.0, 458.0]:
-		draw_rect(Rect2(Vector2(x - 9, gy - 120), Vector2(18, 120)), pillar)
-		draw_rect(Rect2(Vector2(x - 13, gy - 8), Vector2(26, 10)), Color("#3A2A2A"))
-	# 기와 지붕
-	var roof := PackedVector2Array([Vector2(226, gy - 112), Vector2(250, gy - 132), Vector2(360, gy - 142), Vector2(470, gy - 132),
-		Vector2(494, gy - 112), Vector2(470, gy - 118), Vector2(360, gy - 126), Vector2(250, gy - 118)])
+			DrawUtil.glow(self, pts[k] + Vector2(0, 6), 16, Color(c, 0.5 * fl), 3)
+			draw_circle(pts[k] + Vector2(0, 6), 4.0, Color(c.lightened(0.3), fl))
+	# 메인 입구 (위쪽) + 시장 간판
+	var gy := 112.0
+	for x in [272.0, 448.0]:
+		draw_rect(Rect2(Vector2(x - 8, gy - 70), Vector2(16, 72)), Color("#7A2E2A"))
+	var roof := PackedVector2Array([Vector2(238, gy - 64), Vector2(260, gy - 82), Vector2(360, gy - 90), Vector2(460, gy - 82),
+		Vector2(482, gy - 64), Vector2(460, gy - 70), Vector2(360, gy - 76), Vector2(260, gy - 70)])
 	draw_colored_polygon(roof, Color("#2C3346"))
-	draw_rect(Rect2(Vector2(250, gy - 118), Vector2(220, 10)), Color("#4E2A2A"))
-	# 간판
-	var sign_rect := Rect2(Vector2(286, gy - 104), Vector2(148, 46))
+	var sign_rect := Rect2(Vector2(296, gy - 62), Vector2(128, 38))
 	var fl2 := 0.8 + 0.2 * sin(anim_t * 2.2)
-	DrawUtil.rounded_rect(self, sign_rect.grow(7), 14, Color(1.0, 0.7, 0.36, 0.25 * fl2))
-	DrawUtil.rounded_rect(self, sign_rect.grow(2), 10, Color("#FFB45C"))
-	DrawUtil.rounded_rect(self, sign_rect, 8, Color("#2A1E2E"))
-	DrawUtil.text_center(self, sign_rect.get_center() + Vector2(0, -6), "달빛장터", 24, Color("#FFF1B8"), 0)
-	DrawUtil.text_center(self, sign_rect.get_center() + Vector2(0, 14), "MOONLIT MARKET", 11, Color("#FFB45C"), 0)
-	# 입구 등불
-	for x in [262.0, 458.0]:
-		var lp := Vector2(x, gy - 92)
-		DrawUtil.glow(self, lp, 30, Color(1, 0.6, 0.3, 0.8))
-		DrawUtil.ellipse(self, lp, 9, 11, Color("#E5483A"))
+	DrawUtil.rounded_rect(self, sign_rect.grow(6), 12, Color(1.0, 0.7, 0.36, 0.25 * fl2))
+	DrawUtil.rounded_rect(self, sign_rect.grow(2), 9, Color("#FFB45C"))
+	DrawUtil.rounded_rect(self, sign_rect, 7, Color("#2A1E2E"))
+	DrawUtil.text_center(self, sign_rect.get_center() + Vector2(0, -5), "달빛장터", 20, Color("#FFF1B8"), 0)
+	DrawUtil.text_center(self, sign_rect.get_center() + Vector2(0, 12), "MOONLIT MARKET", 9, Color("#FFB45C"), 0)

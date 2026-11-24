@@ -1,40 +1,65 @@
 {
-  "version": 1,
-  "slot_adjacency": [[0, 1], [1, 2], [3, 4], [4, 5], [0, 3], [1, 4], [2, 5]],
-  "synergies": [
+  "version": 2,
+  "note": "메뉴 궁합: 두 메뉴가 모두 내 포차 메뉴판에 있으면 활성",
+  "pairings": [
     {
-      "id": "skewer_drink", "name": "꼬치 + 음료",
-      "desc": "꼬치를 먹은 손님이 옆 음료 노점에서 음료를 살 확률 증가",
-      "a": ["skewer"], "b": ["drink"],
-      "effects_a": {"follow_up_chance": 0.45},
-      "effects_b": {"attraction": 0.1},
+      "id": "chimaek",
+      "name": "치맥 국룰",
+      "a": "dak_skewer",
+      "b": "draft_beer",
+      "desc": "닭꼬치 손님이 맥주를 더 자주 시키고 만족도 +5",
+      "effects": {
+        "drink_chance": 0.2,
+        "reorder_chance": 0.15,
+        "satisfaction": 5
+      },
       "color": "#FFB45C"
     },
     {
-      "id": "noodle_drink", "name": "면 요리 + 음료",
-      "desc": "분식·면 요리점과 음료 노점 손님의 만족도 증가",
-      "a": ["snack_noodle"], "b": ["drink"],
-      "effects_a": {"satisfaction": 10},
-      "effects_b": {"satisfaction": 6},
-      "color": "#5FB9C9"
+      "id": "rainy_jeon",
+      "name": "비 오는 날 파전에 막걸리",
+      "a": "haemul_jeon",
+      "b": "makgeolli",
+      "desc": "만족도 +8, 비 오는 날 방문객 증가",
+      "effects": {
+        "satisfaction": 8,
+        "rain_visitor_bonus": 0.2
+      },
+      "color": "#8EB7E8"
     },
     {
-      "id": "dessert_photo", "name": "디저트 + 포토존",
-      "desc": "관광객 방문 확률 증가, 디저트 노점 인기 상승",
-      "a": ["dessert"], "b": ["photo_zone"],
-      "effects_a": {"attraction": 0.25},
-      "effects_b": {},
-      "global": {"tourist_mult": 0.6},
-      "color": "#E58FB1"
+      "id": "eomuk_soju",
+      "name": "어묵탕엔 막걸리",
+      "a": "eomuk_tang",
+      "b": "makgeolli",
+      "desc": "따뜻한 국물에 술 한잔. 추가 주문 증가",
+      "effects": {
+        "reorder_chance": 0.2,
+        "satisfaction": 4
+      },
+      "color": "#E8C27A"
     },
     {
-      "id": "food_stage", "name": "먹거리 + 공연장",
-      "desc": "공연을 보며 손님이 오래 머물러 인내심과 추가 구매 증가",
-      "a": ["skewer", "snack_noodle", "dessert"], "b": ["stage"],
-      "effects_a": {"patience_mult": 0.3, "extra_purchase_chance": 0.15},
-      "effects_b": {},
-      "global": {"stay_mult": 0.25},
-      "color": "#9B8CFF"
+      "id": "family_set",
+      "name": "가족 세트",
+      "a": "gyeranmari",
+      "b": "cider",
+      "desc": "가족·학생 손님 만족도 +8",
+      "effects": {
+        "satisfaction_family": 8
+      },
+      "color": "#9EE0C9"
+    },
+    {
+      "id": "samgyeop_highball",
+      "name": "삼겹 하이볼",
+      "a": "samgyeop_skewer",
+      "b": "highball",
+      "desc": "팁이 더 후해진다 (+50%)",
+      "effects": {
+        "tip_mult": 0.5
+      },
+      "color": "#E9A23B"
     }
   ]
 }

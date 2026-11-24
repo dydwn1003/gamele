@@ -1,8 +1,35 @@
 {
   "version": 1,
   "stages": [
-    {"level": 1, "name": "작은 노점", "required_reputation": 0, "visitor_mult": 1.0, "max_stall_level": 3, "deco_spots": 2, "desc": "꼬치 냄새가 퍼지는 작은 시작."},
-    {"level": 2, "name": "골목 시장", "required_reputation": 80, "visitor_mult": 1.2, "max_stall_level": 4, "deco_spots": 3, "desc": "골목이 북적이기 시작했다. 포토존·공연장·네온 간판 해금."},
-    {"level": 3, "name": "인기 야시장", "required_reputation": 250, "visitor_mult": 1.45, "max_stall_level": 5, "deco_spots": 4, "desc": "모두가 찾는 야시장! 최고 레벨 노점과 보름달 등불 해금."}
+    {
+      "level": 1,
+      "name": "작은 노점",
+      "required_reputation": 0,
+      "visitor_mult": 1.0,
+      "max_stall_level": 3,
+      "deco_spots": 2,
+      "desc": "천막 하나, 화구 둘. 작은 포차의 시작.",
+      "rivals": 3
+    },
+    {
+      "level": 2,
+      "name": "골목 시장",
+      "required_reputation": 80,
+      "visitor_mult": 1.2,
+      "max_stall_level": 4,
+      "deco_spots": 3,
+      "desc": "골목이 북적인다. 해물파전·하이볼 해금, 라이벌 「불꽃꼬치」 등장.",
+      "rivals": 4
+    },
+    {
+      "level": 3,
+      "name": "인기 야시장",
+      "required_reputation": 250,
+      "visitor_mult": 1.45,
+      "max_stall_level": 5,
+      "deco_spots": 4,
+      "desc": "모두가 찾는 야시장! 포차 최고 레벨, 「할머니 국수」 등장.",
+      "rivals": 5
+    }
   ]
 }

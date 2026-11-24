@@ -1,7 +1,7 @@
 extends RefCounted
-## SynergyManager
-## 6개 슬롯의 인접 관계(synergies.json slot_adjacency)를 기준으로 노점 조합 시너지를 계산한다.
-## 결과: {"slots": {idx: [ {id,name,color,partner,effects} ]}, "global": {key: value}, "active": [ids]}
+## SynergyManager — 메뉴 궁합(페어링)
+## 두 메뉴가 모두 내 포차 메뉴판(활성)에 있으면 궁합이 활성화되고 효과가 합산된다.
+## 결과: {"active": [ids], "effects": {key: value}, "list": [pairing dict]}
 
 var data
 
@@ -10,76 +10,24 @@ func setup(p_data) -> void:
 	data = p_data
 
 
-func _tag_of(slot: Dictionary) -> String:
-	return str(slot.get("type", ""))
-
-
-func neighbors(idx: int) -> Array:
-	var out: Array = []
-	for pair in data.slot_adjacency:
-		if pair is Array and pair.size() == 2:
-			if int(pair[0]) == idx:
-				out.append(int(pair[1]))
-			elif int(pair[1]) == idx:
-				out.append(int(pair[0]))
-	return out
-
-
-func compute(slots: Array) -> Dictionary:
-	var per_slot := {}
-	var global := {}
+func compute(enabled_menus: Array) -> Dictionary:
 	var active: Array = []
-	for i in slots.size():
-		per_slot[i] = []
-	for pair in data.slot_adjacency:
-		if not (pair is Array) or pair.size() != 2:
-			continue
-		var i := int(pair[0])
-		var j := int(pair[1])
-		if i < 0 or j < 0 or i >= slots.size() or j >= slots.size():
-			continue
-		var ti := _tag_of(slots[i])
-		var tj := _tag_of(slots[j])
-		if ti == "" or tj == "":
-			continue
-		for syn in data.synergies:
-			var a: Array = syn.get("a", [])
-			var b: Array = syn.get("b", [])
-			var a_idx := -1
-			var b_idx := -1
-			if a.has(ti) and b.has(tj):
-				a_idx = i
-				b_idx = j
-			elif a.has(tj) and b.has(ti):
-				a_idx = j
-				b_idx = i
-			if a_idx < 0:
-				continue
-			per_slot[a_idx].append({"id": syn["id"], "name": syn["name"], "color": syn["color"], "partner": b_idx, "role": "a", "effects": syn.get("effects_a", {})})
-			per_slot[b_idx].append({"id": syn["id"], "name": syn["name"], "color": syn["color"], "partner": a_idx, "role": "b", "effects": syn.get("effects_b", {})})
-			if not active.has(syn["id"]):
-				active.append(syn["id"])
-				var g: Dictionary = syn.get("global", {})
-				for k in g.keys():
-					global[k] = float(global.get(k, 0.0)) + float(g[k])
-	return {"slots": per_slot, "global": global, "active": active}
+	var list: Array = []
+	var effects := {}
+	for p in data.pairings:
+		if enabled_menus.has(str(p.get("a", ""))) and enabled_menus.has(str(p.get("b", ""))):
+			active.append(p["id"])
+			list.append(p)
+			var e: Dictionary = p.get("effects", {})
+			for k in e.keys():
+				effects[k] = float(effects.get(k, 0.0)) + float(e[k])
+	return {"active": active, "effects": effects, "list": list}
 
 
-## 특정 슬롯에 적용되는 시너지 효과 합계
-static func slot_effect(result: Dictionary, idx: int, key: String) -> float:
-	var total := 0.0
-	var list = result.get("slots", {}).get(idx, [])
-	for s in list:
-		total += float(s.get("effects", {}).get(key, 0.0))
-	return total
-
-
-## follow_up_chance 처럼 "파트너 노점"이 필요한 효과: [{partner, value}]
-static func follow_ups(result: Dictionary, idx: int) -> Array:
+## 특정 메뉴가 포함된 활성 궁합
+static func pairings_with(result: Dictionary, menu_id: String) -> Array:
 	var out: Array = []
-	var list = result.get("slots", {}).get(idx, [])
-	for s in list:
-		var v := float(s.get("effects", {}).get("follow_up_chance", 0.0))
-		if v > 0.0:
-			out.append({"partner": int(s["partner"]), "value": v})
+	for p in result.get("list", []):
+		if p.get("a", "") == menu_id or p.get("b", "") == menu_id:
+			out.append(p)
 	return out

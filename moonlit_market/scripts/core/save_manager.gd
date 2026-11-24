@@ -15,7 +15,7 @@ const MAIN_FILE := "save.json"
 const TMP_FILE := "save.tmp"
 const BACKUP_FILE := "save.bak"
 const CORRUPT_FILE := "save.corrupt.json"
-const CURRENT_VERSION := 2
+const CURRENT_VERSION := 3
 
 var save_dir: String = SAVE_DIR ## 테스트에서 별도 폴더로 교체 가능
 var last_save_unix: float = 0.0
@@ -109,6 +109,38 @@ func migrate(d: Dictionary) -> Dictionary:
 		if not d.has("max_seen_unix"):
 			d["max_seen_unix"] = d.get("last_seen_unix", 0.0)
 		d["version"] = 2
+	if int(d.get("version", 2)) < 3:
+		d = _migrate_v2_to_v3(d)
+	return d
+
+
+## v2(노점 6칸 배치) → v3(내 포장마차 + 경쟁 노점).
+## 기존 노점 재고는 원가로 환급, 가장 높은 노점 레벨/평판과 배치된 상인을 포차로 이전한다.
+func _migrate_v2_to_v3(d: Dictionary) -> Dictionary:
+	var level := 1
+	var rep := 10.0
+	var staff: Array = []
+	var refund := 0
+	var slots = d.get("slots", [])
+	if slots is Array:
+		for s in slots:
+			if not (s is Dictionary) or s.get("kind", "") != "stall":
+				continue
+			level = maxi(level, int(s.get("level", 1)))
+			rep = maxf(rep, float(s.get("rep", 10.0)))
+			var emp := str(s.get("employee", ""))
+			if emp != "" and not staff.has(emp):
+				staff.append(emp)
+			var menu: Dictionary = DataManager.get_menu(str(s.get("menu", "")))
+			refund += maxi(0, int(s.get("stock", 0))) * int(menu.get("cost", 0))
+	var menus := {}
+	for id in DataManager.pocha.get("start_menus", []):
+		menus[str(id)] = {"enabled": true, "price_ratio": 1.0, "stock": 0}
+	d["pocha"] = {"level": clampi(level, 1, DataManager.max_stall_level()), "rep": rep, "staff": staff, "menus": menus, "stats": {}}
+	d["coins"] = maxi(0, int(d.get("coins", 0))) + refund
+	d.erase("slots")
+	d["pending_result"] = {}
+	d["version"] = 3
 	return d
 
 
@@ -146,7 +178,7 @@ func _read_json(file_path: String) -> Dictionary:
 	if not (json.data is Dictionary):
 		return {}
 	var d: Dictionary = json.data
-	if not d.has("coins") or not d.has("slots"):
+	if not d.has("coins") or not (d.has("pocha") or d.has("slots")):
 		return {}
 	return d
 

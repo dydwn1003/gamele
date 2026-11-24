@@ -2,9 +2,10 @@ extends RefCounted
 ## GameState
 ## 게임의 "실제 상태"만 담는 데이터 객체. 화면 상태가 아니라 복구 가능한 진행 정보.
 ## to_dict()/from_dict() 로 직렬화하며, from_dict 는 손상/누락 값을 정리(sanitize)한다.
+##
+## v3: 플레이어는 포장마차(pocha) 하나만 운영한다. 주변 노점은 경쟁 상대(rivals).
 
-const SAVE_VERSION := 2
-const SLOT_COUNT := 6
+const SAVE_VERSION := 3
 const DECO_SPOT_COUNT := 4
 
 var coins: int = 0
@@ -12,13 +13,17 @@ var reputation: int = 0
 var gems: int = 0 ## 프리미엄 재화 (TODO: 결제 연동 시 사용. 현재는 획득 경로 없음)
 var market_level: int = 1
 var day: int = 1
-## 슬롯 6개. 빈 슬롯 = {} / 노점 = {"kind":"stall",...} / 시설 = {"kind":"facility","type":...}
-var slots: Array = []
+## 내 포장마차
+## {"level", "rep", "staff": [emp_id], "menus": {menu_id: {"enabled", "price_ratio", "stock"}},
+##  "stats": {"sold_total", "revenue_total", "last_sold", "last_revenue", "best_quality"}}
+var pocha: Dictionary = {}
+## 경쟁 노점 진행: rival_id -> {"rep": float, "sales_total": int, "last_sales": int}
+var rivals: Dictionary = {}
 ## 상인 보유 현황: id -> {"hired": bool, "level": int}
 var employees: Dictionary = {}
 var decorations_owned: Array = []
 var deco_spots: Array = []
-## 해금 기록: "stall:skewer" / "employee:emp_chef" / "facility:stage" / "decoration:bench" -> true
+## 해금 기록: "menu:dak_skewer" / "employee:emp_chef" / "decoration:bench" -> true
 var unlocked: Dictionary = {}
 var settings: Dictionary = {"sound": true, "music": true, "vibration": true}
 var last_seen_unix: float = 0.0
@@ -43,19 +48,16 @@ static func empty_offline() -> Dictionary:
 
 
 static func empty_lifetime() -> Dictionary:
-	return {"customers": 0, "buyers": 0, "sales": 0, "revenue": 0, "sessions": 0}
+	return {"customers": 0, "buyers": 0, "sales": 0, "revenue": 0, "sessions": 0, "perfect": 0, "burnt": 0}
 
 
-static func make_stall(stall_type: String, menu_id: String, stock: int, base_rep: float) -> Dictionary:
-	return {
-		"kind": "stall", "type": stall_type, "level": 1, "menu": menu_id,
-		"price_ratio": 1.0, "stock": stock, "employee": "", "rep": base_rep,
-		"stats": {"sold_total": 0, "revenue_total": 0, "last_sold": 0, "last_revenue": 0},
-	}
+static func empty_pocha() -> Dictionary:
+	return {"level": 1, "rep": 10.0, "staff": [], "menus": {},
+		"stats": {"sold_total": 0, "revenue_total": 0, "last_sold": 0, "last_revenue": 0, "best_quality": 0}}
 
 
-static func make_facility(facility_type: String) -> Dictionary:
-	return {"kind": "facility", "type": facility_type}
+static func make_menu_entry(enabled: bool, stock: int) -> Dictionary:
+	return {"enabled": enabled, "price_ratio": 1.0, "stock": stock}
 
 
 func reset_empty() -> void:
@@ -64,9 +66,8 @@ func reset_empty() -> void:
 	gems = 0
 	market_level = 1
 	day = 1
-	slots = []
-	for i in SLOT_COUNT:
-		slots.append({})
+	pocha = empty_pocha()
+	rivals = {}
 	employees = {}
 	decorations_owned = []
 	deco_spots = []
@@ -88,44 +89,56 @@ func reset_empty() -> void:
 	tutorial_done = false
 
 
-func is_slot_empty(idx: int) -> bool:
-	if idx < 0 or idx >= slots.size():
-		return false
-	return (slots[idx] as Dictionary).is_empty()
+# ───────── 포차 조회 ─────────
+
+func pocha_level() -> int:
+	return int(pocha.get("level", 1))
 
 
-func get_slot(idx: int) -> Dictionary:
-	if idx < 0 or idx >= slots.size():
-		return {}
-	return slots[idx]
+func menu_entry(menu_id: String) -> Dictionary:
+	var menus: Dictionary = pocha.get("menus", {})
+	return menus.get(menu_id, {})
 
 
-func is_stall(idx: int) -> bool:
-	return get_slot(idx).get("kind", "") == "stall"
+func has_menu(menu_id: String) -> bool:
+	return (pocha.get("menus", {}) as Dictionary).has(menu_id)
 
 
-func stall_count() -> int:
-	var n := 0
-	for s in slots:
-		if (s as Dictionary).get("kind", "") == "stall":
-			n += 1
-	return n
+func is_menu_enabled(menu_id: String) -> bool:
+	return bool(menu_entry(menu_id).get("enabled", false))
 
 
-func employee_slot(emp_id: String) -> int:
-	for i in slots.size():
-		var s: Dictionary = slots[i]
-		if s.get("kind", "") == "stall" and s.get("employee", "") == emp_id:
-			return i
-	return -1
+func enabled_menus() -> Array:
+	var out: Array = []
+	var menus: Dictionary = pocha.get("menus", {})
+	for id in menus.keys():
+		if bool(menus[id].get("enabled", false)):
+			out.append(str(id))
+	out.sort()
+	return out
 
+
+func stock_of(menu_id: String) -> int:
+	return int(menu_entry(menu_id).get("stock", 0))
+
+
+func staff_list() -> Array:
+	return pocha.get("staff", [])
+
+
+func is_staff_active(emp_id: String) -> bool:
+	return staff_list().has(emp_id)
+
+
+# ───────── 직렬화 ─────────
 
 func to_dict() -> Dictionary:
 	return {
 		"version": SAVE_VERSION,
 		"coins": coins, "reputation": reputation, "gems": gems,
 		"market_level": market_level, "day": day,
-		"slots": slots.duplicate(true),
+		"pocha": pocha.duplicate(true),
+		"rivals": rivals.duplicate(true),
 		"employees": employees.duplicate(true),
 		"decorations_owned": decorations_owned.duplicate(),
 		"deco_spots": deco_spots.duplicate(),
@@ -147,7 +160,7 @@ func to_dict() -> Dictionary:
 ## 손상되었거나 이전 버전인 데이터를 정리해 적용한다. 검증 실패 시 false.
 ## data: DataManager (유효한 ID 확인용, null 이면 ID 검사 생략)
 func from_dict(d: Dictionary, data = null) -> bool:
-	if not d.has("coins") or not d.has("slots"):
+	if not d.has("coins") or not d.has("pocha"):
 		return false
 	reset_empty()
 	coins = maxi(0, int(d.get("coins", 0)))
@@ -155,25 +168,20 @@ func from_dict(d: Dictionary, data = null) -> bool:
 	gems = maxi(0, int(d.get("gems", 0)))
 	market_level = clampi(int(d.get("market_level", 1)), 1, 99)
 	day = maxi(1, int(d.get("day", 1)))
-	var raw_slots = d.get("slots", [])
-	if raw_slots is Array:
-		for i in mini(raw_slots.size(), SLOT_COUNT):
-			slots[i] = _sanitize_slot(raw_slots[i], data)
 	var raw_emp = d.get("employees", {})
 	if raw_emp is Dictionary:
 		for id in raw_emp.keys():
 			var e = raw_emp[id]
 			if e is Dictionary and (data == null or data.employees.has(id)):
 				employees[str(id)] = {"hired": bool(e.get("hired", false)), "level": clampi(int(e.get("level", 1)), 1, 5)}
-	# 상인 중복 배치 정리
-	var seen := {}
-	for s in slots:
-		if (s as Dictionary).get("kind", "") == "stall":
-			var emp: String = s.get("employee", "")
-			if emp != "" and (seen.has(emp) or not employees.has(emp) or not employees[emp]["hired"]):
-				s["employee"] = ""
-			elif emp != "":
-				seen[emp] = true
+	pocha = _sanitize_pocha(d.get("pocha", {}), data)
+	var raw_rivals = d.get("rivals", {})
+	if raw_rivals is Dictionary:
+		for id in raw_rivals.keys():
+			var r = raw_rivals[id]
+			if r is Dictionary and (data == null or data.rivals.has(id)):
+				rivals[str(id)] = {"rep": clampf(float(r.get("rep", 20.0)), 0.0, 100.0),
+					"sales_total": maxi(0, int(r.get("sales_total", 0))), "last_sales": maxi(0, int(r.get("last_sales", 0)))}
 	var raw_owned = d.get("decorations_owned", [])
 	if raw_owned is Array:
 		for id in raw_owned:
@@ -227,33 +235,38 @@ func from_dict(d: Dictionary, data = null) -> bool:
 	return true
 
 
-func _sanitize_slot(raw, data) -> Dictionary:
-	if not (raw is Dictionary) or raw.is_empty():
-		return {}
-	var kind := str(raw.get("kind", ""))
-	var t := str(raw.get("type", ""))
-	if kind == "facility":
-		if data != null and not data.facilities.has(t):
-			return {}
-		return make_facility(t)
-	if kind != "stall":
-		return {}
-	if data != null and not data.stalls.has(t):
-		return {}
-	var s := make_stall(t, str(raw.get("menu", "")), maxi(0, int(raw.get("stock", 0))), float(raw.get("rep", 10.0)))
-	s["level"] = clampi(int(raw.get("level", 1)), 1, 5)
-	s["price_ratio"] = clampf(float(raw.get("price_ratio", 1.0)), 0.8, 1.3)
-	s["employee"] = str(raw.get("employee", ""))
-	s["rep"] = clampf(float(raw.get("rep", 10.0)), 0.0, 100.0)
+func _sanitize_pocha(raw, data) -> Dictionary:
+	var p := empty_pocha()
+	if not (raw is Dictionary):
+		return p
+	var max_lv: int = 5 if data == null else data.max_stall_level()
+	p["level"] = clampi(int(raw.get("level", 1)), 1, max_lv)
+	p["rep"] = clampf(float(raw.get("rep", 10.0)), 0.0, 100.0)
+	var stock_max: int = 999 if data == null else int(data.get_pocha_level(p["level"]).get("stock_max", 15))
+	var raw_menus = raw.get("menus", {})
+	if raw_menus is Dictionary:
+		for id in raw_menus.keys():
+			var m = raw_menus[id]
+			if not (m is Dictionary):
+				continue
+			if data != null and not data.pocha_menu_ids().has(str(id)):
+				continue
+			p["menus"][str(id)] = {
+				"enabled": bool(m.get("enabled", false)),
+				"price_ratio": clampf(float(m.get("price_ratio", 1.0)), 0.8, 1.3),
+				"stock": clampi(int(m.get("stock", 0)), 0, stock_max),
+			}
+	var raw_staff = raw.get("staff", [])
+	var slots: int = 3 if data == null else int(data.get_pocha_level(p["level"]).get("staff_slots", 1))
+	if raw_staff is Array:
+		for id in raw_staff:
+			var sid := str(id)
+			if p["staff"].size() >= slots or p["staff"].has(sid):
+				continue
+			if employees.has(sid) and bool(employees[sid].get("hired", false)):
+				p["staff"].append(sid)
 	var st = raw.get("stats", {})
 	if st is Dictionary:
-		for k in s["stats"].keys():
-			s["stats"][k] = maxi(0, int(st.get(k, 0)))
-	if data != null:
-		var def: Dictionary = data.get_stall(t)
-		var menus: Array = def.get("menus", [])
-		if not menus.has(s["menu"]):
-			s["menu"] = def.get("default_menu", menus[0] if menus.size() > 0 else "")
-		var max_stock := int(data.get_level(s["level"]).get("stock_max", 20))
-		s["stock"] = mini(s["stock"], max_stock)
-	return s
+		for k in p["stats"].keys():
+			p["stats"][k] = maxi(0, int(st.get(k, 0)))
+	return p

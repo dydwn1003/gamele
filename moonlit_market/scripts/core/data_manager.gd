@@ -17,8 +17,10 @@ var weather: Dictionary = {}
 var weather_meta: Dictionary = {}
 var events: Dictionary = {}
 var events_meta: Dictionary = {}
-var synergies: Array = []
-var slot_adjacency: Array = []
+var pairings: Array = []
+var pocha: Dictionary = {}
+var pocha_levels: Array = []
+var rivals: Dictionary = {}
 var stages: Array = []
 var balance: Dictionary = {}
 var bm: Dictionary = {}
@@ -28,7 +30,16 @@ var load_errors: Array = []
 const MENU_DEFAULTS := {
 	"name": "메뉴", "category": "snack", "price": 100, "cost": 40, "cook_time": 6.0,
 	"popularity": 0.5, "warm": false, "local_specialty": false,
-	"preferred_customers": [], "color": "#FFB45C",
+	"preferred_customers": [], "color": "#FFB45C", "station": "rival", "icon": "",
+	"perfect_end": 1.4, "burn": 1.9, "eat_time": 7.0, "alcohol": false, "unlock": {},
+}
+const POCHA_LEVEL_DEFAULTS := {
+	"upgrade_cost": 0, "seats": 3, "burners": 2, "stock_max": 15, "staff_slots": 1, "appeal": 0.0,
+}
+const RIVAL_DEFAULTS := {
+	"name": "노점", "owner": "", "stall_type": "skewer", "menus": [], "price_ratio": 1.0,
+	"quality": 70, "service_time": 5.0, "queue_capacity": 4, "reputation": 20,
+	"appear_level": 1, "growth": {}, "desc": "",
 }
 const STALL_DEFAULTS := {
 	"name": "노점", "kind": "food", "build_cost": 300, "menus": [], "default_menu": "",
@@ -44,6 +55,7 @@ const CUSTOMER_DEFAULTS := {
 	"price_sensitivity": 1.0, "queue_sensitivity": 0.4, "popularity_affinity": 0.3,
 	"reputation_sensitivity": 0.4, "prefers_warm": 0.0, "local_affinity": 0.0,
 	"extra_purchase_chance": 0.2, "purposes": ["구경"], "names": ["손님"],
+	"drink_chance": 0.6, "reorder_chance": 0.2, "no_alcohol": false, "eat_speed": 1.0,
 	"color": "#B9B5B0", "accent": "#555555",
 }
 const EMPLOYEE_DEFAULTS := {
@@ -51,8 +63,8 @@ const EMPLOYEE_DEFAULTS := {
 	"special": {}, "unlock": {}, "hire_cost": 0, "starting": false, "color": "#E9C46A",
 }
 const BALANCE_DEFAULTS := {
-	"start_coins": 500, "start_reputation": 0, "start_stall": "skewer", "start_slot": 1,
-	"start_employee": "emp_basic", "slot_count": 6, "session_duration": 240.0,
+	"start_coins": 500, "start_reputation": 0,
+	"start_employee": "emp_basic", "session_duration": 240.0,
 	"closing_grace": 12.0, "price_ratio_min": 0.8, "price_ratio_max": 1.3,
 	"price_ratio_step": 0.05, "spawn_interval": 2.4, "max_customers": 34,
 	"browse_time_min": 0.6, "browse_time_max": 1.8, "no_choice_weight": 0.35,
@@ -60,7 +72,8 @@ const BALANCE_DEFAULTS := {
 	"satisfaction_base": 68.0, "satisfaction_wait_penalty": 0.9, "walkout_satisfaction": 15.0,
 	"reputation_per_satisfaction": 0.015, "reputation_per_buyer": 0.1,
 	"reputation_walkout_penalty": 0.3, "satisfaction_bonus_threshold": 70.0,
-	"satisfaction_bonus_rate": 0.05, "spoilage_rate": 0.15, "build_refund_rate": 0.5,
+	"satisfaction_bonus_rate": 0.05, "spoilage_rate": 0.15,
+	"tip_threshold": 80.0, "tip_rate": 0.12, "rival_eat_time": 6.0,
 	"offline_efficiency": 0.35, "offline_max_minutes": 240.0, "offline_min_minutes": 1.0,
 	"autosave_interval": 30.0, "stall_reputation_max": 100.0, "debug_rewards_enabled": false,
 }
@@ -106,16 +119,26 @@ func load_all() -> bool:
 		"start_time_max": float(d.get("start_time_max", 150.0)),
 	}
 	d = _load_json("synergies.json")
-	synergies = []
-	for s in d.get("synergies", []):
+	pairings = []
+	for s in d.get("pairings", []):
 		if s is Dictionary and s.has("id"):
-			synergies.append(_with_defaults(s, {"name": "시너지", "desc": "", "a": [], "b": [], "effects_a": {}, "effects_b": {}, "global": {}, "color": "#FFB45C"}))
-	slot_adjacency = d.get("slot_adjacency", [[0, 1], [1, 2], [3, 4], [4, 5], [0, 3], [1, 4], [2, 5]])
+			pairings.append(_with_defaults(s, {"name": "궁합", "desc": "", "a": "", "b": "", "effects": {}, "color": "#FFB45C"}))
+	d = _load_json("pocha.json")
+	pocha = d
+	pocha_levels = []
+	for lv in d.get("levels", []):
+		if lv is Dictionary:
+			pocha_levels.append(_with_defaults(lv, POCHA_LEVEL_DEFAULTS))
+	if pocha_levels.is_empty():
+		pocha_levels.append(POCHA_LEVEL_DEFAULTS.duplicate(true))
+		load_errors.append("pocha.json: levels 누락 → 기본 레벨 사용")
+	d = _load_json("rivals.json")
+	rivals = _index(d.get("rivals", []), RIVAL_DEFAULTS)
 	d = _load_json("progression.json")
 	stages = []
 	for st in d.get("stages", []):
 		if st is Dictionary:
-			stages.append(_with_defaults(st, {"level": stages.size() + 1, "name": "시장", "required_reputation": 0, "visitor_mult": 1.0, "max_stall_level": 5, "deco_spots": 2, "desc": ""}))
+			stages.append(_with_defaults(st, {"level": stages.size() + 1, "name": "시장", "required_reputation": 0, "visitor_mult": 1.0, "max_stall_level": 5, "deco_spots": 2, "rivals": 3, "desc": ""}))
 	if stages.is_empty():
 		stages.append({"level": 1, "name": "작은 노점", "required_reputation": 0, "visitor_mult": 1.0, "max_stall_level": 5, "deco_spots": 2, "desc": ""})
 		load_errors.append("progression.json: stages 누락 → 기본 단계 사용")
@@ -182,7 +205,25 @@ func get_level(level: int) -> Dictionary:
 
 
 func max_stall_level() -> int:
-	return stall_levels.size()
+	return pocha_levels.size()
+
+
+func get_pocha_level(level: int) -> Dictionary:
+	var idx := clampi(level - 1, 0, pocha_levels.size() - 1)
+	return pocha_levels[idx]
+
+
+func get_rival(id: String) -> Dictionary:
+	return rivals.get(id, {})
+
+
+## 내 포차에서 팔 수 있는 메뉴 (station 이 grill/drink)
+func pocha_menu_ids() -> Array:
+	var out: Array = []
+	for id in menus.keys():
+		if str(menus[id].get("station", "rival")) in ["grill", "drink"]:
+			out.append(id)
+	return out
 
 
 func get_customer_type(id: String) -> Dictionary:

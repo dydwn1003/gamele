@@ -1,6 +1,5 @@
 extends Node2D
-## Stall — 노점 외형 (아이소메트릭 도형). 로직은 StallManager/EconomyManager 가 담당하고
-## 이 노드는 상태를 읽어 그리기만 한다. 레벨이 오르면 외형(간판/조명/장식)이 바뀐다.
+## Stall — 경쟁 노점 외형 (아이소메트릭 도형). 로직은 RivalManager 가 담당하고 이 노드는 그리기만 한다.
 
 const DrawUtil := preload("res://scripts/market/draw_util.gd")
 
@@ -10,32 +9,14 @@ const H := 56.0
 const ROOF_BASE := 78.0
 const ROOF_H := 62.0
 
-var slot_index: int = 0
+var rival_id: String = ""
+var market
 var facing: int = 1 ## 1: 오른쪽(통로)을 봄, -1: 왼쪽
-var slot_data: Dictionary = {}
-var runtime: Dictionary = {}
-var synergy_list: Array = []
-var stock_max: int = 20
 var anim_t: float = 0.0
-var pulse: float = 0.0
-
-
-func update_data(p_slot: Dictionary, p_runtime: Dictionary, p_synergies: Array, p_stock_max: int) -> void:
-	slot_data = p_slot
-	runtime = p_runtime
-	synergy_list = p_synergies
-	stock_max = p_stock_max
-	queue_redraw()
-
-
-func flash() -> void:
-	pulse = 1.0
 
 
 func _process(delta: float) -> void:
 	anim_t += delta
-	if pulse > 0.0:
-		pulse = maxf(0.0, pulse - delta * 2.5)
 	queue_redraw()
 
 
@@ -44,11 +25,16 @@ func _up(p: Vector2, h: float) -> Vector2:
 
 
 func _draw() -> void:
-	if slot_data.is_empty():
+	var rival: Dictionary = DataManager.get_rival(rival_id)
+	if rival.is_empty():
 		return
-	var def: Dictionary = DataManager.get_stall(str(slot_data.get("type", "")))
-	var menu: Dictionary = DataManager.get_menu(str(slot_data.get("menu", "")))
-	var level := int(slot_data.get("level", 1))
+	var def: Dictionary = DataManager.get_stall(str(rival.get("stall_type", "skewer")))
+	var menus: Array = rival.get("menus", [])
+	var menu: Dictionary = DataManager.get_menu(str(menus[0])) if menus.size() > 0 else {}
+	var rm = market.rival_manager if market else null
+	var quality: float = rm.quality(rival_id) if rm else float(rival.get("quality", 70))
+	var level := clampi(int(round(quality / 20.0)), 1, 5)
+	var slot_index := rival_id.length()
 	var base_col := DataManager.color(def.get("color", "#E97858"))
 	var roof_col := DataManager.color(def.get("roof_color", "#B8443A"))
 	var wood := Color("#8A5A3C")
@@ -57,13 +43,6 @@ func _draw() -> void:
 	var S := Vector2(0, HH)
 	var W := Vector2(-HW, 0)
 
-	# 시너지 바닥 링
-	if synergy_list.size() > 0:
-		var sc := DataManager.color(synergy_list[0].get("color", "#FFB45C"))
-		var a := 0.35 + 0.2 * sin(anim_t * 3.0)
-		var ring := DrawUtil.diamond(Vector2.ZERO, HW + 14, HH + 8)
-		ring.append(ring[0])
-		draw_polyline(ring, Color(sc, a), 5.0, true)
 	# 그림자
 	DrawUtil.ellipse(self, Vector2(0, 8), HW * 1.05, HH * 0.9, Color(0, 0, 0, 0.35))
 	# 카운터 박스
@@ -79,24 +58,19 @@ func _draw() -> void:
 	# 상판
 	draw_colored_polygon(DrawUtil.diamond(Vector2(0, -H), HW, HH), Color("#D8B48A"))
 	draw_colored_polygon(DrawUtil.diamond(Vector2(0, -H), HW * 0.8, HH * 0.8), Color("#C99E70"))
-	# 상인
-	var emp_id := str(slot_data.get("employee", ""))
-	if emp_id != "":
-		var ec := DataManager.color(DataManager.get_employee(emp_id).get("color", "#E9C46A"))
-		var ep := Vector2(-facing * 18, -H - HH * 0.35)
-		draw_rect(Rect2(ep + Vector2(-11, -26), Vector2(22, 26)), ec.darkened(0.1))
-		draw_circle(ep + Vector2(0, -36), 11, Color("#F6D7B8"))
-		draw_rect(Rect2(ep + Vector2(-12, -50), Vector2(24, 7)), Color("#FFF5E9"))
-		draw_circle(ep + Vector2(-4, -36), 1.8, Color("#2A1A0C"))
-		draw_circle(ep + Vector2(4, -36), 1.8, Color("#2A1A0C"))
+	# 사장님
+	var ep := Vector2(-facing * 18, -H - HH * 0.35)
+	draw_rect(Rect2(ep + Vector2(-11, -26), Vector2(22, 26)), base_col.darkened(0.35))
+	draw_circle(ep + Vector2(0, -36), 11, Color("#F6D7B8"))
+	draw_rect(Rect2(ep + Vector2(-12, -50), Vector2(24, 7)), Color("#FFF5E9"))
+	draw_circle(ep + Vector2(-4, -36), 1.8, Color("#2A1A0C"))
+	draw_circle(ep + Vector2(4, -36), 1.8, Color("#2A1A0C"))
 	# 진열 음식
 	var cat := str(menu.get("category", "snack"))
 	var mcol := DataManager.color(menu.get("color", "#E97858"))
 	var goods_center := Vector2(facing * 26, -H + 8)
-	var stock := int(slot_data.get("stock", 0))
-	var shown := mini(3, int(ceil(stock / 7.0)))
-	for k in shown:
-		DrawUtil.food_icon(self, cat, goods_center + Vector2(facing * (k - 1) * 18, -k * 4), 10, mcol)
+	for k in 3:
+		DrawUtil.menu_icon(self, menu, goods_center + Vector2(facing * (k - 1) * 18, -k * 4), 10, mcol)
 	# 기둥
 	for p in [W, S, E]:
 		draw_line(_up(p, H), _up(p * 1.02, H + ROOF_BASE), Color("#5A3A28"), 5.0)
@@ -130,60 +104,31 @@ func _draw() -> void:
 		draw_circle(lp, 8, Color("#E5483A"))
 		draw_circle(lp + Vector2(-2, -2), 3, Color(1, 0.85, 0.6))
 	# 간판
-	var sign_w := 112.0 + level * 4
+	var sign_w := 168.0
 	var sign_rect := Rect2(apex + Vector2(-sign_w / 2.0, -46), Vector2(sign_w, 40))
 	var neon := Color(base_col.lightened(0.3), 0.55 + 0.25 * sin(anim_t * 4.0 + slot_index))
 	if level >= 3:
 		DrawUtil.rounded_rect(self, sign_rect.grow(6), 14, Color(neon, 0.35))
 	DrawUtil.rounded_rect(self, sign_rect.grow(2), 12, neon if level >= 2 else Color("#5A3A28"))
 	DrawUtil.rounded_rect(self, sign_rect, 10, Color("#2A1E2E"))
-	DrawUtil.text_center(self, sign_rect.get_center(), str(def.get("sign", "노점")), 24, Color("#FFF5E9"), 0)
+	DrawUtil.text_center(self, sign_rect.get_center(), str(rival.get("name", "노점")), 20, Color("#FFF5E9"), 0)
 	# 레벨 별
 	for k in level:
 		var sx := (k - (level - 1) / 2.0) * 15.0
 		_star(apex + Vector2(sx, -58), 6.5, Color("#FFD27A"))
-	# 조리 진행 링
-	if runtime.get("cooking", false):
-		var t := clampf(float(runtime.get("cook_t", 0.0)) / maxf(0.01, float(runtime.get("cook_total", 1.0))), 0.0, 1.0)
+	# 판매 중 표시
+	if rm and rm.is_serving(rival_id):
+		var t: float = rm.serve_progress(rival_id)
 		var cp := Vector2(facing * 50, -H - 30)
 		draw_circle(cp, 17, Color(0, 0, 0, 0.55))
-		draw_arc(cp, 14, -PI / 2, -PI / 2 + TAU * t, 24, Color("#65C99A"), 5.0, true)
-		# 김
-		for k in 2:
-			var sy := fmod(anim_t * 30.0 + k * 12.0, 24.0)
-			draw_circle(Vector2(facing * 26 + k * 10 - 5, -H - 6 - sy), 4.0 - sy * 0.12, Color(1, 1, 1, 0.35 - sy * 0.012))
-	# 재고 바
-	var bar_w := 104.0
-	var bar_pos := Vector2(-bar_w / 2.0, HH + 14)
-	var ratio := clampf(float(stock) / maxf(1.0, stock_max), 0.0, 1.0)
-	DrawUtil.rounded_rect(self, Rect2(bar_pos - Vector2(4, 4), Vector2(bar_w + 8, 22)), 10, Color(0, 0, 0, 0.6))
-	var bar_col := Color("#65C99A") if ratio > 0.3 else (Color("#FFB45C") if ratio > 0.0 else Color("#E5564A"))
-	if ratio > 0.0:
-		DrawUtil.rounded_rect(self, Rect2(bar_pos, Vector2(maxf(8.0, bar_w * ratio), 14)), 7, bar_col)
-	DrawUtil.text_center(self, bar_pos + Vector2(bar_w / 2.0, 7), "%d/%d" % [stock, stock_max], 16, Color("#FFF5E9"), 4)
-	# 품절 표시
-	if stock <= 0:
-		var so := Rect2(Vector2(-56, -H - 46), Vector2(112, 36))
-		DrawUtil.rounded_rect(self, so.grow(3), 10, Color("#FFF5E9"))
-		DrawUtil.rounded_rect(self, so, 8, Color("#E5564A"))
-		DrawUtil.text_center(self, so.get_center(), "품절", 24, Color("#FFF5E9"))
-	# 시너지 배지
-	if synergy_list.size() > 0:
-		var bp := apex + Vector2(sign_w / 2.0 + 6, -40)
-		var sc2 := DataManager.color(synergy_list[0].get("color", "#FFB45C"))
-		draw_circle(bp, 15, Color("#FFF5E9"))
-		draw_circle(bp, 12, sc2)
-		draw_arc(bp + Vector2(-3, 0), 5, 0, TAU, 12, Color("#2A1A0C"), 2.0, true)
-		draw_arc(bp + Vector2(3, 0), 5, 0, TAU, 12, Color("#2A1A0C"), 2.0, true)
-		if synergy_list.size() > 1:
-			DrawUtil.text_center(self, bp + Vector2(14, -12), "x%d" % synergy_list.size(), 14, Color("#FFF5E9"), 4)
-	# 특별 상인 효과
-	if emp_id != "" and DataManager.get_employee(emp_id).get("special", {}).get("stall_type", "") == slot_data.get("type", ""):
-		var sp := Vector2(-facing * 18, -H - HH * 0.35 - 64)
-		_star(sp + Vector2(0, sin(anim_t * 3.0) * 3), 9, Color("#C9A0FF"))
-	# 판매 시 반짝
-	if pulse > 0.0:
-		DrawUtil.glow(self, Vector2(facing * 40, -H - 10), 60 * (1.2 - pulse * 0.2), Color(1.0, 0.85, 0.4, pulse * 0.8))
+		draw_arc(cp, 14, -PI / 2, -PI / 2 + TAU * t, 24, Color("#B9B5B0"), 5.0, true)
+	# 할인 행사 배지
+	if market and market.customer_manager and float(market.customer_manager.event_mods.get("rival_price_mult", 1.0)) < 1.0:
+		var bp := apex + Vector2(0, -78)
+		DrawUtil.rounded_rect(self, Rect2(bp - Vector2(40, 16), Vector2(80, 30)), 10, Color("#E5564A"))
+		DrawUtil.text_center(self, bp, "할인!", 20, Color("#FFF5E9"), 0)
+	# 경쟁 표시 (평판)
+	DrawUtil.text_center(self, Vector2(0, HH + 22), "평판 %d" % int(rm.reputation(rival_id) if rm else float(rival.get("reputation", 20))), 18, Color("#B9B5B0"), 4)
 
 
 func _star(c: Vector2, r: float, col: Color) -> void:

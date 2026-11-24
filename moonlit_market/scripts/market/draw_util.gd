@@ -68,8 +68,44 @@ static func food_icon(ci: CanvasItem, category: String, pos: Vector2, r: float, 
 			var cone := PackedVector2Array([pos + Vector2(-r * 0.5, 0), pos + Vector2(r * 0.5, 0), pos + Vector2(0, r)])
 			ci.draw_colored_polygon(cone, Color("#D9A35A"))
 			ci.draw_circle(pos + Vector2(0, -r * 0.2), r * 0.55, col)
+		"skewer":
+			ci.draw_line(pos + Vector2(-r * 1.1, r * 0.9), pos + Vector2(r * 1.1, -r * 0.9), Color("#C9A36B"), maxf(2.0, r * 0.16))
+			for k in 3:
+				var cp := pos + Vector2(-r * 0.5 + k * r * 0.5, r * 0.42 - k * r * 0.42)
+				ci.draw_rect(Rect2(cp - Vector2(r * 0.28, r * 0.28), Vector2(r * 0.56, r * 0.56)), col)
+				ci.draw_rect(Rect2(cp - Vector2(r * 0.28, r * 0.28), Vector2(r * 0.56, r * 0.14)), col.lightened(0.25))
+		"roll":
+			for k in 3:
+				var rp := pos + Vector2(-r * 0.62 + k * r * 0.62, 0)
+				ci.draw_rect(Rect2(rp - Vector2(r * 0.28, r * 0.5), Vector2(r * 0.56, r)), col)
+				ci.draw_arc(rp, r * 0.22, 0, TAU, 10, col.darkened(0.25), 2.0, true)
+		"pancake":
+			ellipse(ci, pos, r * 1.05, r * 0.6, col)
+			for k in 3:
+				ci.draw_line(pos + Vector2(-r * 0.6, -r * 0.2 + k * r * 0.2), pos + Vector2(r * 0.6, -r * 0.3 + k * r * 0.2), Color("#5FA84A"), 2.0)
+		"beer":
+			ci.draw_rect(Rect2(pos + Vector2(-r * 0.55, -r * 0.5), Vector2(r * 1.1, r * 1.4)), col)
+			ellipse(ci, pos + Vector2(0, -r * 0.55), r * 0.62, r * 0.28, Color("#FFF8E6"))
+			ci.draw_arc(pos + Vector2(r * 0.6, r * 0.15), r * 0.32, -PI / 2, PI / 2, 10, Color("#FFF8E6"), maxf(2.0, r * 0.16), true)
+		"makgeolli":
+			ellipse(ci, pos + Vector2(0, -r * 0.1), r * 0.95, r * 0.4, Color("#F2D48A"))
+			ci.draw_colored_polygon(PackedVector2Array([pos + Vector2(-r * 0.95, -r * 0.1), pos + Vector2(r * 0.95, -r * 0.1), pos + Vector2(r * 0.5, r * 0.75), pos + Vector2(-r * 0.5, r * 0.75)]), Color("#D9A35A"))
+			ellipse(ci, pos + Vector2(0, -r * 0.1), r * 0.8, r * 0.3, col)
+		"glass":
+			ci.draw_colored_polygon(PackedVector2Array([pos + Vector2(-r * 0.5, -r * 0.8), pos + Vector2(r * 0.5, -r * 0.8), pos + Vector2(r * 0.42, r), pos + Vector2(-r * 0.42, r)]), Color(1, 1, 1, 0.35))
+			ci.draw_colored_polygon(PackedVector2Array([pos + Vector2(-r * 0.46, -r * 0.3), pos + Vector2(r * 0.46, -r * 0.3), pos + Vector2(r * 0.42, r), pos + Vector2(-r * 0.42, r)]), col)
+			ci.draw_rect(Rect2(pos + Vector2(-r * 0.2, -r * 0.1), Vector2(r * 0.3, r * 0.3)), Color(1, 1, 1, 0.7))
 		_:
 			ci.draw_circle(pos, r * 0.7, col)
+
+
+## 메뉴 아이콘 (menus.json 의 icon, 없으면 category)
+static func menu_icon(ci: CanvasItem, menu: Dictionary, pos: Vector2, r: float, override_color = null) -> void:
+	var col: Color = override_color if override_color is Color else DataManager.color(menu.get("color", "#E97858"))
+	var kind := str(menu.get("icon", ""))
+	if kind == "":
+		kind = str(menu.get("category", "snack"))
+	food_icon(ci, kind, pos, r, col)
 
 
 ## 말풍선

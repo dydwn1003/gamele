@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/market/market_manager.gd" id="1_market"]
 [ext_resource type="Script" path="res://scripts/market/market_ground.gd" id="2_ground"]
-[ext_resource type="Script" path="res://scripts/market/stall_manager.gd" id="3_stall"]
-[ext_resource type="Script" path="res://scripts/customer/customer_manager.gd" id="4_customer"]
-[ext_resource type="Script" path="res://scripts/market/operating_manager.gd" id="5_operating"]
+[ext_resource type="Script" path="res://scripts/market/rival_manager.gd" id="3_rival"]
+[ext_resource type="Script" path="res://scripts/market/pocha_manager.gd" id="4_pocha"]
+[ext_resource type="Script" path="res://scripts/customer/customer_manager.gd" id="5_customer"]
+[ext_resource type="Script" path="res://scripts/market/operating_manager.gd" id="6_operating"]
 
 [node name="Market" type="Node2D"]
 script = ExtResource("1_market")
@@ -24,11 +25,14 @@ layer = "overhead"
 [node name="Effects" type="Node2D" parent="."]
 z_index = 20
 
-[node name="StallManager" type="Node" parent="."]
-script = ExtResource("3_stall")
+[node name="RivalManager" type="Node" parent="."]
+script = ExtResource("3_rival")
+
+[node name="PochaManager" type="Node" parent="."]
+script = ExtResource("4_pocha")
 
 [node name="CustomerManager" type="Node" parent="."]
-script = ExtResource("4_customer")
+script = ExtResource("5_customer")
 
 [node name="OperatingManager" type="Node" parent="."]
-script = ExtResource("5_operating")
+script = ExtResource("6_operating")

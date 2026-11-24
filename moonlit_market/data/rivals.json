@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "note": "주변 경쟁 노점 (플레이어가 조작할 수 없음). stall_type 은 stalls.json 외형 사용",
+  "rivals": [
+    {
+      "id": "rival_bunsik",
+      "name": "떡순이네 분식",
+      "owner": "떡순이 사장",
+      "stall_type": "snack_noodle",
+      "menus": [
+        "tteokbokki",
+        "twigim"
+      ],
+      "price_ratio": 1.0,
+      "quality": 68,
+      "service_time": 5.0,
+      "queue_capacity": 5,
+      "reputation": 25,
+      "appear_level": 1,
+      "growth": {
+        "quality": 4,
+        "reputation": 10
+      },
+      "desc": "학생들이 줄 서는 떡볶이 맛집"
+    },
+    {
+      "id": "rival_juice",
+      "name": "쥬스킹",
+      "owner": "킹 사장",
+      "stall_type": "drink",
+      "menus": [
+        "lemonade",
+        "bubble_tea"
+      ],
+      "price_ratio": 0.95,
+      "quality": 62,
+      "service_time": 3.0,
+      "queue_capacity": 5,
+      "reputation": 20,
+      "appear_level": 1,
+      "growth": {
+        "quality": 4,
+        "reputation": 8
+      },
+      "desc": "싸고 빠른 음료 가게"
+    },
+    {
+      "id": "rival_hotteok",
+      "name": "달달호떡",
+      "owner": "달달 할머니",
+      "stall_type": "dessert",
+      "menus": [
+        "hotteok",
+        "ice_cream"
+      ],
+      "price_ratio": 1.0,
+      "quality": 72,
+      "service_time": 4.5,
+      "queue_capacity": 5,
+      "reputation": 22,
+      "appear_level": 1,
+      "growth": {
+        "quality": 3,
+        "reputation": 8
+      },
+      "desc": "가족 손님이 좋아하는 디저트"
+    },
+    {
+      "id": "rival_fire",
+      "name": "불꽃꼬치",
+      "owner": "불꽃 사장",
+      "stall_type": "skewer",
+      "menus": [
+        "skewer_grill"
+      ],
+      "price_ratio": 1.1,
+      "quality": 74,
+      "service_time": 6.0,
+      "queue_capacity": 4,
+      "reputation": 35,
+      "appear_level": 2,
+      "growth": {
+        "quality": 4,
+        "reputation": 12
+      },
+      "desc": "내 포차의 직접적인 라이벌. 꼬치 손님을 빼앗아 간다"
+    },
+    {
+      "id": "rival_noodle",
+      "name": "할머니 국수",
+      "owner": "국수 할머니",
+      "stall_type": "snack_noodle",
+      "menus": [
+        "noodle"
+      ],
+      "price_ratio": 1.0,
+      "quality": 86,
+      "service_time": 7.0,
+      "queue_capacity": 4,
+      "reputation": 50,
+      "appear_level": 3,
+      "growth": {
+        "quality": 2,
+        "reputation": 10
+      },
+      "desc": "30년 전통의 국수집"
+    }
+  ]
+}

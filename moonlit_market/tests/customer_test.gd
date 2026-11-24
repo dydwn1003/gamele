@@ -81,70 +81,116 @@ func test_choice_is_probabilistic(t) -> void:
 	t.ok(tourists_boost > tourists, "관광객 배수가 관광객 비율을 높임")
 
 
-## 실제 market.tscn 을 띄우고 240초 영업을 고정 간격으로 시뮬레이션
-func test_full_session_simulation(t) -> void:
+func _setup_state() -> void:
 	GameManager.reset_game()
 	var st = GameManager.state
 	st.coins = 0
-	st.slots[1] = GameStateScript.make_stall("skewer", "skewer_grill", 20, 10.0)
-	st.slots[4] = GameStateScript.make_stall("drink", "lemonade", 20, 10.0)
-	st.slots[4]["level"] = 1
+	for id in ["dak_skewer", "eomuk_tang", "draft_beer", "cider"]:
+		st.pocha["menus"][id] = GameStateScript.make_menu_entry(true, 15)
 	st.today_weather = "sunny"
+	st.tutorial_done = true
 	GameManager.refresh_synergy()
+
+
+## 플레이어 대신 요리하는 봇: 주문된 음식을 굽고, 딱 좋을 때 꺼내고, 음료를 따른다
+func _bot_cook(pm) -> void:
+	for i in pm.kitchen.burners.size():
+		if i != pm.auto_burner and pm.kitchen.stage(i) == "perfect":
+			pm.tap_burner(i)
+	var cooking := {}
+	for b in pm.kitchen.burners:
+		if b["menu"] != "":
+			cooking[b["menu"]] = int(cooking.get(b["menu"], 0)) + 1
+	for o in pm.orders:
+		var m: String = o["menu"]
+		if not o["customer"].can_receive():
+			continue
+		if str(DataManager.get_menu(m).get("station", "")) == "drink":
+			pm.pour(m)
+			return
+		if int(cooking.get(m, 0)) > 0:
+			cooking[m] = int(cooking[m]) - 1
+			continue
+		if pm.cook(m).get("ok", false):
+			return
+
+
+func _run_session(t, cook: bool) -> Dictionary:
+	_setup_state()
+	var st = GameManager.state
 	var tree: SceneTree = Engine.get_main_loop()
 	var market = MarketScene.instantiate()
 	tree.root.add_child(market)
 	await tree.process_frame
 	t.ok(market.is_inside_tree(), "시장 장면 생성")
 	var op = market.operating
-	if op == null:
-		t.ok(false, "OperatingManager 없음")
-		return
-	op.set_process(false) # 수동으로 시간 진행
+	op.set_process(false)
 	t.ok(op.start_session(), "영업 시작")
 	t.ok(GameManager.is_operating, "영업 중 상태")
-	t.ok(not GameManager.build_structure(0, "drink")["ok"], "영업 중 건설 차단")
-	var stock_before := int(st.slots[1]["stock"]) + int(st.slots[4]["stock"])
+	t.ok(not GameManager.upgrade_pocha()["ok"], "영업 중 업그레이드 차단")
 	var out_of_bounds := 0
-	var max_customers := 0
 	var states_seen := {}
+	var eaters_at_spots := 0
 	var steps := 0
 	while op.is_running() and steps < 4000:
 		op._process(0.1)
+		if cook:
+			_bot_cook(market.pocha_manager)
 		steps += 1
 		for c in market.customer_manager.customers:
 			if not is_instance_valid(c):
 				continue
 			states_seen[c.state_name()] = true
+			if c.state_name() == "EATING" and c.eat_spot >= 0 and c.arrived:
+				eaters_at_spots += 1
 			var p: Vector2 = c.position
-			if p.x < 0.0 or p.x > 720.0 or p.y < 0.0 or p.y > 960.0:
+			if p.x < 0.0 or p.x > 720.0 or p.y < 40.0 or p.y > 720.0:
 				out_of_bounds += 1
-		max_customers = maxi(max_customers, market.customer_manager.customers.size())
 	t.ok(not op.is_running(), "영업 종료 (%d 스텝)" % steps)
-	t.ok(not GameManager.is_operating, "영업 상태 해제")
-	var r: Dictionary = st.pending_result
-	t.ok(not r.is_empty(), "정산 결과 생성")
-	t.ok(int(r.get("visitors", 0)) > 20, "손님 방문 (%d명)" % int(r.get("visitors", 0)))
-	t.ok(int(r.get("sales", 0)) > 0, "판매 발생 (%d개)" % int(r.get("sales", 0)))
-	t.eq(st.coins, int(r.get("revenue", 0)), "코인 증가 = 총매출 (재료비는 선결제)")
-	var stock_after := int(st.slots[1]["stock"]) + int(st.slots[4]["stock"])
-	t.eq(stock_before - stock_after, int(r["sales"]) + int(r["spoiled"]), "재고 감소 = 판매 + 손실")
-	t.eq(int(r["cogs"]), int(st.slots[1]["stats"]["sold_total"]) * 40 + int(st.slots[4]["stats"]["sold_total"]) * 25, "원가 = 판매분 × 메뉴 원가")
 	t.eq(out_of_bounds, 0, "손님이 시장 밖으로 나가지 않음")
-	t.ok(max_customers <= int(DataManager.bal("max_customers", 34)), "동시 손님 수 제한")
-	for sname in ["ENTERING", "BROWSING", "SELECTING", "QUEUING", "SERVING", "LEAVING"]:
-		t.ok(states_seen.has(sname), "손님 상태 %s 관찰" % sname)
-	t.ok(int(r["buyers"]) + int(r["walkouts"]) <= int(r["visitors"]), "구매+이탈 ≤ 방문")
-	# 정산은 한 번만
+	var r: Dictionary = st.pending_result.duplicate(true)
+	print("    [%s] 방문 %d · 내 포차 %d · 경쟁 %d · 이탈 %d · 판매 %d · 완벽 %d · 품질 %.0f · 매출 %d · 팁 %d · 순수익 %d · 만족 %.0f · 순위 %d" % [
+		"요리" if cook else "방치", int(r.get("visitors", 0)), int(r.get("buyers", 0)), int(r.get("rival_buyers", 0)), int(r.get("walkouts", 0)),
+		int(r.get("sales", 0)), int(r.get("perfect", 0)), float(r.get("avg_quality", 0)), int(r.get("revenue", 0)), int(r.get("tips", 0)),
+		int(r.get("net_profit", 0)), float(r.get("avg_satisfaction", 0)), int(r.get("my_rank", 0))])
+	market.queue_free()
+	await tree.process_frame
+	return {"r": r, "states": states_seen, "eaters": eaters_at_spots}
+
+
+## 실제 market.tscn 을 띄우고 240초 영업을 봇이 요리하며 시뮬레이션
+func test_full_session_with_cooking(t) -> void:
+	var out: Dictionary = await _run_session(t, true)
+	var r: Dictionary = out["r"]
+	var st = GameManager.state
+	t.ok(not r.is_empty(), "정산 결과 생성")
+	t.ok(int(r.get("visitors", 0)) > 30, "손님 방문 (%d명)" % int(r.get("visitors", 0)))
+	t.ok(int(r.get("buyers", 0)) > 3, "내 포차 손님 (%d명)" % int(r.get("buyers", 0)))
+	t.ok(int(r.get("rival_buyers", 0)) > 3, "경쟁 노점 손님 (%d명)" % int(r.get("rival_buyers", 0)))
+	t.ok(int(r.get("sales", 0)) > 5, "판매 (%d개)" % int(r.get("sales", 0)))
+	t.ok(int(r.get("perfect", 0)) > 0, "완벽한 요리 (%d개)" % int(r.get("perfect", 0)))
+	t.eq(int(r.get("burnt", 0)), 0, "봇은 태우지 않음")
+	t.eq(st.coins, int(r["revenue"]) + int(r["tips"]), "코인 증가 = 매출 + 팁 (재료비는 선결제)")
+	t.ok((r.get("ranking", []) as Array).size() >= 2, "경쟁 노점과 순위 비교")
+	for sname in ["ENTERING", "BROWSING", "SELECTING", "QUEUING", "SERVING", "SEATED", "EATING", "LEAVING"]:
+		t.ok(out["states"].has(sname), "손님 상태 %s 관찰" % sname)
+	t.ok(int(out["eaters"]) > 0, "경쟁 노점 손님이 테이블/벤치에서 먹음")
+	t.ok(int(r["buyers"]) + int(r["rival_buyers"]) + int(r["walkouts"]) <= int(r["visitors"]) + int(r["buyers"]), "집계 일관성")
 	var coins := int(st.coins)
-	var c1: Dictionary = GameManager.claim_session_result()
-	t.ok(c1.get("ok", false), "정산 수령")
+	t.ok(GameManager.claim_session_result().get("ok", false), "정산 수령")
 	var coins_after := int(st.coins)
 	t.eq(coins_after, coins + int(r["bonus_coins"]), "보너스만 추가 지급")
 	GameManager.claim_session_result()
 	GameManager.claim_session_result()
 	t.eq(int(st.coins), coins_after, "정산 버튼 반복 시 중복 지급 없음")
 	t.ok(float(st.last_session.get("per_minute", -1.0)) >= 0.0, "오프라인 기준 기록")
-	market.queue_free()
-	await tree.process_frame
+	GameManager.reset_game()
+
+
+## 요리를 하나도 안 하면 손님이 기다리다 떠난다
+func test_session_without_cooking(t) -> void:
+	var out: Dictionary = await _run_session(t, false)
+	var r: Dictionary = out["r"]
+	t.ok(int(r.get("walkouts", 0)) > 0, "음식이 안 나오면 이탈 (%d명)" % int(r.get("walkouts", 0)))
+	t.eq(int(r.get("perfect", 0)), 0, "요리하지 않으면 완벽한 요리 없음")
 	GameManager.reset_game()

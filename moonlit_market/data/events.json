@@ -4,10 +4,81 @@
   "start_time_min": 40.0,
   "start_time_max": 150.0,
   "events": [
-    {"id": "crowd_surge", "name": "손님 급증!", "desc": "입소문이 나서 손님이 몰려옵니다.", "weight": 1.0, "duration": 40.0, "favorable": true, "effects": {"spawn_mult": 1.8}, "color": "#FFB45C"},
-    {"id": "menu_trend", "name": "인기 메뉴 유행", "desc": "SNS에서 한 메뉴가 유행 중입니다.", "weight": 1.0, "duration": 60.0, "favorable": true, "effects": {"trend_mult": 1.8}, "color": "#E97858"},
-    {"id": "tourist_visit", "name": "관광버스 도착", "desc": "관광객 단체가 시장을 찾았습니다.", "weight": 0.8, "duration": 45.0, "favorable": true, "effects": {"tourist_mult": 3.0, "spawn_mult": 1.2}, "color": "#B07FD9"},
-    {"id": "festival", "name": "지역 축제", "desc": "축제 분위기로 모두가 너그러워집니다.", "weight": 0.6, "duration": 60.0, "favorable": true, "effects": {"spawn_mult": 1.3, "satisfaction": 8, "price_tolerance": 0.1}, "color": "#65C99A"},
-    {"id": "road_work", "name": "골목 공사", "desc": "근처 공사로 통행이 줄었습니다.", "weight": 0.4, "duration": 35.0, "favorable": false, "effects": {"spawn_mult": 0.7}, "color": "#B9B5B0"}
+    {
+      "id": "crowd_surge",
+      "name": "손님 급증!",
+      "desc": "입소문이 나서 손님이 몰려옵니다.",
+      "weight": 1.0,
+      "duration": 40.0,
+      "favorable": true,
+      "effects": {
+        "spawn_mult": 1.8
+      },
+      "color": "#FFB45C"
+    },
+    {
+      "id": "menu_trend",
+      "name": "인기 메뉴 유행",
+      "desc": "SNS에서 한 메뉴가 유행 중입니다.",
+      "weight": 1.0,
+      "duration": 60.0,
+      "favorable": true,
+      "effects": {
+        "trend_mult": 1.8
+      },
+      "color": "#E97858"
+    },
+    {
+      "id": "tourist_visit",
+      "name": "관광버스 도착",
+      "desc": "관광객 단체가 시장을 찾았습니다.",
+      "weight": 0.8,
+      "duration": 45.0,
+      "favorable": true,
+      "effects": {
+        "tourist_mult": 3.0,
+        "spawn_mult": 1.2
+      },
+      "color": "#B07FD9"
+    },
+    {
+      "id": "festival",
+      "name": "지역 축제",
+      "desc": "축제 분위기로 모두가 너그러워집니다.",
+      "weight": 0.6,
+      "duration": 60.0,
+      "favorable": true,
+      "effects": {
+        "spawn_mult": 1.3,
+        "satisfaction": 8,
+        "price_tolerance": 0.1
+      },
+      "color": "#65C99A"
+    },
+    {
+      "id": "rival_sale",
+      "name": "경쟁 노점 할인 행사",
+      "desc": "주변 노점들이 20% 할인 중! 손님을 뺏기지 않게 맛으로 승부하세요.",
+      "weight": 0.5,
+      "duration": 40.0,
+      "favorable": false,
+      "effects": {
+        "rival_price_mult": 0.8
+      },
+      "color": "#B9B5B0"
+    },
+    {
+      "id": "office_rush",
+      "name": "회식 2차 손님",
+      "desc": "직장인 단체가 몰려옵니다. 술 주문이 늘어요.",
+      "weight": 0.8,
+      "duration": 45.0,
+      "favorable": true,
+      "effects": {
+        "office_mult": 2.5,
+        "spawn_mult": 1.2
+      },
+      "color": "#5C7BD9"
+    }
   ]
 }

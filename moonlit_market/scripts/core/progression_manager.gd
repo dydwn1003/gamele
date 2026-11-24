@@ -32,6 +32,9 @@ func check_condition(cond) -> bool:
 			"lifetime_sales":
 				if int(state.lifetime.get("sales", 0)) < need:
 					return false
+			"pocha_level":
+				if state.pocha_level() < need:
+					return false
 			_:
 				push_warning("알 수 없는 해금 조건: %s" % k)
 	return true
@@ -52,6 +55,8 @@ func describe_condition(cond) -> String:
 				parts.append("영업 %d회" % need)
 			"lifetime_sales":
 				parts.append("누적 판매 %d개" % need)
+			"pocha_level":
+				parts.append("포차 Lv.%d" % need)
 	return " · ".join(parts)
 
 
@@ -86,29 +91,39 @@ func update_market_level() -> Array:
 	return ups
 
 
-func is_stall_unlocked(id: String) -> bool:
-	return check_condition(data.get_stall(id).get("unlock", {}))
-
-
-func is_facility_unlocked(id: String) -> bool:
-	return check_condition(data.get_facility(id).get("unlock", {}))
+func is_menu_unlocked(id: String) -> bool:
+	var m: Dictionary = data.get_menu(id)
+	if m.is_empty() or not (str(m.get("station", "")) in ["grill", "drink"]):
+		return false
+	return check_condition(m.get("unlock", {}))
 
 
 func is_decoration_unlocked(id: String) -> bool:
 	return check_condition(data.get_decoration(id).get("unlock", {}))
 
 
+## 현재 시장 단계에서 영업하는 경쟁 노점 (등장 순)
+func active_rivals() -> Array:
+	var limit := int(current_stage().get("rivals", 3))
+	var ids: Array = []
+	for id in data.rivals.keys():
+		if int(data.rivals[id].get("appear_level", 1)) <= state.market_level:
+			ids.append(id)
+	ids.sort_custom(func(a, b): return int(data.rivals[a].get("appear_level", 1)) < int(data.rivals[b].get("appear_level", 1)))
+	return ids.slice(0, limit)
+
+
 ## 새로 해금된 콘텐츠 이름 목록을 반환하고 state.unlocked 에 기록한다.
 func refresh_unlocks() -> Array:
 	var newly: Array = []
-	for id in data.stalls.keys():
-		_mark("stall:" + id, is_stall_unlocked(id), data.stalls[id]["name"], newly)
-	for id in data.facilities.keys():
-		_mark("facility:" + id, is_facility_unlocked(id), data.facilities[id]["name"], newly)
+	for id in data.pocha_menu_ids():
+		_mark("menu:" + id, is_menu_unlocked(id), data.menus[id]["name"], newly)
 	for id in data.decorations.keys():
 		_mark("decoration:" + id, is_decoration_unlocked(id), data.decorations[id]["name"], newly)
 	for id in data.employees.keys():
 		_mark("employee:" + id, check_condition(data.employees[id].get("unlock", {})), data.employees[id]["name"], newly)
+	for id in active_rivals():
+		_mark("rival:" + id, true, "라이벌 " + str(data.rivals[id]["name"]), newly)
 	return newly
 
 

@@ -1,9 +1,14 @@
 extends RefCounted
 ## StaffManager
-## 상인 고용/해금/레벨업/배치와 능력치 계산. 한 상인은 한 노점에만 배치된다.
+## 상인 고용/해금/레벨업과 "내 포차 근무" 배치. 근무 자리 수는 포차 레벨에 따라 늘어난다.
+## 효과는 근무 중인 상인 전원의 합.
+##   auto_cook: 화구 하나를 맡아 자동 요리 (auto_quality 품질)
+##   auto_drink: 음료 주문 자동 서빙
+##   special.menus: 특정 메뉴 품질 보너스/인기
 
 const EFFECT_KEYS := ["cook_speed", "satisfaction", "price_tolerance", "patience",
-	"spoilage_reduction", "restock_discount", "attraction"]
+	"spoilage_reduction", "restock_discount", "attraction", "reorder_chance",
+	"auto_cook", "auto_quality", "auto_drink"]
 
 var state
 var data
@@ -22,6 +27,7 @@ static func empty_effects() -> Dictionary:
 	var d := {}
 	for k in EFFECT_KEYS:
 		d[k] = 0.0
+	d["special_menus"] = {}
 	return d
 
 
@@ -39,6 +45,10 @@ func max_level() -> int:
 	return int(data.employee_meta.get("max_level", 5))
 
 
+func staff_slots() -> int:
+	return int(data.get_pocha_level(state.pocha_level()).get("staff_slots", 1))
+
+
 func is_unlocked(emp_id: String) -> bool:
 	var def: Dictionary = data.get_employee(emp_id)
 	if def.is_empty():
@@ -48,25 +58,44 @@ func is_unlocked(emp_id: String) -> bool:
 	return progression.check_condition(def.get("unlock", {}))
 
 
-## 레벨이 반영된 능력치. stall_type 이 특별 상인의 전문 노점이면 특별 효과 추가.
-func effects_for(emp_id: String, stall_type: String = "") -> Dictionary:
+func _level_mult(emp_id: String) -> float:
+	return 1.0 + float(data.employee_meta.get("level_effect_growth", 0.25)) * (level_of(emp_id) - 1)
+
+
+## 상인 한 명의 효과 (레벨 반영)
+func effects_for(emp_id: String) -> Dictionary:
 	var out := empty_effects()
 	if emp_id == "" or not is_hired(emp_id):
 		return out
+	_add_effects(out, emp_id)
+	return out
+
+
+func _add_effects(out: Dictionary, emp_id: String) -> void:
 	var def: Dictionary = data.get_employee(emp_id)
-	if def.is_empty():
-		return out
-	var mult := 1.0 + float(data.employee_meta.get("level_effect_growth", 0.25)) * (level_of(emp_id) - 1)
+	var mult := _level_mult(emp_id)
 	var eff: Dictionary = def.get("effects", {})
 	for k in eff.keys():
-		out[k] = float(out.get(k, 0.0)) + float(eff[k]) * mult
+		if k == "auto_quality":
+			out[k] = maxf(float(out.get(k, 0.0)), minf(98.0, float(eff[k]) + 4.0 * (level_of(emp_id) - 1)))
+		elif k in ["auto_cook", "auto_drink"]:
+			out[k] = float(out.get(k, 0.0)) + float(eff[k])
+		else:
+			out[k] = float(out.get(k, 0.0)) + float(eff[k]) * mult
 	var sp: Dictionary = def.get("special", {})
-	if not sp.is_empty() and str(sp.get("stall_type", "")) == stall_type:
-		for k in sp.keys():
-			if k == "stall_type":
-				continue
-			out[k] = float(out.get(k, 0.0)) + float(sp[k]) * mult
-		out["special_active"] = 1.0
+	for m in sp.get("menus", []):
+		var cur: Dictionary = out["special_menus"].get(m, {"quality_bonus": 0.0, "attraction": 0.0})
+		cur["quality_bonus"] = float(cur["quality_bonus"]) + float(sp.get("quality_bonus", 0.0)) * mult
+		cur["attraction"] = float(cur["attraction"]) + float(sp.get("attraction", 0.0)) * mult
+		out["special_menus"][m] = cur
+
+
+## 현재 포차에서 근무 중인 상인들의 효과 합계
+func pocha_effects() -> Dictionary:
+	var out := empty_effects()
+	for emp_id in state.staff_list():
+		if is_hired(emp_id):
+			_add_effects(out, emp_id)
 	return out
 
 
@@ -111,45 +140,46 @@ func level_up(emp_id: String) -> Dictionary:
 	return {"ok": true, "cost": cost, "level": level_of(emp_id)}
 
 
-## 배치: 다른 노점에 있던 같은 상인은 자동으로 해제된다 (동시 배치 불가).
-func assign(emp_id: String, slot_idx: int) -> Dictionary:
-	if not state.is_stall(slot_idx):
-		return _fail("노점에만 배치할 수 있습니다.")
-	if emp_id == "":
-		state.slots[slot_idx]["employee"] = ""
-		return {"ok": true}
+## 근무 배치/해제. 같은 상인은 한 번만 배치되며, 자리 수를 넘을 수 없다.
+func set_working(emp_id: String, working: bool) -> Dictionary:
 	if not is_hired(emp_id):
 		return _fail("고용하지 않은 상인입니다.")
-	var prev: int = state.employee_slot(emp_id)
-	if prev >= 0 and prev != slot_idx:
-		state.slots[prev]["employee"] = ""
-	state.slots[slot_idx]["employee"] = emp_id
-	return {"ok": true, "moved_from": prev}
+	var list: Array = state.pocha["staff"]
+	if not working:
+		list.erase(emp_id)
+		return {"ok": true}
+	if list.has(emp_id):
+		return {"ok": true}
+	if list.size() >= staff_slots():
+		return _fail("근무 자리가 부족합니다 (포차 레벨업 시 증가).")
+	list.append(emp_id)
+	return {"ok": true}
 
 
-func unassign(emp_id: String) -> void:
-	var prev: int = state.employee_slot(emp_id)
-	if prev >= 0:
-		state.slots[prev]["employee"] = ""
-
-
-func describe_effects(emp_id: String, stall_type: String = "") -> String:
-	var e := effects_for(emp_id, stall_type) if is_hired(emp_id) else _preview_effects(emp_id)
+func describe_effects(emp_id: String) -> String:
+	var e := effects_for(emp_id) if is_hired(emp_id) else _preview_effects(emp_id)
 	var parts: Array = []
+	if float(e.get("auto_cook", 0)) > 0.0:
+		parts.append("화구 1개 자동 요리 (품질 %d)" % int(e.get("auto_quality", 80)))
+	if float(e.get("auto_drink", 0)) > 0.0:
+		parts.append("음료 자동 서빙")
 	if float(e.get("cook_speed", 0)) > 0.0:
 		parts.append("조리 속도 +%d%%" % int(round(e["cook_speed"] * 100)))
 	if float(e.get("satisfaction", 0)) > 0.0:
 		parts.append("만족도 +%d" % int(round(e["satisfaction"])))
 	if float(e.get("price_tolerance", 0)) > 0.0:
 		parts.append("가격 저항 -%d%%" % int(round(e["price_tolerance"] * 100)))
+	if float(e.get("reorder_chance", 0)) > 0.0:
+		parts.append("추가 주문 +%d%%" % int(round(e["reorder_chance"] * 100)))
 	if float(e.get("patience", 0)) > 0.0:
 		parts.append("대기 인내심 +%d%%" % int(round(e["patience"] * 100)))
 	if float(e.get("spoilage_reduction", 0)) > 0.0:
 		parts.append("재고 손실 -%d%%" % int(round(minf(1.0, e["spoilage_reduction"]) * 100)))
 	if float(e.get("restock_discount", 0)) > 0.0:
-		parts.append("재고 구매가 -%d%%" % int(round(e["restock_discount"] * 100)))
-	if float(e.get("attraction", 0)) > 0.0:
-		parts.append("손님 유인 +%d%%" % int(round(e["attraction"] * 100)))
+		parts.append("재료 구매가 -%d%%" % int(round(e["restock_discount"] * 100)))
+	var sp: Dictionary = e.get("special_menus", {})
+	for m in sp.keys():
+		parts.append("%s 품질 +%d" % [data.get_menu(m).get("name", m), int(sp[m].get("quality_bonus", 0))])
 	return " · ".join(parts) if parts.size() > 0 else "-"
 
 
@@ -159,6 +189,9 @@ func _preview_effects(emp_id: String) -> Dictionary:
 	var eff: Dictionary = def.get("effects", {})
 	for k in eff.keys():
 		out[k] = float(eff[k])
+	var sp: Dictionary = def.get("special", {})
+	for m in sp.get("menus", []):
+		out["special_menus"][m] = {"quality_bonus": float(sp.get("quality_bonus", 0.0)), "attraction": float(sp.get("attraction", 0.0))}
 	return out
 
 

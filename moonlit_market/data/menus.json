@@ -1,13 +1,360 @@
 {
-  "version": 1,
+  "version": 2,
   "menus": [
-    {"id": "skewer_grill", "name": "꼬치구이", "category": "meal", "price": 110, "cost": 40, "cook_time": 6.0, "popularity": 0.8, "warm": true, "local_specialty": true, "preferred_customers": ["office_worker", "tourist"], "color": "#D9733F"},
-    {"id": "tteokbokki", "name": "떡볶이", "category": "snack", "price": 130, "cost": 55, "cook_time": 8.0, "popularity": 0.9, "warm": true, "local_specialty": true, "preferred_customers": ["student", "tourist"], "color": "#E5483A"},
-    {"id": "noodle", "name": "국수", "category": "meal", "price": 160, "cost": 75, "cook_time": 10.0, "popularity": 0.7, "warm": true, "local_specialty": false, "preferred_customers": ["office_worker", "family"], "color": "#F2D48A"},
-    {"id": "twigim", "name": "튀김", "category": "snack", "price": 120, "cost": 50, "cook_time": 7.0, "popularity": 0.75, "warm": true, "local_specialty": false, "preferred_customers": ["student", "office_worker"], "color": "#E8A74A"},
-    {"id": "lemonade", "name": "레몬에이드", "category": "drink", "price": 90, "cost": 25, "cook_time": 4.0, "popularity": 0.7, "warm": false, "local_specialty": false, "preferred_customers": ["student", "family"], "color": "#F5E15A"},
-    {"id": "bubble_tea", "name": "버블티", "category": "drink", "price": 120, "cost": 40, "cook_time": 5.0, "popularity": 0.95, "warm": false, "local_specialty": false, "preferred_customers": ["student", "tourist"], "color": "#B98A6A"},
-    {"id": "hotteok", "name": "호떡", "category": "dessert", "price": 110, "cost": 35, "cook_time": 6.0, "popularity": 0.85, "warm": true, "local_specialty": true, "preferred_customers": ["family", "tourist"], "color": "#C98A3D"},
-    {"id": "ice_cream", "name": "아이스크림", "category": "dessert", "price": 100, "cost": 35, "cook_time": 4.0, "popularity": 0.8, "warm": false, "local_specialty": false, "preferred_customers": ["family", "student"], "color": "#F4C7D9"}
+    {
+      "id": "skewer_grill",
+      "name": "꼬치구이",
+      "category": "meal",
+      "price": 110,
+      "cost": 40,
+      "cook_time": 6.0,
+      "popularity": 0.8,
+      "warm": true,
+      "local_specialty": true,
+      "preferred_customers": [
+        "office_worker",
+        "tourist"
+      ],
+      "color": "#D9733F",
+      "station": "rival",
+      "icon": "skewer"
+    },
+    {
+      "id": "tteokbokki",
+      "name": "떡볶이",
+      "category": "snack",
+      "price": 130,
+      "cost": 55,
+      "cook_time": 8.0,
+      "popularity": 0.9,
+      "warm": true,
+      "local_specialty": true,
+      "preferred_customers": [
+        "student",
+        "tourist"
+      ],
+      "color": "#E5483A",
+      "station": "rival",
+      "icon": "snack"
+    },
+    {
+      "id": "noodle",
+      "name": "국수",
+      "category": "meal",
+      "price": 160,
+      "cost": 75,
+      "cook_time": 10.0,
+      "popularity": 0.7,
+      "warm": true,
+      "local_specialty": false,
+      "preferred_customers": [
+        "office_worker",
+        "family"
+      ],
+      "color": "#F2D48A",
+      "station": "rival",
+      "icon": "meal"
+    },
+    {
+      "id": "twigim",
+      "name": "튀김",
+      "category": "snack",
+      "price": 120,
+      "cost": 50,
+      "cook_time": 7.0,
+      "popularity": 0.75,
+      "warm": true,
+      "local_specialty": false,
+      "preferred_customers": [
+        "student",
+        "office_worker"
+      ],
+      "color": "#E8A74A",
+      "station": "rival",
+      "icon": "snack"
+    },
+    {
+      "id": "lemonade",
+      "name": "레몬에이드",
+      "category": "drink",
+      "price": 90,
+      "cost": 25,
+      "cook_time": 4.0,
+      "popularity": 0.7,
+      "warm": false,
+      "local_specialty": false,
+      "preferred_customers": [
+        "student",
+        "family"
+      ],
+      "color": "#F5E15A",
+      "station": "rival",
+      "icon": "drink"
+    },
+    {
+      "id": "bubble_tea",
+      "name": "버블티",
+      "category": "drink",
+      "price": 120,
+      "cost": 40,
+      "cook_time": 5.0,
+      "popularity": 0.95,
+      "warm": false,
+      "local_specialty": false,
+      "preferred_customers": [
+        "student",
+        "tourist"
+      ],
+      "color": "#B98A6A",
+      "station": "rival",
+      "icon": "drink"
+    },
+    {
+      "id": "hotteok",
+      "name": "호떡",
+      "category": "dessert",
+      "price": 110,
+      "cost": 35,
+      "cook_time": 6.0,
+      "popularity": 0.85,
+      "warm": true,
+      "local_specialty": true,
+      "preferred_customers": [
+        "family",
+        "tourist"
+      ],
+      "color": "#C98A3D",
+      "station": "rival",
+      "icon": "pancake"
+    },
+    {
+      "id": "ice_cream",
+      "name": "아이스크림",
+      "category": "dessert",
+      "price": 100,
+      "cost": 35,
+      "cook_time": 4.0,
+      "popularity": 0.8,
+      "warm": false,
+      "local_specialty": false,
+      "preferred_customers": [
+        "family",
+        "student"
+      ],
+      "color": "#F4C7D9",
+      "station": "rival",
+      "icon": "dessert"
+    },
+    {
+      "id": "dak_skewer",
+      "name": "닭꼬치",
+      "category": "meal",
+      "station": "grill",
+      "price": 120,
+      "cost": 40,
+      "cook_time": 6.0,
+      "perfect_end": 1.4,
+      "burn": 1.9,
+      "eat_time": 7.0,
+      "popularity": 0.85,
+      "warm": true,
+      "local_specialty": true,
+      "alcohol": false,
+      "preferred_customers": [
+        "office_worker",
+        "student"
+      ],
+      "color": "#D9733F",
+      "unlock": {},
+      "icon": "skewer"
+    },
+    {
+      "id": "eomuk_tang",
+      "name": "어묵탕",
+      "category": "meal",
+      "station": "grill",
+      "price": 140,
+      "cost": 50,
+      "cook_time": 9.0,
+      "perfect_end": 1.9,
+      "burn": 2.7,
+      "eat_time": 9.0,
+      "popularity": 0.75,
+      "warm": true,
+      "local_specialty": true,
+      "alcohol": false,
+      "preferred_customers": [
+        "office_worker",
+        "family"
+      ],
+      "color": "#E8C27A",
+      "unlock": {},
+      "icon": "meal"
+    },
+    {
+      "id": "gyeranmari",
+      "name": "계란말이",
+      "category": "snack",
+      "station": "grill",
+      "price": 130,
+      "cost": 40,
+      "cook_time": 7.0,
+      "perfect_end": 1.35,
+      "burn": 1.8,
+      "eat_time": 6.0,
+      "popularity": 0.8,
+      "warm": true,
+      "local_specialty": false,
+      "alcohol": false,
+      "preferred_customers": [
+        "family",
+        "student"
+      ],
+      "color": "#F5D25A",
+      "unlock": {
+        "pocha_level": 2
+      },
+      "icon": "roll"
+    },
+    {
+      "id": "samgyeop_skewer",
+      "name": "삼겹살 꼬치",
+      "category": "meal",
+      "station": "grill",
+      "price": 170,
+      "cost": 70,
+      "cook_time": 8.0,
+      "perfect_end": 1.3,
+      "burn": 1.7,
+      "eat_time": 8.0,
+      "popularity": 0.9,
+      "warm": true,
+      "local_specialty": true,
+      "alcohol": false,
+      "preferred_customers": [
+        "office_worker",
+        "tourist"
+      ],
+      "color": "#C9573A",
+      "unlock": {
+        "pocha_level": 2,
+        "reputation": 20
+      },
+      "icon": "skewer"
+    },
+    {
+      "id": "haemul_jeon",
+      "name": "해물파전",
+      "category": "meal",
+      "station": "grill",
+      "price": 220,
+      "cost": 90,
+      "cook_time": 11.0,
+      "perfect_end": 1.35,
+      "burn": 1.75,
+      "eat_time": 11.0,
+      "popularity": 0.85,
+      "warm": true,
+      "local_specialty": true,
+      "alcohol": false,
+      "preferred_customers": [
+        "tourist",
+        "family",
+        "office_worker"
+      ],
+      "color": "#D9A35A",
+      "unlock": {
+        "market_level": 2
+      },
+      "icon": "pancake"
+    },
+    {
+      "id": "draft_beer",
+      "name": "생맥주",
+      "category": "drink",
+      "station": "drink",
+      "price": 90,
+      "cost": 25,
+      "cook_time": 0.0,
+      "eat_time": 5.0,
+      "popularity": 0.9,
+      "warm": false,
+      "local_specialty": false,
+      "alcohol": true,
+      "preferred_customers": [
+        "office_worker",
+        "tourist"
+      ],
+      "color": "#F2C14E",
+      "unlock": {},
+      "icon": "beer"
+    },
+    {
+      "id": "cider",
+      "name": "사이다",
+      "category": "drink",
+      "station": "drink",
+      "price": 70,
+      "cost": 20,
+      "cook_time": 0.0,
+      "eat_time": 4.0,
+      "popularity": 0.7,
+      "warm": false,
+      "local_specialty": false,
+      "alcohol": false,
+      "preferred_customers": [
+        "student",
+        "family"
+      ],
+      "color": "#9EE0C9",
+      "unlock": {},
+      "icon": "drink"
+    },
+    {
+      "id": "makgeolli",
+      "name": "막걸리",
+      "category": "drink",
+      "station": "drink",
+      "price": 110,
+      "cost": 30,
+      "cook_time": 0.0,
+      "eat_time": 6.0,
+      "popularity": 0.75,
+      "warm": false,
+      "local_specialty": true,
+      "alcohol": true,
+      "preferred_customers": [
+        "office_worker",
+        "tourist"
+      ],
+      "color": "#EDE6D6",
+      "unlock": {
+        "pocha_level": 2
+      },
+      "icon": "makgeolli"
+    },
+    {
+      "id": "highball",
+      "name": "하이볼",
+      "category": "drink",
+      "station": "drink",
+      "price": 150,
+      "cost": 45,
+      "cook_time": 0.0,
+      "eat_time": 5.0,
+      "popularity": 0.85,
+      "warm": false,
+      "local_specialty": false,
+      "alcohol": true,
+      "preferred_customers": [
+        "office_worker",
+        "tourist"
+      ],
+      "color": "#E9A23B",
+      "unlock": {
+        "market_level": 2
+      },
+      "icon": "glass"
+    }
   ]
 }

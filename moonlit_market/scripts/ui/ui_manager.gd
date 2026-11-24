@@ -5,7 +5,7 @@ extends Control
 const UIKit := preload("res://scripts/ui/ui_kit.gd")
 const HudScene := preload("res://scenes/ui/main_hud.tscn")
 const PANELS := {
-	"stall": preload("res://scenes/ui/stall_panel.tscn"),
+	"pocha": preload("res://scenes/ui/pocha_panel.tscn"),
 	"employee": preload("res://scenes/ui/employee_panel.tscn"),
 	"preparation": preload("res://scenes/ui/preparation_panel.tscn"),
 	"result": preload("res://scenes/ui/result_panel.tscn"),
@@ -152,10 +152,13 @@ func confirm(title: String, message: String, ok_text: String, on_ok: Callable, d
 
 ## 토스트는 하단 버튼 바로 위에 표시 (패널 제목을 가리지 않도록)
 func _place_toasts() -> void:
-	var vp := get_viewport_rect().size
 	var bottom: float = hud.bottom_height() if hud else 240.0
-	toast_layer.size = Vector2(vp.x - 80, 0)
-	toast_layer.position = Vector2(40, vp.y - bottom - 12 - toast_layer.get_combined_minimum_size().y)
+	toast_layer.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	toast_layer.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	toast_layer.offset_left = 40
+	toast_layer.offset_right = -40
+	toast_layer.offset_bottom = -(bottom + 12.0)
+	toast_layer.offset_top = toast_layer.offset_bottom
 
 
 func show_toast(text: String, kind: String = "info") -> void:

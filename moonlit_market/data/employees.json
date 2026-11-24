@@ -1,57 +1,138 @@
 {
-  "version": 1,
+  "version": 2,
   "max_level": 5,
   "level_effect_growth": 0.25,
-  "level_up_costs": [0, 300, 700, 1400, 2600],
+  "level_up_costs": [
+    0,
+    300,
+    700,
+    1400,
+    2600
+  ],
   "employees": [
     {
-      "id": "emp_basic", "name": "김 사장님", "role": "기본 상인", "role_type": "basic",
-      "desc": "시장 터줏대감. 무난하게 노점을 돌봅니다.",
-      "effects": {"cook_speed": 0.05, "satisfaction": 3},
-      "unlock": {"reputation": 0}, "hire_cost": 0, "starting": true,
-      "color": "#E9C46A"
+      "id": "emp_basic",
+      "name": "김 사장님",
+      "role": "기본 상인",
+      "role_type": "basic",
+      "desc": "포차 공동 운영자. 손님 응대를 조금 돕습니다.",
+      "effects": {
+        "satisfaction": 3,
+        "cook_speed": 0.05
+      },
+      "unlock": {
+        "reputation": 0
+      },
+      "hire_cost": 0,
+      "starting": true,
+      "color": "#E9C46A",
+      "special": {}
     },
     {
-      "id": "emp_chef", "name": "박 숙련 요리사", "role": "숙련 요리사", "role_type": "chef",
-      "desc": "손이 빨라 조리 속도가 크게 빨라집니다.",
-      "effects": {"cook_speed": 0.25},
-      "unlock": {"reputation": 10}, "hire_cost": 350,
-      "color": "#F4F1EA"
+      "id": "emp_chef",
+      "name": "박 숙련 요리사",
+      "role": "숙련 요리사",
+      "role_type": "chef",
+      "desc": "화구 하나를 맡아 주문을 자동으로 요리합니다 (품질 80+).",
+      "effects": {
+        "auto_cook": 1,
+        "auto_quality": 80
+      },
+      "unlock": {
+        "reputation": 10
+      },
+      "hire_cost": 350,
+      "color": "#F4F1EA",
+      "special": {}
     },
     {
-      "id": "emp_kind", "name": "이 친절 판매원", "role": "친절한 판매원", "role_type": "kind",
+      "id": "emp_kind",
+      "name": "이 친절 판매원",
+      "role": "친절한 판매원",
+      "role_type": "kind",
       "desc": "웃는 얼굴로 손님 만족도를 높입니다.",
-      "effects": {"satisfaction": 12},
-      "unlock": {"days": 2}, "hire_cost": 300,
-      "color": "#F28FAD"
+      "effects": {
+        "satisfaction": 12
+      },
+      "unlock": {
+        "days": 2
+      },
+      "hire_cost": 300,
+      "color": "#F28FAD",
+      "special": {}
     },
     {
-      "id": "emp_merchant", "name": "최 장사꾼", "role": "장사꾼", "role_type": "merchant",
-      "desc": "말솜씨로 높은 가격에도 손님이 지갑을 엽니다.",
-      "effects": {"price_tolerance": 0.15},
-      "unlock": {"reputation": 35}, "hire_cost": 500,
-      "color": "#7FB069"
+      "id": "emp_merchant",
+      "name": "최 장사꾼",
+      "role": "장사꾼",
+      "role_type": "merchant",
+      "desc": "말솜씨로 높은 가격에도, 한 잔 더 시키게 만듭니다.",
+      "effects": {
+        "price_tolerance": 0.15,
+        "reorder_chance": 0.1
+      },
+      "unlock": {
+        "reputation": 35
+      },
+      "hire_cost": 500,
+      "color": "#7FB069",
+      "special": {}
     },
     {
-      "id": "emp_quick", "name": "정 재빠른 직원", "role": "재빠른 직원", "role_type": "quick",
-      "desc": "줄을 빠르게 정리해 대기 시간을 줄입니다.",
-      "effects": {"cook_speed": 0.1, "patience": 0.3},
-      "unlock": {"lifetime_sales": 60}, "hire_cost": 450,
-      "color": "#5FB9C9"
+      "id": "emp_quick",
+      "name": "정 재빠른 직원",
+      "role": "재빠른 직원",
+      "role_type": "quick",
+      "desc": "음료 주문을 자동으로 따라 내고 대기 인내심을 늘립니다.",
+      "effects": {
+        "auto_drink": 1,
+        "patience": 0.25
+      },
+      "unlock": {
+        "lifetime_sales": 60
+      },
+      "hire_cost": 450,
+      "color": "#5FB9C9",
+      "special": {}
     },
     {
-      "id": "emp_manager", "name": "한 꼼꼼한 관리자", "role": "꼼꼼한 관리자", "role_type": "manager",
+      "id": "emp_manager",
+      "name": "한 꼼꼼한 관리자",
+      "role": "꼼꼼한 관리자",
+      "role_type": "manager",
       "desc": "재고 손실을 줄이고 재료를 싸게 들여옵니다.",
-      "effects": {"spoilage_reduction": 0.6, "restock_discount": 0.08},
-      "unlock": {"market_level": 2}, "hire_cost": 600,
-      "color": "#A0A4B8"
+      "effects": {
+        "spoilage_reduction": 0.6,
+        "restock_discount": 0.08
+      },
+      "unlock": {
+        "market_level": 2
+      },
+      "hire_cost": 600,
+      "color": "#A0A4B8",
+      "special": {}
     },
     {
-      "id": "emp_grandma", "name": "순덕 할머니", "role": "특별 상인 · 분식 장인", "role_type": "special",
-      "desc": "40년 손맛. 분식·면 요리점에서 엄청난 시너지를 냅니다.",
-      "effects": {"cook_speed": 0.05, "satisfaction": 4},
-      "special": {"stall_type": "snack_noodle", "cook_speed": 0.3, "satisfaction": 12, "attraction": 0.3},
-      "unlock": {"reputation": 120}, "hire_cost": 900,
+      "id": "emp_grandma",
+      "name": "순덕 할머니",
+      "role": "특별 상인 · 국물 장인",
+      "role_type": "special",
+      "desc": "40년 손맛. 어묵탕·해물파전 품질과 인기를 올립니다.",
+      "effects": {
+        "satisfaction": 4
+      },
+      "special": {
+        "menus": [
+          "eomuk_tang",
+          "haemul_jeon"
+        ],
+        "quality_bonus": 15,
+        "attraction": 0.3
+      },
+      "unlock": {
+        "reputation": 120
+      },
+      "hire_cost": 900,
       "color": "#C9A0DC"
     }
   ]

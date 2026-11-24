@@ -22,8 +22,6 @@ signal offline_reward_ready(info: Dictionary)
 signal boot_issue(status: String, message: String)
 signal session_phase_changed(phase: String)
 signal session_result_ready(result: Dictionary)
-signal placement_requested(structure_type: String)
-signal move_requested(from_slot: int)
 
 var state
 var economy
@@ -104,15 +102,11 @@ func new_game(save_now: bool = true) -> void:
 	for id in DataManager.employees.keys():
 		if bool(DataManager.employees[id].get("starting", false)) or id == start_emp:
 			state.employees[id] = {"hired": true, "level": 1}
-	var start_type := str(DataManager.bal("start_stall", "skewer"))
-	var start_slot := clampi(int(DataManager.bal("start_slot", 1)), 0, GameStateScript.SLOT_COUNT - 1)
-	var def: Dictionary = DataManager.get_stall(start_type)
-	if not def.is_empty():
-		var st: Dictionary = state.make_stall(start_type, str(def.get("default_menu", "")),
-			int(DataManager.get_level(1).get("stock_max", 20)), float(def.get("base_reputation", 10)))
-		if state.employees.has(start_emp):
-			st["employee"] = start_emp
-		state.slots[start_slot] = st
+	var start_stock := int(DataManager.pocha.get("start_stock", 12))
+	for id in DataManager.pocha.get("start_menus", []):
+		state.pocha["menus"][str(id)] = state.make_menu_entry(true, start_stock)
+	if state.employees.has(start_emp):
+		state.pocha["staff"].append(start_emp)
 	state.today_weather = "cloudy"
 	state.last_seen_unix = now()
 	state.max_seen_unix = state.last_seen_unix
@@ -226,7 +220,7 @@ func _check_progression() -> void:
 
 
 func refresh_synergy() -> void:
-	synergy_cache = synergy.compute(state.slots)
+	synergy_cache = synergy.compute(state.enabled_menus())
 
 
 func notify(text: String, kind: String = "info") -> void:
@@ -258,72 +252,42 @@ func vibrate(ms: int) -> void:
 
 # ───────── 행동 API (UI → 로직) ─────────
 
-func build_structure(slot_idx: int, structure_type: String) -> Dictionary:
+func upgrade_pocha() -> Dictionary:
 	if _blocked_by_operation():
 		return {"ok": false}
-	if DataManager.stalls.has(structure_type):
-		if not progression.is_stall_unlocked(structure_type):
-			return _result({"ok": false, "error": "아직 해금되지 않은 노점입니다."})
-		return _result(economy.build_stall(slot_idx, structure_type), "%s 설치 완료!" % DataManager.get_stall(structure_type)["name"])
-	if DataManager.facilities.has(structure_type):
-		if not progression.is_facility_unlocked(structure_type):
-			return _result({"ok": false, "error": "아직 해금되지 않은 시설입니다."})
-		return _result(economy.build_facility(slot_idx, structure_type), "%s 설치 완료!" % DataManager.get_facility(structure_type)["name"])
-	return _result({"ok": false, "error": "알 수 없는 건물입니다."})
+	var r: Dictionary = economy.upgrade_pocha(progression.max_stall_level())
+	return _result(r, "포차 업그레이드! Lv.%d" % int(r.get("level", 0)))
 
 
-func demolish(slot_idx: int) -> Dictionary:
+func set_menu_enabled(menu_id: String, enabled: bool) -> Dictionary:
 	if _blocked_by_operation():
 		return {"ok": false}
-	var r: Dictionary = economy.demolish(slot_idx)
-	return _result(r, "철거 완료 (환급 %d 코인)" % int(r.get("refund", 0)))
+	var r: Dictionary = economy.set_menu_enabled(menu_id, enabled, progression)
+	return _result(r, "")
 
 
-func move_structure(from_idx: int, to_idx: int) -> Dictionary:
-	if _blocked_by_operation():
-		return {"ok": false}
-	return _result(economy.move_structure(from_idx, to_idx), "자리를 옮겼습니다.")
-
-
-func upgrade_stall(slot_idx: int) -> Dictionary:
-	if _blocked_by_operation():
-		return {"ok": false}
-	var r: Dictionary = economy.upgrade_stall(slot_idx, progression.max_stall_level())
-	return _result(r, "업그레이드 완료! Lv.%d" % int(r.get("level", 0)))
-
-
-func set_menu(slot_idx: int, menu_id: String) -> Dictionary:
-	if _blocked_by_operation():
-		return {"ok": false}
-	var r: Dictionary = economy.set_menu(slot_idx, menu_id)
-	var txt := ""
-	if int(r.get("refund", 0)) > 0:
-		txt = "메뉴 변경 — 남은 재료 %d 코인 환급" % int(r["refund"])
-	return _result(r, txt)
-
-
-func set_price_ratio(slot_idx: int, ratio: float) -> Dictionary:
+func set_price_ratio(menu_id: String, ratio: float) -> Dictionary:
 	if is_operating:
 		return {"ok": false}
-	var r: Dictionary = economy.set_price_ratio(slot_idx, ratio)
+	var r: Dictionary = economy.set_price_ratio(menu_id, ratio)
 	if r.get("ok", false):
 		_dirty = true
 		slots_changed.emit()
 	return r
 
 
-func restock(slot_idx: int) -> Dictionary:
+func restock(menu_id: String) -> Dictionary:
 	if _blocked_by_operation():
 		return {"ok": false}
-	var r: Dictionary = economy.restock(slot_idx)
-	return _result(r, "재고 %d개 구매 (-%d 코인)" % [int(r.get("bought", 0)), int(r.get("cost", 0))])
+	var r: Dictionary = economy.restock(menu_id)
+	return _result(r, "재료 %d개 구매 (-%d 코인)" % [int(r.get("bought", 0)), int(r.get("cost", 0))])
 
 
 func restock_all() -> Dictionary:
 	if _blocked_by_operation():
 		return {"ok": false}
 	var r: Dictionary = economy.restock_all()
-	return _result(r, "재고 %d개 구매 (-%d 코인)" % [int(r.get("bought", 0)), int(r.get("cost", 0))])
+	return _result(r, "재료 %d개 구매 (-%d 코인)" % [int(r.get("bought", 0)), int(r.get("cost", 0))])
 
 
 func hire_employee(emp_id: String) -> Dictionary:
@@ -339,10 +303,10 @@ func level_up_employee(emp_id: String) -> Dictionary:
 	return _result(r, "상인 레벨 업! Lv.%d" % int(r.get("level", 0)))
 
 
-func assign_employee(emp_id: String, slot_idx: int) -> Dictionary:
+func set_staff_working(emp_id: String, working: bool) -> Dictionary:
 	if _blocked_by_operation():
 		return {"ok": false}
-	return _result(staff.assign(emp_id, slot_idx), "배치 완료")
+	return _result(staff.set_working(emp_id, working), "근무 배치 완료" if working else "근무 해제")
 
 
 func buy_decoration(deco_id: String) -> Dictionary:
@@ -386,18 +350,6 @@ func set_setting(key: String, value: bool) -> void:
 	state.settings[key] = value
 	save_game("settings")
 	state_changed.emit()
-
-
-func request_placement(structure_type: String) -> void:
-	if _blocked_by_operation():
-		return
-	placement_requested.emit(structure_type)
-
-
-func request_move(from_slot: int) -> void:
-	if _blocked_by_operation():
-		return
-	move_requested.emit(from_slot)
 
 
 # ───────── 날씨 ─────────
@@ -448,37 +400,12 @@ func market_modifiers() -> Dictionary:
 		m["tourist_mult"] += float(eff.get("tourist_mult", 0.0))
 		m["satisfaction"] += float(eff.get("satisfaction", 0.0))
 		m["patience_mult"] += float(eff.get("patience_mult", 0.0))
-	var g: Dictionary = synergy_cache.get("global", {})
-	m["tourist_mult"] += float(g.get("tourist_mult", 0.0))
-	m["stay_mult"] += float(g.get("stay_mult", 0.0))
+	var g: Dictionary = synergy_cache.get("effects", {})
+	if state.today_weather == "rain":
+		m["visitor_mult"] *= 1.0 + float(g.get("rain_visitor_bonus", 0.0))
 	# 관광객은 시장 평판에 민감
 	m["tourist_mult"] *= clampf(0.5 + state.reputation / 150.0, 0.5, 2.5)
 	return m
-
-
-## 노점 하나에 적용되는 최종 수치 (레벨 + 상인 + 시너지)
-func slot_modifiers(slot_idx: int) -> Dictionary:
-	var s: Dictionary = state.get_slot(slot_idx)
-	if s.get("kind", "") != "stall":
-		return {}
-	var lv: Dictionary = DataManager.get_level(int(s.get("level", 1)))
-	var emp: Dictionary = staff.effects_for(str(s.get("employee", "")), str(s.get("type", "")))
-	var syn := synergy_cache
-	return {
-		"cook_speed": float(lv.get("cook_speed", 1.0)) * (1.0 + float(emp.get("cook_speed", 0.0))),
-		"sales_efficiency": float(lv.get("sales_efficiency", 1.0)),
-		"appeal": float(lv.get("appeal", 0.0)) + float(emp.get("attraction", 0.0)) + SynergyScript.slot_effect(syn, slot_idx, "attraction"),
-		"satisfaction": float(emp.get("satisfaction", 0.0)) + SynergyScript.slot_effect(syn, slot_idx, "satisfaction"),
-		"price_tolerance": float(emp.get("price_tolerance", 0.0)),
-		"patience_mult": 1.0 + float(emp.get("patience", 0.0)) + SynergyScript.slot_effect(syn, slot_idx, "patience_mult"),
-		"extra_purchase_chance": SynergyScript.slot_effect(syn, slot_idx, "extra_purchase_chance"),
-		"follow_ups": SynergyScript.follow_ups(syn, slot_idx),
-		"special_active": float(emp.get("special_active", 0.0)) > 0.0,
-	}
-
-
-func slot_synergies(slot_idx: int) -> Array:
-	return synergy_cache.get("slots", {}).get(slot_idx, [])
 
 
 # ───────── 영업 / 정산 / 오프라인 ─────────
