@@ -88,6 +88,14 @@ func _draw_ground() -> void:
 		var y := 470.0 + i * 22.0
 		draw_line(Vector2(-800, y), Vector2(1520, y), Color(0, 0, 0, 0.06), 2.0)
 	DrawUtil.ellipse(self, Vector2(360, 560), 380, 120, Color(1.0, 0.7, 0.35, 0.10))
+	# 세로 바 의자 (바깥쪽)
+	if market:
+		for i in range(MarketScript.H_SEATS, market.max_seats()):
+			var sp: Vector2 = market.seat_pos(i)
+			DrawUtil.ellipse(self, sp + Vector2(0, 6), 15, 6, Color(0, 0, 0, 0.3))
+			draw_line(sp + Vector2(-8, -6), sp + Vector2(-10, 6), Color("#8E9AA8"), 3.0)
+			draw_line(sp + Vector2(8, -6), sp + Vector2(10, 6), Color("#8E9AA8"), 3.0)
+			DrawUtil.ellipse(self, sp + Vector2(0, -8), 13, 5, Color("#C9573A") if i < market.seat_count() else Color("#5A4A4A"))
 	# 통로 표시
 	draw_rect(Rect2(Vector2(-800, 582), Vector2(2320, 36)), Color(0, 0, 0, 0.10))
 	# 장식

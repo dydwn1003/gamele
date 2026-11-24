@@ -75,19 +75,19 @@ func _draw() -> void:
 				DrawUtil.text_center(self, Vector2(px, -76), "!", 18, Color("#E97858"), 4)
 	DrawUtil.text_center(self, Vector2(0, 30), "서빙대 %d/%d" % [items.size(), cap], 18, Color("#FFD27A") if items.size() >= cap else Color(1, 1, 1, 0.55), 0)
 	# ── 술 냉장고 + 맥주 탭 (오른쪽) ──
-	var dx := 230.0
-	DrawUtil.rounded_rect(self, Rect2(Vector2(dx - 60, -120), Vector2(120, 96)), 10, Color("#D9E2EA"))
-	DrawUtil.rounded_rect(self, Rect2(Vector2(dx - 52, -112), Vector2(104, 80)), 6, Color("#2C4A66"))
-	for k in 5:
-		var bc: Color = [Color("#3E8E5A"), Color("#EDE6D6"), Color("#F2C14E"), Color("#3E8E5A"), Color("#9EE0C9")][k]
-		draw_rect(Rect2(Vector2(dx - 44 + k * 19, -100), Vector2(10, 26)), bc)
-		draw_rect(Rect2(Vector2(dx - 42 + k * 19, -106), Vector2(6, 6)), bc.darkened(0.3))
-	draw_rect(Rect2(Vector2(dx - 52, -66), Vector2(104, 3)), Color(1, 1, 1, 0.3))
-	DrawUtil.glow(self, Vector2(dx, -72), 60, Color(0.6, 0.85, 1.0, 0.18), 2)
+	var dx := 166.0
+	DrawUtil.rounded_rect(self, Rect2(Vector2(dx - 48, -112), Vector2(96, 88)), 10, Color("#D9E2EA"))
+	DrawUtil.rounded_rect(self, Rect2(Vector2(dx - 41, -105), Vector2(82, 72)), 6, Color("#2C4A66"))
+	for k in 4:
+		var bc: Color = [Color("#3E8E5A"), Color("#EDE6D6"), Color("#F2C14E"), Color("#9EE0C9")][k]
+		draw_rect(Rect2(Vector2(dx - 34 + k * 18, -94), Vector2(10, 24)), bc)
+		draw_rect(Rect2(Vector2(dx - 32 + k * 18, -100), Vector2(6, 6)), bc.darkened(0.3))
+	draw_rect(Rect2(Vector2(dx - 41, -62), Vector2(82, 3)), Color(1, 1, 1, 0.3))
+	DrawUtil.glow(self, Vector2(dx, -68), 50, Color(0.6, 0.85, 1.0, 0.18), 2)
 	# 생맥주 탭
-	draw_rect(Rect2(Vector2(dx + 70, -76), Vector2(10, 46)), Color("#A0A4B8"))
-	draw_rect(Rect2(Vector2(dx + 64, -82), Vector2(22, 8)), Color("#C9CDD8"))
-	draw_rect(Rect2(Vector2(dx + 76, -60), Vector2(14, 6)), Color("#2A2A2A"))
+	draw_rect(Rect2(Vector2(dx + 56, -76), Vector2(10, 46)), Color("#A0A4B8"))
+	draw_rect(Rect2(Vector2(dx + 50, -82), Vector2(22, 8)), Color("#C9CDD8"))
+	draw_rect(Rect2(Vector2(dx + 62, -60), Vector2(14, 6)), Color("#2A2A2A"))
 	DrawUtil.text_center(self, Vector2(dx, 30), "술·음료", 18, Color(1, 1, 1, 0.55), 0)
 	if pulse > 0.0:
 		DrawUtil.glow(self, Vector2(0, -40), 120, Color(1.0, 0.85, 0.4, pulse * 0.5))

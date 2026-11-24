@@ -10,6 +10,7 @@ extends Node2D
 const StallScene := preload("res://scenes/market/stall.tscn")
 const PochaScene := preload("res://scenes/market/pocha.tscn")
 const TableScene := preload("res://scenes/market/seat_table.tscn")
+const BarScene := preload("res://scenes/market/bar_counter.tscn")
 const ServerScene := preload("res://scenes/market/server.tscn")
 const UIKit := preload("res://scripts/ui/ui_kit.gd")
 
@@ -29,13 +30,23 @@ const EAT_SPOTS := [Vector2(118, 262), Vector2(182, 262), Vector2(538, 262), Vec
 	Vector2(30, 258), Vector2(690, 258)]
 # ── 포차 ──
 const ENTRANCE := Vector2(360, 300)
-const WAIT_SPOTS := [Vector2(52, 470), Vector2(40, 520), Vector2(60, 566)]
+## 자리가 없으면 포차 입구 밖 거리에 줄을 선다
+const WAIT_SPOTS := [Vector2(318, 252), Vector2(292, 256), Vector2(266, 260), Vector2(240, 264)]
+## ㄱ자 바: 가로 바(메뉴판 아래, 손님은 정면) + 오른쪽 세로 바(손님은 바깥쪽)
 const SEAT_Y := 478.0
-const SEAT_SPACING := 104.0
-const AISLE_Y := 600.0
+const BAR_FRONT_Y := 500.0
+const BAR_LEFT := 30.0
+const BAR_CORNER_X := 606.0 ## 세로 바 왼쪽 끝
+const BAR_LEG_BOTTOM := 664.0
+const H_SEAT_X0 := 66.0
+const H_SEAT_STEP := 66.0
+const H_SEATS := 8
+const V_SEAT_X := 684.0
+const V_SEAT_Y := [536.0, 588.0, 640.0]
+const AISLE_Y := 572.0
 const PASS_POS := Vector2(360, 600)
 const GRILL_POS := Vector2(130, 600)
-const DRINK_POS := Vector2(590, 600)
+const DRINK_POS := Vector2(526, 600)
 const COUNTER_Y := 690.0
 const POCHA_POS := Vector2(360, 690) ## 앞 카운터 노드 위치 (이전 버전 호환 이름)
 const DECO_SPOTS := [Vector2(40, 330), Vector2(680, 330), Vector2(40, 560), Vector2(680, 560)]
@@ -169,7 +180,15 @@ func refresh() -> void:
 	_rebuild_tables()
 
 
+var bar_node
+
+
 func _rebuild_tables() -> void:
+	if bar_node == null:
+		bar_node = BarScene.instantiate()
+		bar_node.market = self
+		bar_node.position = Vector2(0, BAR_FRONT_Y)
+		world.add_child(bar_node)
 	var n := seat_count()
 	if table_nodes.size() == n:
 		return
@@ -180,7 +199,8 @@ func _rebuild_tables() -> void:
 		var t = TableScene.instantiate()
 		t.index = i
 		t.market = self
-		t.position = Vector2(seat_x(i, n), SEAT_Y + 24)
+		t.vertical = is_vertical_seat(i)
+		t.position = place_pos(i)
 		world.add_child(t)
 		table_nodes.append(t)
 
@@ -216,17 +236,37 @@ func rival_queue_spot(rival_id: String, k: int) -> Vector2:
 	return Vector2(p.x + dir * (8.0 + 22.0 * k), STOREFRONT_Y + 4.0 + 3.0 * k)
 
 
-func seat_x(i: int, count: int) -> float:
-	var spacing := minf(SEAT_SPACING, 600.0 / maxf(1.0, count))
-	return 360.0 + (i - (count - 1) / 2.0) * spacing
+func max_seats() -> int:
+	return H_SEATS + V_SEAT_Y.size()
 
 
-func seat_pos(i: int, count: int) -> Vector2:
-	return Vector2(seat_x(i, count), SEAT_Y)
+func is_vertical_seat(i: int) -> bool:
+	return i >= H_SEATS
 
 
-func serve_pos(i: int, count: int) -> Vector2:
-	return Vector2(seat_x(i, count), AISLE_Y)
+func seat_x(i: int, _count: int = 0) -> float:
+	return V_SEAT_X if is_vertical_seat(i) else H_SEAT_X0 + H_SEAT_STEP * i
+
+
+## 손님이 앉는 자리 (발 위치)
+func seat_pos(i: int, _count: int = 0) -> Vector2:
+	if is_vertical_seat(i):
+		return Vector2(V_SEAT_X, V_SEAT_Y[clampi(i - H_SEATS, 0, V_SEAT_Y.size() - 1)])
+	return Vector2(seat_x(i), SEAT_Y)
+
+
+## 바 위에 음식이 놓이는 자리 (y-sort 상 손님보다 앞)
+func place_pos(i: int) -> Vector2:
+	if is_vertical_seat(i):
+		return Vector2(BAR_CORNER_X + 22.0, seat_pos(i).y + 2.0)
+	return Vector2(seat_x(i), BAR_FRONT_Y + 2.0)
+
+
+## 사장님이 서빙할 때 서는 자리
+func serve_pos(i: int, _count: int = 0) -> Vector2:
+	if is_vertical_seat(i):
+		return Vector2(BAR_CORNER_X - 34.0, seat_pos(i).y)
+	return Vector2(seat_x(i), AISLE_Y)
 
 
 func wait_pos(k: int) -> Vector2:
@@ -311,10 +351,12 @@ func handle_tap(pos: Vector2) -> bool:
 
 func seat_at(pos: Vector2) -> int:
 	var n := seat_count()
-	var half := minf(SEAT_SPACING, 600.0 / maxf(1.0, n)) / 2.0
 	for i in n:
-		var x := seat_x(i, n)
-		if Rect2(Vector2(x - half, SEAT_Y - 130), Vector2(half * 2.0, 200)).has_point(pos):
+		var sp := seat_pos(i)
+		var r := Rect2(Vector2(sp.x - H_SEAT_STEP / 2.0, sp.y - 120), Vector2(H_SEAT_STEP, 160))
+		if is_vertical_seat(i):
+			r = Rect2(Vector2(BAR_CORNER_X - 10, sp.y - 48), Vector2(130, 52))
+		if r.has_point(pos):
 			return i
 	return -1
 

@@ -474,7 +474,8 @@ func tick(delta: float) -> void:
 	var decay := float(DataManager.pocha.get("pass_decay_time", 22.0))
 	for p in pass_items.duplicate():
 		p["age"] = float(p["age"]) + delta
-		p["decay"] = float(p.get("decay", 0.0)) + delta * 1.2
+		if float(p["age"]) > float(DataManager.pocha.get("cool_grace", 7.0)):
+			p["decay"] = float(p.get("decay", 0.0)) + delta * 1.2
 		if float(p["age"]) > decay:
 			pass_items.erase(p)
 			GameManager.economy.record_waste(str(p["menu"]), false)

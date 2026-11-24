@@ -286,7 +286,7 @@ func go_to_wait(k: int, pos: Vector2) -> void:
 	state = State.QUEUING
 	queue_index = k
 	if first:
-		waypoints = _pocha_path(pos)
+		waypoints = _street_path(pos) if pos.y < MarketScript.ENTRANCE.y else _pocha_path(pos)
 		wait_time = 0.0
 	else:
 		waypoints = [pos]

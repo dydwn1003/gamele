@@ -87,7 +87,8 @@ func tick(delta: float) -> void:
 	serve_flash = maxf(0.0, serve_flash - delta * 3.0)
 	for it in tray:
 		it["age"] = float(it.get("age", 0.0)) + delta
-		it["decay"] = float(it.get("decay", 0.0)) + delta * 1.2
+		if float(it["age"]) > float(DataManager.pocha.get("cool_grace", 7.0)):
+			it["decay"] = float(it.get("decay", 0.0)) + delta * 1.2
 	if cur.is_empty() and not tasks.is_empty():
 		cur = tasks.pop_front()
 		_begin()
