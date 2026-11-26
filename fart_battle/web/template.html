@@ -103,7 +103,7 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; }
   <div class="on-row" style="width:min(560px,100%)"><button class="btn ghost" id="btn-chars" style="flex:2">내 캐릭터: 뿌앙이</button><button class="btn ghost" id="btn-shop" style="flex:1">상점</button></div>
   <button class="btn" id="btn-online" style="background:#5FE8FF;box-shadow:0 6px 0 #2F9AB0">온라인 대전</button>
   <button class="btn alt" id="btn-versus">둘이서 대결 (폰 하나로)</button>
-  <button class="btn ghost" id="btn-sound">소리 켜짐</button>
+  <div class="on-row" style="width:min(560px,100%)"><button class="btn ghost" id="btn-sound" style="flex:1">소리 켜짐</button><button class="btn ghost" id="btn-art" style="flex:1">그림체: 투박하게</button></div>
   <p class="small" id="record"></p>
 </div>
 
@@ -441,14 +441,32 @@ function parseC(c) {
 function shade(c, k) { const v = parseC(c) || [128, 128, 128, 1]; const f = k < 0 ? 1 + k : 1, add = k > 0 ? k : 0; const r = Math.round(v[0] * f + (255 - v[0]) * add), g = Math.round(v[1] * f + (255 - v[1]) * add), b = Math.round(v[2] * f + (255 - v[2]) * add); return `rgb(${r},${g},${b})`; }
 // 캐릭터 그릴 때만 켜지는 입체 모드: 왼쪽 위 빛 → 오른쪽 아래 그늘 + 만화 외곽선 (작은 점·반투명은 그대로)
 const CR = { on: false, line: "rgba(40,22,44,0.9)", w: 3 };
+// 그림체: rough = 손그림 낙서풍 (굵고 삐뚤한 외곽선이 꿈틀, 두 톤 단색 음영), smooth = 부드러운 그라데이션
+const ART = { rough: true, boil: 0 };
+function hn(a, b, c) { const h = Math.sin(a * 12.9898 + b * 78.233 + c * 37.719) * 43758.5453; return h - Math.floor(h); }
+function roughPath(x, y, rx, ry, rot) {
+  const n = Math.max(9, Math.min(20, (rx + ry) / 5 | 0)), k = (x * 7 + y * 13 + rx * 3) | 0, cr = Math.cos(rot || 0), sr = Math.sin(rot || 0);
+  ctx.beginPath();
+  for (let i = 0; i <= n; i++) { const a = i / n * TAU, j = 1 + (hn(k, i % n, ART.boil) - 0.5) * 0.08, px = Math.cos(a) * rx * j, py = Math.sin(a) * ry * j, X = x + px * cr - py * sr, Y = y + px * sr + py * cr; i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }
+  ctx.closePath();
+}
+function roughBlob(x, y, rx, ry, c, rot) {
+  rx = Math.abs(rx); ry = Math.abs(ry);
+  roughPath(x, y, rx, ry, rot); ctx.fillStyle = shade(c, -0.22); ctx.fill();
+  roughPath(x - rx * 0.1, y - ry * 0.13, rx * 0.86, ry * 0.84, rot); ctx.fillStyle = c; ctx.fill();
+  if (rx > 14 && ry > 10) { roughPath(x - rx * 0.38, y - ry * 0.45, rx * 0.16, ry * 0.11, rot); ctx.fillStyle = "rgba(255,255,255,0.4)"; ctx.fill(); }
+  roughPath(x, y, rx, ry, rot); ctx.strokeStyle = CR.line; ctx.lineWidth = CR.w * 1.6; ctx.lineJoin = "round"; ctx.stroke();
+}
 function solidBig(c, size) { if (!CR.on || size < 7) return false; const v = parseC(c); return !!v && v[3] >= 0.99; }
 function shadeFill(c, x, y, rad) { const gr = ctx.createRadialGradient(x - rad * 0.35, y - rad * 0.45, rad * 0.05, x, y, rad * 1.25); gr.addColorStop(0, shade(c, 0.28)); gr.addColorStop(0.5, c); gr.addColorStop(1, shade(c, -0.22)); return gr; }
 function ell(x, y, rx, ry, c, rot) {
+  if (ART.rough && solidBig(c, Math.max(Math.abs(rx), Math.abs(ry)))) { roughBlob(x, y, rx, ry, c, rot); return; }
   ctx.beginPath(); ctx.ellipse(x, y, Math.abs(rx), Math.abs(ry), rot || 0, 0, TAU);
   if (solidBig(c, Math.max(Math.abs(rx), Math.abs(ry)))) { ctx.fillStyle = shadeFill(c, x, y, Math.max(Math.abs(rx), Math.abs(ry))); ctx.fill(); ctx.strokeStyle = CR.line; ctx.lineWidth = CR.w; ctx.stroke(); }
   else { ctx.fillStyle = c; ctx.fill(); }
 }
 function circ(x, y, r, c) {
+  if (ART.rough && solidBig(c, r)) { roughBlob(x, y, r, r, c, 0); return; }
   ctx.beginPath(); ctx.arc(x, y, Math.max(0, r), 0, TAU);
   if (solidBig(c, r)) { ctx.fillStyle = shadeFill(c, x, y, r); ctx.fill(); ctx.strokeStyle = CR.line; ctx.lineWidth = CR.w; ctx.stroke(); }
   else { ctx.fillStyle = c; ctx.fill(); }
@@ -457,11 +475,21 @@ function line(x1, y1, x2, y2, c, w) { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.l
 function arcS(x, y, r, a0, a1, c, w) { ctx.beginPath(); ctx.arc(x, y, r, a0, a1); ctx.strokeStyle = c; ctx.lineWidth = w; ctx.lineCap = "round"; ctx.stroke(); }
 function rrect(x, y, w, h, r, c) {
   ctx.beginPath(); ctx.roundRect(x, y, w, h, r);
+  if (ART.rough && solidBig(c, Math.max(w, h))) {
+    const j = k => (hn(x * 3 + k, y * 5, ART.boil) - 0.5) * 3;
+    ctx.fillStyle = shade(c, -0.22); ctx.fill(); ctx.beginPath(); ctx.roundRect(x + 2, y + 1, Math.max(1, w * 0.72), Math.max(1, h - 3), r); ctx.fillStyle = c; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x + j(1), y + j(2)); ctx.lineTo(x + w + j(3), y + j(4)); ctx.lineTo(x + w + j(5), y + h + j(6)); ctx.lineTo(x + j(7), y + h + j(8)); ctx.closePath(); ctx.strokeStyle = CR.line; ctx.lineWidth = CR.w * 1.5; ctx.lineJoin = "round"; ctx.stroke(); return;
+  }
   if (solidBig(c, Math.max(w, h))) { const gr = ctx.createLinearGradient(x, y, x + w, y + h); gr.addColorStop(0, shade(c, 0.2)); gr.addColorStop(1, shade(c, -0.2)); ctx.fillStyle = gr; ctx.fill(); ctx.strokeStyle = CR.line; ctx.lineWidth = CR.w; ctx.stroke(); }
   else { ctx.fillStyle = c; ctx.fill(); }
 }
 // 유리 같은 광택 버튼
 function glossCircle(x, y, r, c) {
+  if (ART.rough) {
+    circ(x + 3, y + 9, r, "rgba(20,10,30,0.55)");
+    const save = CR.on; CR.on = true; CR.w = 4; roughBlob(x, y, r, r, c, 0); CR.w = 3; CR.on = save;
+    return;
+  }
   circ(x, y + 8, r, shade(c, -0.45));
   const gr = ctx.createRadialGradient(x - r * 0.3, y - r * 0.4, r * 0.1, x, y, r); gr.addColorStop(0, shade(c, 0.35)); gr.addColorStop(0.6, c); gr.addColorStop(1, shade(c, -0.2));
   ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fillStyle = gr; ctx.fill();
@@ -471,6 +499,7 @@ function glossCircle(x, y, r, c) {
   ctx.beginPath(); ctx.arc(x, y, r - 1.5, 0, TAU); ctx.strokeStyle = "rgba(255,255,255,0.35)"; ctx.lineWidth = 3; ctx.stroke();
 }
 function glossBar(x, y, w, h, c) {
+  if (ART.rough) { ctx.beginPath(); ctx.roundRect(x, y, w, h, Math.min(h, w) / 2); ctx.fillStyle = shade(c, -0.2); ctx.fill(); ctx.beginPath(); ctx.roundRect(x, y, w, h * 0.62, Math.min(h, w) / 2); ctx.fillStyle = c; ctx.fill(); ctx.beginPath(); ctx.roundRect(x, y, w, h, Math.min(h, w) / 2); ctx.strokeStyle = "rgba(20,10,30,0.9)"; ctx.lineWidth = 3; ctx.stroke(); return; }
   const gr = ctx.createLinearGradient(0, y, 0, y + h); gr.addColorStop(0, shade(c, 0.35)); gr.addColorStop(0.5, c); gr.addColorStop(1, shade(c, -0.25));
   ctx.beginPath(); ctx.roundRect(x, y, w, h, Math.min(h, w) / 2); ctx.fillStyle = gr; ctx.fill();
   ctx.beginPath(); ctx.roundRect(x + 3, y + 2, Math.max(0, w - 6), h * 0.35, h * 0.2); ctx.fillStyle = "rgba(255,255,255,0.35)"; ctx.fill();
@@ -869,7 +898,9 @@ function drawStageBack(g, T, HZ, t) {
   ctx.fillStyle = grd; ctx.fillRect(-500, HZ, 1720, ARENA.h + 800);
   for (let i = 0; i < 12; i += 2) { const y0 = HZ + (ARENA.h + 260 - HZ) * Math.pow(i / 12, 1.7), y1 = HZ + (ARENA.h + 260 - HZ) * Math.pow((i + 1) / 12, 1.7); ctx.fillStyle = "rgba(255,255,255,0.05)"; ctx.fillRect(-500, y0, 1720, y1 - y0); }
   // 땅 질감: 원근에 맞춘 잔디/돌 점
+  const crOn = CR.on; CR.on = false;
   for (let i = 0; i < 70; i++) { const x = ((i * 137) % 760) - 20, y = HZ + 12 + ((i * 89) % 600), sc = persp(y), c = shade(T.ground[1], i % 2 ? 0.12 : -0.15); if (T.volcano || g.theme === "snow") ell(x, y, 6 * sc, 2.5 * sc, c); else { line(x, y, x - 3 * sc, y - 9 * sc, c, 2 * sc); line(x + 4 * sc, y, x + 5 * sc, y - 8 * sc, c, 2 * sc); } }
+  CR.on = crOn;
   if (T.puddle) for (const [x, y, w] of [[90, 330, 90], [640, 520, 110], [420, 640, 80]]) { const sc = persp(y); ell(x, y, w * sc, w * 0.28 * sc, "rgba(40,70,110,0.55)"); ell(x - w * 0.2 * sc, y - 3, w * 0.4 * sc, w * 0.08 * sc, "rgba(220,235,255,0.35)"); }
   if (T.lava) for (const [x, y, x2, y2] of [[40, 300, 190, 360], [560, 600, 700, 540], [-10, 650, 120, 700], [610, 260, 740, 300]]) { line(x, y, x2, y2, `rgba(255,${110 + 40 * Math.sin(t * 4 + x)},40,0.9)`, 6 * persp(y)); line(x, y, x2, y2, "rgba(255,230,140,0.7)", 2 * persp(y)); }
   if (g.theme === "snow") for (let i = 0; i < 8; i++) { const x = 40 + ((i * 191) % 640), y = HZ + 60 + ((i * 113) % 480), sc = persp(y); ell(x, y, 26 * sc, 9 * sc, "rgba(255,255,255,0.9)"); }
@@ -900,11 +931,11 @@ function drawStageFront(g, T, HZ, t) {
 function drawArena(g) {
   const t = g.t, l = g.logic;
   const HZ = ARENA.horizon, TH = THEMES[g.theme] || THEMES.forest;
-  drawStageBack(g, TH, HZ, t);
+  CR.on = ART.rough; try { drawStageBack(g, TH, HZ, t); } finally { CR.on = false; }
   // 동물: 뒤(1) 먼저, 앞(0) 나중
   for (const s of [1, 0]) { const p = SPOT[s]; ctx.save(); ctx.translate(p.x, p.y); ctx.scale(s === 0 ? p.s : -p.s, p.s); drawCritter(g.defs[s], g.st[s], t + s * 1.3); ctx.restore(); }
   drawGimmick(g, t);
-  drawStageFront(g, TH, HZ, t);
+  CR.on = ART.rough; try { drawStageFront(g, TH, HZ, t); } finally { CR.on = false; }
   // 모으기 오라
   for (let s = 0; s < 2; s++) {
     const f = l.f[s], st = g.st[s], bp = buttPos(s), cs = beamColors(g, s);
@@ -964,8 +995,11 @@ function drawBeam(g, s, f, from, cp) {
   ctx.fillStyle = gr; ctx.fillRect(0, -w * 1.7, len, w * 3.4);
   ctx.beginPath(); for (const x of pts) ctx.lineTo(x, wob(x) - half(x)); for (let i = pts.length - 1; i >= 0; i--) ctx.lineTo(pts[i], wob(pts[i]) + half(pts[i])); ctx.closePath();
   gr = ctx.createLinearGradient(0, -w, 0, w);
+  if (ART.rough) { ctx.fillStyle = alpha(cs[0], 1); ctx.fill(); ctx.strokeStyle = "rgba(30,12,40,0.85)"; ctx.lineWidth = 5; ctx.stroke(); ctx.beginPath(); for (const x of pts) ctx.lineTo(x, wob(x) - half(x) * 0.15); for (let i = pts.length - 1; i >= 0; i--) ctx.lineTo(pts[i], wob(pts[i]) + half(pts[i]) * 0.5); ctx.closePath(); ctx.fillStyle = alpha(cs[1], 1); ctx.fill(); }
+  else {
   gr.addColorStop(0, alpha(cs[0], 1)); gr.addColorStop(0.3, alpha(cs[1], 1)); gr.addColorStop(0.5, "#FFFFFF"); gr.addColorStop(0.7, alpha(cs[1], 1)); gr.addColorStop(1, alpha(cs[0], 1));
   ctx.fillStyle = gr; ctx.fill();
+  }
   ctx.globalCompositeOperation = "lighter";
   const strands = ult ? 3 : 2;
   for (let h = 0; h < strands; h++) for (const front of [false, true]) {
@@ -1321,6 +1355,9 @@ function showShop() {
   build("shop-beams", SKINS, "beam"); build("shop-hats", HATS, "hat");
 }
 $("shop-back").onclick = () => { play("click"); showTitle(); };
+function applyArt() { ART.rough = Save.art !== "smooth"; $("btn-art").textContent = ART.rough ? "그림체: 투박하게" : "그림체: 부드럽게"; }
+$("btn-art").onclick = () => { audioInit(); play("click"); Save.art = ART.rough ? "smooth" : "rough"; writeSave(); applyArt(); };
+applyArt();
 $("btn-shop").onclick = () => { audioInit(); play("click"); showShop(); };
 function startBattle(mode, opp) {
   $("title").hidden = true; $("shop").hidden = true; $("select").hidden = true; $("online").hidden = true; $("chars").hidden = true; closeOverlay();
@@ -1580,14 +1617,18 @@ $("btn-online").onclick = () => { audioInit(); play("click"); showOnline(); };
 
 // ───────── 메인 루프 ─────────
 let last = performance.now();
+// 종이 질감 (한 번 만들어 두고 깔기)
+const PAPER = (() => { try { const c = document.createElement("canvas"); c.width = c.height = 180; const x = c.getContext("2d"); for (let i = 0; i < 2600; i++) { const v = Math.random() < 0.5 ? 0 : 255; x.fillStyle = `rgba(${v},${v},${v},${0.025 + Math.random() * 0.05})`; x.fillRect(Math.random() * 180, Math.random() * 180, 1 + Math.random() * 2, 1 + Math.random() * 2); } for (let i = 0; i < 40; i++) { x.strokeStyle = "rgba(60,40,30,0.05)"; x.lineWidth = 1; x.beginPath(); const sx = Math.random() * 180, sy = Math.random() * 180; x.moveTo(sx, sy); x.lineTo(sx + 20 + Math.random() * 30, sy + (Math.random() - 0.5) * 8); x.stroke(); } return c; } catch (e) { return null; } })();
+let paperPat = null;
+function drawPaper() { if (!ART.rough || !PAPER) return; if (!paperPat) paperPat = ctx.createPattern(PAPER, "repeat"); ctx.fillStyle = paperPat; ctx.fillRect(0, 0, 720, H); }
 function frame(now) {
-  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  const dt = Math.min(0.05, (now - last) / 1000); last = now; ART.boil = Math.floor(now / 140);
   const real = ctx;
   real.setTransform(1, 0, 0, 1, 0, 0);
   real.fillStyle = "#2A2138"; real.fillRect(0, 0, cv.width, cv.height);
   const dpr = cv.width / innerWidth;
   real.setTransform(dpr * SC, 0, 0, dpr * SC, dpr * OFF.x, dpr * OFF.y);
-  if (G) { update(G, dt); drawBattle(G); netHostSend(G, dt); }
+  if (G) { update(G, dt); drawBattle(G); drawPaper(); netHostSend(G, dt); }
   requestAnimationFrame(frame);
 }
 window.__game = { Net, get G() { return G; }, arenaToScreen, foodPos, startBattle, showSelect, showTitle, Save };
