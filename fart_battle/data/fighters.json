@@ -19,7 +19,8 @@
     "beam": [
       "#FF5FD2",
       "#5FE8FF"
-    ]
+    ],
+    "special": "땅굴 무지개 펌프"
   },
   "opponents": [
     {
@@ -46,7 +47,8 @@
       "beam": [
         "#FFD25F",
         "#FF9F43"
-      ]
+      ],
+      "special": "도토리 소나기 뿡"
     },
     {
       "id": "grandma",
@@ -72,7 +74,8 @@
       "beam": [
         "#B57BFF",
         "#FF7BD1"
-      ]
+      ],
+      "special": "할매 꽃향기 대폭풍"
     },
     {
       "id": "muscle",
@@ -98,7 +101,8 @@
       "beam": [
         "#FF5F5F",
         "#FFB45F"
-      ]
+      ],
+      "special": "근육 터보 뿌앙"
     },
     {
       "id": "doctor",
@@ -124,7 +128,8 @@
       "beam": [
         "#7BFF5F",
         "#D2FF5F"
-      ]
+      ],
+      "special": "실험실 독가스 레이저"
     },
     {
       "id": "king",
@@ -150,7 +155,8 @@
       "beam": [
         "#FFE15F",
         "#FF5FD2"
-      ]
+      ],
+      "special": "대왕 황금 해일 뿡"
     }
   ]
 }

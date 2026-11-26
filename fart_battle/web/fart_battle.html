@@ -64,7 +64,7 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; }
 <script>
 "use strict";
 // ───────── 데이터 (data/*.json 에서 빌드 시 주입) ─────────
-const DATA = {"player": {"id": "puang", "name": "두더지 뿌앙이", "title": "땅속 방귀 신동", "power": 1.0, "control": 1.0, "gas_regen": 9.0, "stink": 0.0, "body": "#6B5A70", "lines": {"win": "뿌앙~ 땅속까지 시원하다!", "lose": "고추 두 개 먹고 다시 온다…"}, "species": "mole", "belly": "#C9A0B8", "beam": ["#FF5FD2", "#5FE8FF"]}, "opponents": [{"id": "kid", "name": "꼬마 다람쥐", "title": "도토리 방귀 초보", "power": 0.75, "control": 0.9, "gas_regen": 7.5, "stink": 0.0, "ai_reaction": 0.7, "ai_accuracy": 0.25, "ai_aggression": 0.45, "ai_block": 0.1, "ai_greed": 0.3, "body": "#C9824A", "lines": {"intro": "히히, 도토리 많이 먹었지롱!", "win": "뽀옹! 이겼당!", "lose": "으앙 냄새나…"}, "species": "squirrel", "belly": "#F2D2A8", "beam": ["#FFD25F", "#FF9F43"]}, {"id": "grandma", "name": "멧돼지 할매", "title": "고구마 한 방의 전설", "power": 1.35, "control": 0.8, "gas_regen": 6.0, "stink": 0.0, "ai_reaction": 0.55, "ai_accuracy": 0.15, "ai_aggression": 0.3, "ai_block": 0.15, "ai_greed": 0.7, "body": "#8A5A44", "lines": {"intro": "고구마 삶아 먹고 왔제~", "win": "아이고 시원하다~", "lose": "고구마가 덜 익었나 보네"}, "species": "boar", "belly": "#C99A7A", "beam": ["#B57BFF", "#FF7BD1"]}, {"id": "muscle", "name": "헬스 고릴라", "title": "연속 방귀 전문", "power": 0.9, "control": 1.1, "gas_regen": 12.0, "stink": 0.0, "ai_reaction": 0.35, "ai_accuracy": 0.12, "ai_aggression": 0.85, "ai_block": 0.3, "ai_greed": 0.5, "body": "#3A3A44", "lines": {"intro": "단백질 셰이크 세 잔 마셨다!", "win": "근손실 없는 방귀!", "lose": "프로틴이 부족했군…"}, "species": "gorilla", "belly": "#7A7A88", "beam": ["#FF5F5F", "#FFB45F"]}, {"id": "doctor", "name": "스컹크 박사", "title": "냄새 연구 30년", "power": 1.0, "control": 1.2, "gas_regen": 9.0, "stink": 1.6, "ai_reaction": 0.3, "ai_accuracy": 0.08, "ai_aggression": 0.55, "ai_block": 0.65, "ai_greed": 0.6, "body": "#2A2A33", "lines": {"intro": "이론상 내 방귀는 3시간 간다네.", "win": "실험 성공!", "lose": "가설이 틀렸군…"}, "species": "skunk", "belly": "#FFFFFF", "beam": ["#7BFF5F", "#D2FF5F"]}, {"id": "king", "name": "하마 대왕", "title": "뿌앙 리그 챔피언", "power": 1.3, "control": 1.25, "gas_regen": 11.0, "stink": 0.8, "ai_reaction": 0.22, "ai_accuracy": 0.05, "ai_aggression": 0.7, "ai_block": 0.7, "ai_greed": 0.8, "body": "#8E9AC9", "lines": {"intro": "왕관은 냄새로 지키는 것이다.", "win": "짐의 방귀를 받아라!", "lose": "새로운 왕의 탄생인가…"}, "species": "hippo", "belly": "#D9C2E0", "beam": ["#FFE15F", "#FF5FD2"]}], "foods": [{"id": "chili", "name": "매운 고추", "desc": "다음 방귀 2번 불꽃 빔! 파워 +70%", "weight": 1.1, "effect": "fire", "value": 1.7, "count": 2, "color": "#E5302A", "inner": "#5FA84A"}, {"id": "sweet_potato", "name": "고구마", "desc": "다음 방귀 3번 파워 +40%", "weight": 1.2, "effect": "power", "value": 1.4, "count": 3, "color": "#B5577A", "inner": "#F2B04A"}, {"id": "beans", "name": "콩", "desc": "가스 +50 즉시 충전", "weight": 1.2, "effect": "gas", "value": 50, "color": "#C9A36B", "inner": "#E8D3A0"}, {"id": "egg", "name": "삶은 계란", "desc": "다음 방귀 냄새가 3초 동안 남음", "weight": 1.0, "effect": "stink", "value": 3.0, "color": "#FFF8E6", "inner": "#F5C842"}, {"id": "soda", "name": "탄산음료", "desc": "6초 동안 압력 2배 빨리 참", "weight": 0.9, "effect": "fast", "value": 6.0, "color": "#E5483A", "inner": "#FFF5E9"}, {"id": "cabbage", "name": "양배추", "desc": "8초 동안 가스 충전 2배", "weight": 0.9, "effect": "regen", "value": 8.0, "color": "#7FC66B", "inner": "#C9EAA0"}, {"id": "milk", "name": "우유", "desc": "도박! 초강력 방귀 아니면 배탈", "weight": 0.7, "effect": "gamble", "value": 2.2, "color": "#FFFFFF", "inner": "#7FB6E8"}], "balance": {"version": 1, "round_time": 40.0, "rounds_to_win": 2, "gas_max": 100.0, "gas_start": 70.0, "gas_cost_full": 45.0, "min_release": 0.12, "pressure_fill_time": 1.25, "sweet_min": 0.72, "sweet_width": 0.16, "overcharge_grace": 0.35, "perfect_mult": 1.6, "push_strength": 0.85, "cloud_friction": 2.4, "cloud_max_speed": 1.6, "blunder_stun": 1.5, "blunder_backfire": 0.28, "block_duration": 0.8, "block_cooldown": 3.0, "block_reduce": 0.75, "parry_window": 0.3, "parry_reflect": 0.45, "stink_push": 0.09, "food_interval_min": 4.0, "food_interval_max": 6.5, "food_lifetime": 4.0, "milk_bad_chance": 0.5, "milk_stun": 1.0, "knockout_stun": 1.8, "beam_min_time": 0.35, "beam_extra_time": 0.7}};
+const DATA = {"player": {"id": "puang", "name": "두더지 뿌앙이", "title": "땅속 방귀 신동", "power": 1.0, "control": 1.0, "gas_regen": 9.0, "stink": 0.0, "body": "#6B5A70", "lines": {"win": "뿌앙~ 땅속까지 시원하다!", "lose": "고추 두 개 먹고 다시 온다…"}, "species": "mole", "belly": "#C9A0B8", "beam": ["#FF5FD2", "#5FE8FF"], "special": "땅굴 무지개 펌프"}, "opponents": [{"id": "kid", "name": "꼬마 다람쥐", "title": "도토리 방귀 초보", "power": 0.75, "control": 0.9, "gas_regen": 7.5, "stink": 0.0, "ai_reaction": 0.7, "ai_accuracy": 0.25, "ai_aggression": 0.45, "ai_block": 0.1, "ai_greed": 0.3, "body": "#C9824A", "lines": {"intro": "히히, 도토리 많이 먹었지롱!", "win": "뽀옹! 이겼당!", "lose": "으앙 냄새나…"}, "species": "squirrel", "belly": "#F2D2A8", "beam": ["#FFD25F", "#FF9F43"], "special": "도토리 소나기 뿡"}, {"id": "grandma", "name": "멧돼지 할매", "title": "고구마 한 방의 전설", "power": 1.35, "control": 0.8, "gas_regen": 6.0, "stink": 0.0, "ai_reaction": 0.55, "ai_accuracy": 0.15, "ai_aggression": 0.3, "ai_block": 0.15, "ai_greed": 0.7, "body": "#8A5A44", "lines": {"intro": "고구마 삶아 먹고 왔제~", "win": "아이고 시원하다~", "lose": "고구마가 덜 익었나 보네"}, "species": "boar", "belly": "#C99A7A", "beam": ["#B57BFF", "#FF7BD1"], "special": "할매 꽃향기 대폭풍"}, {"id": "muscle", "name": "헬스 고릴라", "title": "연속 방귀 전문", "power": 0.9, "control": 1.1, "gas_regen": 12.0, "stink": 0.0, "ai_reaction": 0.35, "ai_accuracy": 0.12, "ai_aggression": 0.85, "ai_block": 0.3, "ai_greed": 0.5, "body": "#3A3A44", "lines": {"intro": "단백질 셰이크 세 잔 마셨다!", "win": "근손실 없는 방귀!", "lose": "프로틴이 부족했군…"}, "species": "gorilla", "belly": "#7A7A88", "beam": ["#FF5F5F", "#FFB45F"], "special": "근육 터보 뿌앙"}, {"id": "doctor", "name": "스컹크 박사", "title": "냄새 연구 30년", "power": 1.0, "control": 1.2, "gas_regen": 9.0, "stink": 1.6, "ai_reaction": 0.3, "ai_accuracy": 0.08, "ai_aggression": 0.55, "ai_block": 0.65, "ai_greed": 0.6, "body": "#2A2A33", "lines": {"intro": "이론상 내 방귀는 3시간 간다네.", "win": "실험 성공!", "lose": "가설이 틀렸군…"}, "species": "skunk", "belly": "#FFFFFF", "beam": ["#7BFF5F", "#D2FF5F"], "special": "실험실 독가스 레이저"}, {"id": "king", "name": "하마 대왕", "title": "뿌앙 리그 챔피언", "power": 1.3, "control": 1.25, "gas_regen": 11.0, "stink": 0.8, "ai_reaction": 0.22, "ai_accuracy": 0.05, "ai_aggression": 0.7, "ai_block": 0.7, "ai_greed": 0.8, "body": "#8E9AC9", "lines": {"intro": "왕관은 냄새로 지키는 것이다.", "win": "짐의 방귀를 받아라!", "lose": "새로운 왕의 탄생인가…"}, "species": "hippo", "belly": "#D9C2E0", "beam": ["#FFE15F", "#FF5FD2"], "special": "대왕 황금 해일 뿡"}], "foods": [{"id": "chili", "name": "매운 고추", "desc": "다음 방귀 2번 불꽃 빔! 파워 +70%", "weight": 1.1, "effect": "fire", "value": 1.7, "count": 2, "color": "#E5302A", "inner": "#5FA84A"}, {"id": "sweet_potato", "name": "고구마", "desc": "다음 방귀 3번 파워 +40%", "weight": 1.2, "effect": "power", "value": 1.4, "count": 3, "color": "#B5577A", "inner": "#F2B04A"}, {"id": "beans", "name": "콩", "desc": "가스 +50 즉시 충전", "weight": 1.2, "effect": "gas", "value": 50, "color": "#C9A36B", "inner": "#E8D3A0"}, {"id": "egg", "name": "삶은 계란", "desc": "다음 방귀 냄새가 3초 동안 남음", "weight": 1.0, "effect": "stink", "value": 3.0, "color": "#FFF8E6", "inner": "#F5C842"}, {"id": "soda", "name": "탄산음료", "desc": "6초 동안 압력 2배 빨리 참", "weight": 0.9, "effect": "fast", "value": 6.0, "color": "#E5483A", "inner": "#FFF5E9"}, {"id": "cabbage", "name": "양배추", "desc": "8초 동안 가스 충전 2배", "weight": 0.9, "effect": "regen", "value": 8.0, "color": "#7FC66B", "inner": "#C9EAA0"}, {"id": "milk", "name": "우유", "desc": "도박! 초강력 방귀 아니면 배탈", "weight": 0.7, "effect": "gamble", "value": 2.2, "color": "#FFFFFF", "inner": "#7FB6E8"}], "balance": {"version": 1, "round_time": 40.0, "rounds_to_win": 2, "gas_max": 100.0, "gas_start": 70.0, "gas_cost_full": 45.0, "min_release": 0.12, "pressure_fill_time": 1.25, "sweet_min": 0.72, "sweet_width": 0.16, "overcharge_grace": 0.35, "perfect_mult": 1.6, "push_strength": 0.85, "cloud_friction": 2.4, "cloud_max_speed": 1.6, "blunder_stun": 1.5, "blunder_backfire": 0.28, "block_duration": 0.8, "block_cooldown": 3.0, "block_reduce": 0.75, "parry_window": 0.3, "parry_reflect": 0.45, "stink_push": 0.09, "food_interval_min": 4.0, "food_interval_max": 6.5, "food_lifetime": 4.0, "milk_bad_chance": 0.5, "milk_stun": 1.0, "knockout_stun": 1.8, "beam_min_time": 0.35, "beam_extra_time": 0.7, "special_gain_perfect": 34, "special_gain_hit": 8, "special_gain_parry": 25, "special_mult": 2.0, "special_block_pierce": 0.5}};
 const BAL = DATA.balance, PLAYER = DATA.player, OPPONENTS = DATA.opponents, FOODS = DATA.foods;
 const FONT_D = '"Jua","Noto Sans KR",sans-serif';
 const FONT_B = '"Noto Sans KR",system-ui,sans-serif';
@@ -79,8 +79,8 @@ loadSave();
 // side 0 = 왼쪽(1P), side 1 = 오른쪽(상대). cloud: 빔이 부딪히는 지점 -1(1P 엉덩이) ~ +1(상대 엉덩이)
 class Logic {
   constructor(d0, d1) { this.f = [this.newF(d0), this.newF(d1)]; this.roundNo = 0; this.matchOver = false; this.matchWinner = -1; this.events = []; this.foods = []; this.uid = 1; this.cloud = 0; this.vel = 0; this.timeLeft = BAL.round_time; this.elapsed = 0; this.roundOver = false; }
-  newF(def) { const f = { def, wins: 0, stats: { farts: 0, perfect: 0, blunders: 0, parries: 0, foods: 0 } }; this.reset(f); return f; }
-  reset(f) { Object.assign(f, { gas: BAL.gas_start, pressure: 0, holding: false, overT: 0, stunT: 0, blockT: 0, blockCd: 0, blockStarted: -99, powerMult: 1, powerCount: 0, stinkNext: 0, stinkT: 0, fastT: 0, regenT: 0, boostNext: 1, beamT: 0, beamTotal: 0, beamForce: 0, beamPerfect: false, beamPower: 0, beamFire: false, beamBlocked: false, fireCount: 0, fireMult: 1 }); }
+  newF(def) { const f = { def, wins: 0, stats: { farts: 0, perfect: 0, blunders: 0, parries: 0, foods: 0, ults: 0 } }; this.reset(f); f.special = 0; return f; }
+  reset(f) { Object.assign(f, { gas: BAL.gas_start, pressure: 0, holding: false, overT: 0, stunT: 0, blockT: 0, blockCd: 0, blockStarted: -99, powerMult: 1, powerCount: 0, stinkNext: 0, stinkT: 0, fastT: 0, regenT: 0, boostNext: 1, beamT: 0, beamTotal: 0, beamForce: 0, beamPerfect: false, beamPower: 0, beamFire: false, beamBlocked: false, beamUlt: false, beamBubble: false, fireCount: 0, fireMult: 1 }); }
   startRound() { this.roundNo++; this.f.forEach(f => this.reset(f)); this.cloud = 0; this.vel = 0; this.timeLeft = BAL.round_time; this.elapsed = 0; this.roundOver = false; this.roundWinner = -1; this.foods = []; this.foodTimer = 2.5 + Math.random() * 1.5; }
   take() { const e = this.events; this.events = []; return e; }
   dir(s) { return s === 0 ? 1 : -1; }
@@ -103,7 +103,7 @@ class Logic {
   tickF(s, dt) {
     const f = this.f[s], o = this.f[1 - s];
     for (const k of ["stunT", "blockT", "blockCd", "fastT", "regenT"]) f[k] = Math.max(0, f[k] - dt);
-    if (f.beamT > 0) { const d = Math.min(dt, f.beamT); f.beamT -= dt; let force = f.beamForce; if (!f.beamBlocked && o.blockT > 0) force *= 1 - BAL.block_reduce; this.vel += this.dir(s) * force * d; }
+    if (f.beamT > 0) { const d = Math.min(dt, f.beamT); f.beamT -= dt; let force = f.beamForce; if (!f.beamBlocked && o.blockT > 0) force *= 1 - BAL.block_reduce * (f.beamUlt ? BAL.special_block_pierce : 1); this.vel += this.dir(s) * force * d; }
     if (f.stinkT > 0) { f.stinkT = Math.max(0, f.stinkT - dt); let push = this.dir(s) * BAL.stink_push * dt; if (o.blockT > 0) push *= 1 - BAL.block_reduce; this.cloud += push; }
     if (f.holding) {
       const rate = (1 / BAL.pressure_fill_time) * (f.fastT > 0 ? 2 : 1), cap = this.maxP(s);
@@ -121,14 +121,18 @@ class Logic {
     if (f.powerCount > 0) { power *= f.powerMult; f.powerCount--; }
     power *= f.boostNext; f.boostNext = 1;
     let fire = false; if (f.fireCount > 0) { power *= f.fireMult; f.fireCount--; fire = true; }
+    // 필살: 게이지가 꽉 찬 상태에서 완벽한 뿡 → 파워 2배, 튕겨내기 불가, 막아도 절반만 줄어듦
+    const ult = perfect && f.special >= 100; if (ult) { power *= BAL.special_mult; f.special = 0; f.stats.ults++; }
     let push = power * BAL.push_strength, result = "hit";
-    if (t.blockT > 0) { if (this.elapsed - t.blockStarted <= BAL.parry_window) { result = "parry"; push = -push * BAL.parry_reflect; t.stats.parries++; } else result = "blocked"; }
+    if (t.blockT > 0) { if (!ult && this.elapsed - t.blockStarted <= BAL.parry_window) { result = "parry"; push = -push * BAL.parry_reflect; t.stats.parries++; } else result = "blocked"; }
     if (result === "parry") { this.vel += this.dir(s) * push; f.beamT = 0; }
-    else { const dur = BAL.beam_min_time + BAL.beam_extra_time * p; Object.assign(f, { beamT: dur, beamTotal: dur, beamForce: push / dur * (result === "blocked" ? 1 - BAL.block_reduce : 1), beamBlocked: result === "blocked", beamPerfect: perfect, beamPower: power, beamFire: fire }); }
+    else { const dur = (BAL.beam_min_time + BAL.beam_extra_time * p) * (ult ? 1.6 : 1); Object.assign(f, { beamT: dur, beamTotal: dur, beamForce: push / dur * (result === "blocked" ? 1 - BAL.block_reduce * (ult ? BAL.special_block_pierce : 1) : 1), beamBlocked: result === "blocked", beamPerfect: perfect, beamPower: power, beamFire: fire, beamUlt: ult, beamBubble: f.fastT > 0 }); }
+    if (!ult) f.special = Math.min(100, f.special + (perfect ? BAL.special_gain_perfect : 0) + (result === "hit" ? BAL.special_gain_hit : 0));
+    if (result === "parry") t.special = Math.min(100, t.special + BAL.special_gain_parry);
     const stink = Math.max(f.stinkNext, def.stink || 0); f.stinkNext = 0; if (stink > 0 && result === "hit") f.stinkT = Math.max(f.stinkT, stink);
     f.stats.farts++; if (perfect) f.stats.perfect++;
     const size = power >= 1.4 ? "mega" : power >= 0.9 ? "big" : power >= 0.4 ? "medium" : "tiny";
-    const ev = { type: "fart", side: s, p, power, perfect, size, result, fire }; this.events.push(ev); return ev;
+    const ev = { type: "fart", side: s, p, power, perfect, size, result, fire, ult }; this.events.push(ev); return ev;
   }
   blunder(s) { const f = this.f[s]; Object.assign(f, { holding: false, pressure: 0, overT: 0, stunT: BAL.blunder_stun, beamT: 0, gas: f.gas * 0.5 }); f.stats.blunders++; this.vel -= this.dir(s) * BAL.blunder_backfire; this.events.push({ type: "blunder", side: s }); }
   applyFood(s, id) {
@@ -221,7 +225,7 @@ function audioInit() {
     big: [fart(0.85, 85, 0.85, 0.4), fart(0.95, 95, 0.85, 0.35)], mega: [fart(1.4, 62, 1, 0.5), fart(1.5, 70, 1, 0.55)],
     squeak: [tone([900, 700, 500, 350], 0.1, 0.3)], block: [tone([300, 450], 0.07, 0.3)], parry: [tone([600, 900, 1200], 0.06, 0.3)],
     eat: [tone([520, 660], 0.06, 0.25)], bad: [tone([260, 180], 0.12, 0.3)], win: [tone([523, 659, 784, 1046], 0.1, 0.3)],
-    lose: [tone([392, 330, 262], 0.16, 0.3)], click: [tone([700], 0.04, 0.2)] };
+    lose: [tone([392, 330, 262], 0.16, 0.3)], ting: [tone([1320, 1760], 0.05, 0.18)], ult: [tone([400, 520, 660, 820, 1000, 1250, 1560, 1950], 0.045, 0.25)], click: [tone([700], 0.04, 0.2)] };
 }
 function play(id, pitch) {
   if (!Save.sound || !Snd.ctx || !Snd.bufs[id]) return;
@@ -324,7 +328,7 @@ function newBattle(mode, oppIndex, demo) {
   let p1 = Object.assign({}, PLAYER), p2 = Object.assign({}, opp);
   if (mode === "versus") { for (const k of ["power", "control", "gas_regen", "stink"]) p2[k] = p1[k]; p1.name = "1P " + p1.name; p2.name = "2P " + opp.name; }
   const logic = new Logic(p1, p2);
-  const g = { mode, oppIndex, demo: !!demo, logic, defs: [p1, p2], ai: null, ai0: null, st: [{ mood: "normal" }, { mood: "normal" }], parts: [], pops: [], shake: 0, flash: 0, state: "intro", stateT: demo ? 0.1 : 1.6, count: 3, big: "", touches: {}, saved: false, t: 0 };
+  const g = { mode, oppIndex, demo: !!demo, logic, defs: [p1, p2], ai: null, ai0: null, st: [{ mood: "normal" }, { mood: "normal" }], parts: [], pops: [], waves: [], freeze: 0, slowT: 0, cutin: null, zoom: 0, shake: 0, flash: 0, state: "intro", stateT: demo ? 0.1 : 1.6, count: 3, big: "", touches: {}, saved: false, t: 0 };
   if (mode === "league" || demo) g.ai = new AI(logic, 1, demo ? { ai_reaction: 0.3, ai_accuracy: 0.1, ai_aggression: 0.9, ai_block: 0.3, ai_greed: 0.8 } : null);
   if (demo) g.ai0 = new AI(logic, 0, { ai_reaction: 0.3, ai_accuracy: 0.1, ai_aggression: 0.9, ai_block: 0.3, ai_greed: 0.8 });
   return g;
@@ -355,6 +359,12 @@ function handleEvent(g, ev) {
     if (ev.result === "blocked") { popup(g, buttPos(1 - ev.side).x - d * 30, bp.y - 110, "막았다!", "#5FE8FF", 28); play("block"); }
     if (ev.result === "parry") { popup(g, buttPos(1 - ev.side).x - d * 30, bp.y - 110, "튕겨내기!!", "#FF5FD2", 34); g.flash = 1; play("parry"); }
     g.shake = Math.max(g.shake, { tiny: 0.1, medium: 0.3, big: 0.6, mega: 1 }[ev.size]);
+    if (ev.size === "big" || ev.size === "mega") { g.freeze = ev.size === "mega" ? 0.09 : 0.05; g.zoom = Math.max(g.zoom, ev.size === "mega" ? 0.06 : 0.03); wave(g, bp.x, bp.y, 150, beamColors(g, ev.side)[1], 8); }
+    if (ev.ult) {
+      popup(g, bp.x + d * 60, bp.y - 160, "필살!!", "#FFE15F", 52);
+      if (!g.demo) { g.cutin = { side: ev.side, t: 0, dur: 1.25 }; play("ult"); buzz(120); }
+      else { g.flash = 1; g.zoom = 0.1; wave(g, bp.x, bp.y, 320, "#FFFFFF", 12); }
+    }
     if (!g.demo) { play(ev.size); if (ev.side === 0 || g.mode === "versus") buzz(ev.size === "tiny" || ev.size === "medium" ? 20 : 50); }
   } else if (ev.type === "blunder") {
     popup(g, ev.side === 0 ? ARENA.left : ARENA.right, ARENA.ground - 150, "삐끗!", "#FF5F5F", 44); g.shake = Math.max(g.shake, 0.5);
@@ -369,7 +379,7 @@ function handleEvent(g, ev) {
     if (!g.demo) play("block", 1.3);
   } else if (ev.type === "round_end") {
     const w = ev.winner;
-    if (w >= 0) { const bp = buttPos(1 - w); sparks(g, bp.x, bp.y, 30); g.shake = 1; g.st[w].mood = "happy"; g.st[1 - w].mood = "sad"; }
+    if (w >= 0) { const bp = buttPos(1 - w); sparks(g, bp.x, bp.y, 30); g.shake = 1; wave(g, bp.x, bp.y, 380, "#FFFFFF", 14); wave(g, bp.x, bp.y, 240, beamColors(g, w)[0], 10); if (!g.demo) { g.slowT = 0.9; g.zoom = 0.1; } g.st[w].mood = "happy"; g.st[1 - w].mood = "sad"; }
     if (!g.demo) {
       g.state = "round_end"; g.stateT = 2; g.touches = {};
       g.big = w < 0 ? "무승부!" : g.mode === "versus" ? g.defs[w].name + " 승리!" : (w === 0 ? "라운드 승리!" : "라운드 패배…");
@@ -380,8 +390,18 @@ function handleEvent(g, ev) {
 
 function startCountdown(g) { g.logic.startRound(); g.logic.take(); g.st.forEach(s => s.mood = "normal"); g.state = "countdown"; g.count = 3; g.stateT = 0.7; g.big = g.logic.roundNo + "라운드"; }
 
-function update(g, dt) {
-  g.t += dt; g.shake = Math.max(0, g.shake - dt * 2.5); g.flash = Math.max(0, g.flash - dt * 3);
+function wave(g, x, y, max, c, w) { g.waves.push({ x, y, r: 12, max, c, w, life: 1 }); }
+function beamW(f) { const k = Math.min(1, f.beamT / Math.max(0.01, f.beamTotal)); return (18 + 30 * Math.min(1.8, f.beamPower)) * (0.35 + 0.65 * Math.min(1, k * 1.4)) * (f.beamUlt ? 1.35 : 1); }
+function update(g, rdt) {
+  // ldt: 규칙 시간, edt: 연출 시간. 컷인 중엔 규칙 정지 + 연출 초슬로, 타격 경직 중엔 둘 다 정지, KO 땐 슬로모션
+  let ldt = rdt, edt = rdt;
+  if (g.cutin) {
+    g.cutin.t += rdt; ldt = 0; edt = rdt * 0.08;
+    if (g.cutin.t >= g.cutin.dur) { const cp = clashPos(g); g.cutin = null; g.shake = 1.3; g.flash = 1; g.zoom = 0.12; wave(g, cp.x, cp.y, 420, "#FFFFFF", 16); wave(g, cp.x, cp.y, 280, "#FFE15F", 10); play("mega"); play("big", 0.8); }
+  } else if (g.freeze > 0) { g.freeze -= rdt; ldt = 0; edt = 0; }
+  else if (g.slowT > 0) { g.slowT -= rdt; ldt *= 0.3; edt *= 0.3; }
+  const dt = ldt;
+  g.t += edt; g.shake = Math.max(0, g.shake - rdt * 2.5); g.flash = Math.max(0, g.flash - rdt * 3); g.zoom = Math.max(0, g.zoom - rdt * 0.2);
   const l = g.logic;
   if (g.demo) {
     if (g.state === "intro") { l.startRound(); g.state = "fight"; }
@@ -399,15 +419,43 @@ function update(g, dt) {
     g.stateT -= dt; if (g.stateT <= 0) { if (l.matchOver) showResult(g); else { g.big = ""; startCountdown(g); } }
   }
   for (let s = 0; s < 2; s++) { const f = l.f[s], st = g.st[s]; st.pressure = f.holding ? f.pressure : 0; st.stunned = f.stunT > 0; st.blocking = f.blockT > 0; st.recoil = Math.max(0, (st.recoil || 0) - dt * 3); st.eatT = Math.max(0, (st.eatT || 0) - dt); }
-  const cp = clashPos(g);
-  if (l.f[0].beamT > 0 && l.f[1].beamT > 0 && Math.random() < 0.8) sparks(g, cp.x, cp.y, 2);
-  for (const p of g.parts.slice()) { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.96; p.vy *= 0.96; if (p.life <= 0) g.parts.splice(g.parts.indexOf(p), 1); }
-  for (const p of g.pops.slice()) { p.age += dt; if (p.age > 1.1) g.pops.splice(g.pops.indexOf(p), 1); }
+  const cp = clashPos(g), both = l.f[0].beamT > 0 && l.f[1].beamT > 0, sw = Math.min(1, edt * 60);
+  if (both && Math.random() < 0.8 * sw) sparks(g, cp.x, cp.y, 2);
+  for (let s = 0; s < 2; s++) {
+    const f = l.f[s], st = g.st[s], bp = buttPos(s), cs = beamColors(g, s), d = s === 0 ? 1 : -1;
+    // 모으기: 주변 기운이 엉덩이로 빨려 들어감
+    if (f.holding && Math.random() < edt * (12 + 60 * f.pressure)) { const a = Math.random() * TAU, r = 90 + Math.random() * 60; g.parts.push({ x: bp.x + Math.cos(a) * r, y: bp.y + Math.sin(a) * r, vx: -Math.cos(a) * r / 0.35, vy: -Math.sin(a) * r / 0.35, life: 0.35, r: 3 + Math.random() * 3, c: alpha(cs[1], 0.9), k: "suck" }); }
+    const sv = l.sweet(s), inSweet = f.holding && f.pressure >= sv[0] && f.pressure <= sv[1];
+    if (inSweet && !st.inSweet) { st.ting = 1; if (!g.demo && (s === 0 || g.mode === "versus")) play("ting"); }
+    st.inSweet = inSweet; st.ting = Math.max(0, (st.ting || 0) - edt * 2.5);
+    // 빔: 물보라 / 거품
+    if (f.beamT > 0) {
+      const w = beamW(f), n = edt * (40 + 50 * f.beamPower) * (f.beamUlt ? 2 : 1);
+      for (let i = 0; i < n || (i === 0 && Math.random() < n); i++) {
+        const u = Math.random(), x = bp.x + (cp.x - bp.x) * u, y = bp.y + (Math.random() - 0.5) * w;
+        if (f.beamBubble) g.parts.push({ x, y, vx: d * (40 + Math.random() * 80), vy: -30 - Math.random() * 60, life: 0.6 + Math.random() * 0.5, r: 4 + Math.random() * 6, c: "#FFFFFF", k: "bubble" });
+        else g.parts.push({ x, y, vx: d * (80 + Math.random() * 220), vy: -(60 + Math.random() * 240) * (Math.random() < 0.3 ? -0.4 : 1), life: 0.35 + Math.random() * 0.4, r: 2 + Math.random() * 3.5, c: Math.random() < 0.5 ? "#FFFFFF" : alpha(cs[1], 1), k: "drop" });
+      }
+      // 부딪힘 지점 물보라
+      const m = edt * (both ? 90 : 35);
+      for (let i = 0; i < m; i++) { const a = both ? -Math.PI / 2 + (Math.random() - 0.5) * 2.6 : (d > 0 ? Math.PI : 0) + (Math.random() - 0.5) * 1.8 - d * 0.5, v = 120 + Math.random() * 320; g.parts.push({ x: cp.x, y: cp.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.3 + Math.random() * 0.45, r: 2 + Math.random() * 4, c: Math.random() < 0.5 ? "#FFFFFF" : alpha(cs[0], 1), k: "drop" }); }
+    }
+  }
+  if (g.parts.length > 700) g.parts.splice(0, g.parts.length - 700);
+  for (const p of g.parts.slice()) {
+    p.life -= edt; p.x += p.vx * edt; p.y += p.vy * edt;
+    if (p.k === "drop") p.vy += 700 * edt; else if (p.k === "bubble") { p.vx *= 0.97; p.x += Math.sin(g.t * 9 + p.r) * 0.6; } else if (p.k !== "suck") { p.vx *= 0.96; p.vy *= 0.96; }
+    if (p.life <= 0) g.parts.splice(g.parts.indexOf(p), 1);
+  }
+  for (const w of g.waves.slice()) { w.r += (w.max - w.r) * Math.min(1, edt * 7); w.life -= edt * 2.2; if (w.life <= 0) g.waves.splice(g.waves.indexOf(w), 1); }
+  for (const p of g.pops.slice()) { p.age += edt; if (p.age > 1.1) g.pops.splice(g.pops.indexOf(p), 1); }
 }
 
 function beamColors(g, side) {
   const f = g.logic.f[side];
+  if (f.beamUlt) return [`hsl(${(g.t * 700) % 360},100%,62%)`, `hsl(${(g.t * 700 + 140) % 360},100%,75%)`, "#FFFFFF"];
   if (f.beamFire) return ["#FF3B1F", "#FFB43B", "#FFF1A0"];
+  if (f.beamBubble && !f.beamPerfect) return ["#2F8FFF", "#9FE3FF", "#FFFFFF"];
   if (f.beamPerfect) return [`hsl(${(g.t * 300) % 360},100%,65%)`, `hsl(${(g.t * 300 + 120) % 360},100%,75%)`, "#FFFFFF"];
   const b = g.defs[side].beam || ["#FF5FD2", "#5FE8FF"]; return [b[0], b[1] || b[0], "#FFFFFF"];
 }
@@ -428,24 +476,29 @@ function drawArena(g) {
   // 동물
   ctx.save(); ctx.translate(ARENA.left, ARENA.ground); drawCritter(g.defs[0], g.st[0], t); ctx.restore();
   ctx.save(); ctx.translate(ARENA.right, ARENA.ground); ctx.scale(-1, 1); drawCritter(g.defs[1], g.st[1], t + 1.3); ctx.restore();
+  // 모으기 오라
+  for (let s = 0; s < 2; s++) {
+    const f = l.f[s], st = g.st[s], bp = buttPos(s), cs = beamColors(g, s);
+    if (f.holding) {
+      const p = f.pressure, r = 26 + 56 * p;
+      ctx.save(); ctx.globalCompositeOperation = "lighter";
+      const gr = ctx.createRadialGradient(bp.x, bp.y, 0, bp.x, bp.y, r); gr.addColorStop(0, `rgba(255,255,255,${0.6 * p})`); gr.addColorStop(0.5, alpha(cs[1], 0.45 * p)); gr.addColorStop(1, alpha(cs[0], 0));
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(bp.x, bp.y, r, 0, TAU); ctx.fill();
+      for (let i = 0; i < 3; i++) arcS(bp.x, bp.y, r * (0.5 + 0.2 * i), t * (6 + i * 3) * (i % 2 ? -1 : 1), t * (6 + i * 3) * (i % 2 ? -1 : 1) + 1.6, alpha(cs[1], 0.7 * p), 3);
+      if (st.inSweet) { const sz = 20 + 6 * Math.sin(t * 25); ctx.save(); ctx.translate(bp.x, bp.y - r * 0.2); ctx.rotate(t * 3); ctx.beginPath(); for (let i = 0; i < 8; i++) { const a = i * TAU / 8, rr = i % 2 ? sz * 0.22 : sz; ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } ctx.fillStyle = "rgba(255,240,150,0.95)"; ctx.fill(); ctx.restore(); }
+      ctx.restore();
+    }
+    if (st.ting > 0) arcS(bp.x, bp.y, 30 + (1 - st.ting) * 80, 0, TAU, `rgba(255,255,200,${st.ting})`, 5);
+  }
   // 빔
   const cp = clashPos(g); let any = false;
-  for (let s = 0; s < 2; s++) {
-    const f = l.f[s]; if (f.beamT <= 0) continue; any = true;
-    const k = Math.min(1, f.beamT / Math.max(0.01, f.beamTotal)), from = buttPos(s), cs = beamColors(g, s);
-    const w = (16 + 26 * Math.min(1.6, f.beamPower)) * (0.4 + 0.6 * k);
-    const path = () => { ctx.beginPath(); for (let i = 0; i <= 18; i++) { const u = i / 18, wob = Math.sin(t * 30 + u * 12 + s * 2) * 4 * (1 - u * 0.5); const x = from.x + (cp.x - from.x) * u, y = from.y + wob; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } };
-    ctx.lineCap = "round"; ctx.lineJoin = "round";
-    for (const [c, a, mul] of [[cs[0], 0.18, 2.2], [cs[0], 0.6, 1.3], [cs[1], 0.85, 0.75], [cs[2], 0.95, 0.3]]) { path(); ctx.strokeStyle = alpha(c, a); ctx.lineWidth = w * mul; ctx.stroke(); }
-    for (let j = 0; j < 5; j++) { const u = (t * 2.4 + j * 0.2) % 1; circ(from.x + (cp.x - from.x) * u, from.y, w * 0.22, "rgba(255,255,255,0.8)"); }
-    circ(from.x, from.y, w * 0.7, alpha(cs[1], 0.7));
-  }
+  for (let s = 0; s < 2; s++) { const f = l.f[s]; if (f.beamT <= 0) continue; any = true; drawBeam(g, s, f, buttPos(s), cp); }
   // 냄새 구름 (부딪힘 지점)
   const pulse = 1 + 0.08 * Math.sin(t * 8), bigc = any ? 1.4 : 1;
   for (let i = 0; i < 6; i++) { const a = t * 1.5 + i * TAU / 6; circ(cp.x + Math.cos(a) * 22 * bigc, cp.y + Math.sin(a) * 15 * bigc, 20 * bigc * pulse, "rgba(179,230,89,0.55)"); }
   circ(cp.x, cp.y, 26 * bigc * pulse, "rgba(204,242,115,0.85)");
   circ(cp.x - 8, cp.y - 6, 3.5, "#26331A"); circ(cp.x + 8, cp.y - 6, 3.5, "#26331A"); arcS(cp.x, cp.y + 6, 7, 0.2, Math.PI - 0.2, "#26331A", 2.5);
-  if (l.f[0].beamT > 0 && l.f[1].beamT > 0) { const r = 46 + 10 * Math.sin(t * 20); circ(cp.x, cp.y, r, "rgba(255,255,255,0.35)"); for (let i = 0; i < 8; i++) { const a = t * 6 + i * TAU / 8; line(cp.x, cp.y, cp.x + Math.cos(a) * (r + 30), cp.y + Math.sin(a) * (r + 30), "rgba(255,255,204,0.6)", 4); } }
+  if (any) drawClash(g, cp, l.f[0].beamT > 0 && l.f[1].beamT > 0, l.f[0].beamUlt || l.f[1].beamUlt);
   // 음식
   for (const fd of l.foods) {
     if (fd.life < 1.2 && (t % 0.3) > 0.18) continue;
@@ -454,11 +507,83 @@ function drawArena(g) {
     drawFood(fd.id, p.x, p.y, d.color, d.inner);
     text(d.name, p.x, p.y + 60, 20, "#fff", "center", 6, FONT_B);
   }
-  for (const p of g.parts) { const a = Math.min(1, p.life * 2); if (p.k === "puff") circ(p.x, p.y, p.r * (1.6 - a * 0.6), p.c.replace("0.55)", (0.55 * a).toFixed(2) + ")")); else { ctx.globalAlpha = a; circ(p.x, p.y, p.r, p.c); ctx.globalAlpha = 1; } }
+  ctx.save(); ctx.globalCompositeOperation = "lighter";
+  for (const w of g.waves) { arcS(w.x, w.y, w.r, 0, TAU, alpha(w.c.startsWith("#") ? w.c : "#FFFFFF", Math.max(0, w.life) * 0.8), w.w * w.life + 1); }
+  for (const p of g.parts) { if (p.k !== "drop" && p.k !== "suck") continue; ctx.globalAlpha = Math.min(1, p.life * 3); circ(p.x, p.y, p.r, p.c); }
+  ctx.restore(); ctx.globalAlpha = 1;
+  for (const p of g.parts) { if (p.k === "drop" || p.k === "suck") continue; if (p.k === "bubble") { ctx.globalAlpha = Math.min(1, p.life * 2); arcS(p.x, p.y, p.r, 0, TAU, "rgba(255,255,255,0.9)", 2); circ(p.x - p.r * 0.35, p.y - p.r * 0.35, p.r * 0.25, "#fff"); ctx.globalAlpha = 1; continue; } const a = Math.min(1, p.life * 2); if (p.k === "puff") circ(p.x, p.y, p.r * (1.6 - a * 0.6), p.c.replace("0.55)", (0.55 * a).toFixed(2) + ")")); else { ctx.globalAlpha = a; circ(p.x, p.y, p.r, p.c); ctx.globalAlpha = 1; } }
   for (const p of g.pops) { const a = Math.max(0, Math.min(1, 1.4 - p.age * 1.3)), s = p.s * (1 + 0.3 * Math.max(0, 0.15 - p.age) / 0.15); ctx.globalAlpha = a; text(p.t, p.x, p.y - p.age * 40, Math.round(s), p.c, "center", 10); ctx.globalAlpha = 1; }
   if (g.flash > 0) { ctx.fillStyle = `rgba(255,255,255,${g.flash * 0.35})`; ctx.fillRect(0, -1200, 720, 2000); }
 }
 
+// 소용돌이치는 물줄기 같은 방귀 빔: 바깥 빛 → 몸통(굵기 출렁) → 나선 줄기 → 퍼져 나가는 고리 → 하얀 심 → 속도선 → 분사구 폭발
+function drawBeam(g, s, f, from, cp) {
+  const t = g.t, cs = beamColors(g, s), d = cp.x >= from.x ? 1 : -1, ult = f.beamUlt;
+  const age = f.beamTotal - f.beamT, len = Math.max(2, Math.abs(cp.x - from.x) * Math.min(1, age / 0.09)), w = beamW(f);
+  const pts = []; for (let x = 0; x < len; x += 7) pts.push(x); pts.push(len);
+  const wob = x => Math.sin(t * 34 + x * 0.05 + s * 2) * 3 * (1 - x / len * 0.5);
+  const half = x => w * (0.5 + 0.5 * Math.min(1, x / 60)) * (1 + 0.09 * Math.sin(t * 55 - x * 0.12));
+  ctx.save(); ctx.translate(from.x, from.y); ctx.scale(d, 1); ctx.lineCap = "round"; ctx.lineJoin = "round";
+  let gr = ctx.createLinearGradient(0, -w * 1.7, 0, w * 1.7);
+  gr.addColorStop(0, alpha(cs[0], 0)); gr.addColorStop(0.5, alpha(cs[0], ult ? 0.55 : 0.4)); gr.addColorStop(1, alpha(cs[0], 0));
+  ctx.fillStyle = gr; ctx.fillRect(0, -w * 1.7, len, w * 3.4);
+  ctx.beginPath(); for (const x of pts) ctx.lineTo(x, wob(x) - half(x)); for (let i = pts.length - 1; i >= 0; i--) ctx.lineTo(pts[i], wob(pts[i]) + half(pts[i])); ctx.closePath();
+  gr = ctx.createLinearGradient(0, -w, 0, w);
+  gr.addColorStop(0, alpha(cs[0], 1)); gr.addColorStop(0.3, alpha(cs[1], 1)); gr.addColorStop(0.5, "#FFFFFF"); gr.addColorStop(0.7, alpha(cs[1], 1)); gr.addColorStop(1, alpha(cs[0], 1));
+  ctx.fillStyle = gr; ctx.fill();
+  ctx.globalCompositeOperation = "lighter";
+  const strands = ult ? 3 : 2;
+  for (let h = 0; h < strands; h++) for (const front of [false, true]) {
+    ctx.beginPath(); let pen = false;
+    for (const x of pts) { const a = x * 0.05 - t * 42 + h * TAU / strands, y = wob(x) + Math.sin(a) * half(x) * (ult ? 1.3 : 1.08); if ((Math.cos(a) > 0) === front) { pen ? ctx.lineTo(x, y) : ctx.moveTo(x, y); pen = true; } else pen = false; }
+    ctx.strokeStyle = front ? "rgba(255,255,255,0.7)" : alpha(cs[0], 0.35); ctx.lineWidth = w * (front ? 0.17 : 0.1); ctx.stroke();
+  }
+  const nR = Math.max(2, Math.floor(len / 70));
+  for (let i = 0; i < nR; i++) { const x = (t * 700 + i * len / nR) % len, a = 1 - x / len; ctx.beginPath(); ctx.ellipse(x, wob(x), w * 0.2, half(x) * 1.3, 0, 0, TAU); ctx.strokeStyle = `rgba(255,255,255,${0.6 * a})`; ctx.lineWidth = 3; ctx.stroke(); }
+  ctx.globalCompositeOperation = "source-over";
+  ctx.beginPath(); for (const x of pts) ctx.lineTo(x, wob(x) + Math.sin(x * 0.3 + t * 80) * 1.5); ctx.strokeStyle = "rgba(255,255,255,0.9)"; ctx.lineWidth = w * 0.18; ctx.stroke();
+  for (let i = 0; i < 7; i++) { const yy = (((i * 37) % 13) / 6 - 1) * w * 0.7, x0 = (t * 1500 + i * 113) % (len + 80) - 40; if (x0 > 0 && x0 + 46 < len) line(x0, wob(x0) + yy, x0 + 46, wob(x0) + yy, "rgba(255,255,255,0.55)", 2); }
+  gr = ctx.createRadialGradient(0, 0, 0, 0, 0, w * 1.15); gr.addColorStop(0, "rgba(255,255,255,0.9)"); gr.addColorStop(0.45, alpha(cs[1], 0.75)); gr.addColorStop(1, alpha(cs[0], 0));
+  ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(0, 0, w * 1.15, 0, TAU); ctx.fill();
+  for (let i = 0; i < 7; i++) { const a = (i / 6 - 0.5) * 1.7 + Math.sin(t * 30 + i) * 0.12, L = w * (1.1 + 0.7 * Math.abs(Math.sin(t * 40 + i * 3))); line(0, 0, Math.cos(a) * L, Math.sin(a) * L, alpha(cs[0], 0.85), 4); }
+  gr = ctx.createRadialGradient(len, wob(len), 0, len, wob(len), w * 1.1); gr.addColorStop(0, "rgba(255,255,255,0.8)"); gr.addColorStop(0.5, alpha(cs[1], 0.5)); gr.addColorStop(1, alpha(cs[1], 0));
+  ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(len, wob(len), w * 1.3, 0, TAU); ctx.fill();
+  ctx.restore();
+}
+// 빔이 부딪히는 곳: 섬광 + 렌즈 플레어 + 도는 충격 고리
+function drawClash(g, cp, both, ult) {
+  const t = g.t, R0 = (both ? 64 : 38) * (ult ? 1.5 : 1) * (1 + 0.15 * Math.sin(t * 28));
+  ctx.save(); ctx.globalCompositeOperation = "lighter";
+  let gr = ctx.createRadialGradient(cp.x, cp.y, 0, cp.x, cp.y, R0); gr.addColorStop(0, "rgba(255,255,255,0.8)"); gr.addColorStop(0.35, "rgba(255,240,180,0.4)"); gr.addColorStop(1, "rgba(255,200,255,0)");
+  ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(cp.x, cp.y, R0, 0, TAU); ctx.fill();
+  if (both) {
+    for (const [wd, ht] of [[R0 * 4, 5], [6, R0 * 2.6]]) { gr = ctx.createRadialGradient(cp.x, cp.y, 0, cp.x, cp.y, Math.max(wd, ht) / 2); gr.addColorStop(0, "rgba(255,255,255,0.9)"); gr.addColorStop(1, "rgba(255,255,255,0)"); ctx.fillStyle = gr; ctx.fillRect(cp.x - wd / 2, cp.y - ht / 2, wd, ht); }
+    for (let i = 0; i < 2; i++) { ctx.beginPath(); ctx.ellipse(cp.x, cp.y, R0 * (0.9 + 0.3 * i), R0 * 0.35, t * (4 + i * 3) * (i ? -1 : 1), 0, TAU); ctx.strokeStyle = "rgba(255,255,255,0.6)"; ctx.lineWidth = 3; ctx.stroke(); }
+    for (let i = 0; i < 10; i++) { const a = t * 5 + i * TAU / 10, L = R0 + 24 + 18 * Math.sin(t * 33 + i); line(cp.x + Math.cos(a) * R0 * 0.5, cp.y + Math.sin(a) * R0 * 0.5, cp.x + Math.cos(a) * L, cp.y + Math.sin(a) * L, "rgba(255,255,204,0.7)", 4); }
+  }
+  ctx.restore();
+}
+// 필살기 컷인 (화면 좌표)
+function drawCutin(g) {
+  const c = g.cutin, s = c.side, def = g.defs[s], cs = beamColors(g, s);
+  const inK = Math.min(1, c.t / 0.18), outK = Math.max(0, (c.t - (c.dur - 0.2)) / 0.2), a = inK * (1 - outK), ease = 1 - Math.pow(1 - inK, 3);
+  const cy = H * 0.45, bh = 270, dir = s === 0 ? 1 : -1;
+  ctx.save();
+  if (g.mode === "versus" && s === 1) { ctx.translate(360, cy); ctx.rotate(Math.PI); ctx.translate(-360, -cy); }
+  ctx.fillStyle = `rgba(10,5,20,${0.62 * a})`; ctx.fillRect(-200, -200, 1120, H + 400);
+  ctx.translate((1 - ease) * -900 * dir + outK * 900 * dir, 0);
+  ctx.beginPath(); ctx.moveTo(-120, cy - bh / 2 + 50); ctx.lineTo(840, cy - bh / 2 - 50); ctx.lineTo(840, cy + bh / 2 - 50); ctx.lineTo(-120, cy + bh / 2 + 50); ctx.closePath();
+  const gr = ctx.createLinearGradient(0, 0, 720, 0); gr.addColorStop(0, alpha(cs[0], 1)); gr.addColorStop(1, alpha(cs[1], 1));
+  ctx.fillStyle = gr; ctx.fill();
+  ctx.save(); ctx.clip();
+  for (let i = 0; i < 26; i++) { const y = cy - bh / 2 - 60 + ((i * 53) % (bh + 120)), x = ((g.cutin.t * 2600 * dir + i * 211) % 1100 + 1100) % 1100 - 200; line(x, y, x + 160 * dir, y, "rgba(255,255,255,0.45)", 3 + (i % 3) * 2); }
+  ctx.save(); ctx.translate(360 - 40 * dir, cy + 108); ctx.scale(1.55 * dir, 1.55); drawCritter(def, { pressure: 0.95, mood: "normal" }, c.t * 3); ctx.restore();
+  ctx.restore();
+  text("필살 뿡!", 360, cy - bh / 2 - 26, 80, "#FFE15F", "center", 16);
+  text(def.special || "무지개 펌프 뿡", 360, cy + bh / 2 + 22, 42, "#FFFFFF", "center", 12);
+  ctx.restore();
+  if (outK > 0) { ctx.fillStyle = `rgba(255,255,255,${outK * 0.7})`; ctx.fillRect(0, 0, 720, H); }
+}
 function drawFood(id, x, y, c, inner) {
   switch (id) {
     case "sweet_potato": ell(x, y, 30, 17, c, -0.4); ell(x + 10, y - 6, 12, 8, inner, -0.4); break;
@@ -480,6 +605,9 @@ function drawPad(g, side, y0, flipped) {
   if (flipped) { ctx.translate(720, y0 + 300); ctx.rotate(Math.PI); } else ctx.translate(0, y0);
   rrect(0, 0, 720, 300, 26, "rgba(34,26,46,0.94)");
   text(def.name, 24, 30, 20, acc, "left", 0, FONT_B);
+  const spv = f.special || 0, ready = spv >= 100, rb = `hsl(${(g.t * 400) % 360},100%,65%)`;
+  rrect(24, 52, 170, 14, 7, "rgba(0,0,0,0.45)"); if (spv > 0) rrect(24, 52, Math.max(14, 170 * spv / 100), 14, 7, ready ? rb : "#FFB43B");
+  text(ready ? "필살 준비! 완벽하게 떼기" : "필살 게이지", 24, 80, 13, ready ? "#FFE15F" : "#B9B5B0", "left", 0, FONT_B);
   rrect(210, 18, 250, 22, 11, "rgba(0,0,0,0.4)");
   const gk = f.gas / BAL.gas_max; if (gk > 0) rrect(210, 18, Math.max(22, 250 * gk), 22, 11, f.regenT > 0 ? "#5FE8FF" : "#9BE05F");
   text("가스 " + Math.round(f.gas), 222, 30, 15, "rgba(20,20,20,0.85)", "left", 0, FONT_B);
@@ -502,7 +630,8 @@ function drawPad(g, side, y0, flipped) {
   circ(fb.x, fb.y + 8, r, shade(fc, -0.4)); circ(fb.x, fb.y, r, fc);
   if (p > 0) { circ(fb.x, fb.y, r * Math.min(1, p), "rgba(255,255,255,0.25)"); arcS(fb.x, fb.y, r + 6 + Math.sin(g.t * 50) * 3 * p, 0, TAU, "rgba(255,255,255,0.5)", 4); }
   circ(fb.x - r * 0.35, fb.y - r * 0.4, r * 0.22, "rgba(255,255,255,0.25)");
-  let tx = stun ? "기절…" : "꾹~ 뿡!"; if (f.holding) tx = p >= sw[0] && p <= sw[1] ? "지금 떼기!" : p < sw[0] ? "참는 중…" : "위험!!";
+  if (ready && !stun) { arcS(fb.x, fb.y, r + 10 + 3 * Math.sin(g.t * 12), 0, TAU, rb, 7); }
+  let tx = stun ? "기절…" : ready ? "필살 준비!" : "꾹~ 뿡!"; if (f.holding) tx = p >= sw[0] && p <= sw[1] ? "지금 떼기!" : p < sw[0] ? "참는 중…" : "위험!!";
   text(tx, fb.x, fb.y, 40, "#fff", "center", 8);
   ctx.restore();
 }
@@ -520,21 +649,23 @@ function drawBattle(g) {
   ctx.save();
   const sh = g.shake * 14;
   ctx.translate(L.ax + (Math.random() * 2 - 1) * sh, L.ay + (Math.random() * 2 - 1) * sh); ctx.scale(L.s, L.s);
+  if (g.zoom > 0) { const cp = clashPos(g), z = 1 + g.zoom; ctx.translate(cp.x, cp.y); ctx.scale(z, z); ctx.translate(-cp.x, -cp.y); }
   drawArena(g);
   ctx.restore();
   if (g.demo) return;
   drawPad(g, 0, H - 300, false);
   if (g.mode === "versus") drawPad(g, 1, 0, true);
-  else {
+  if (g.mode !== "versus") {
     const o = g.defs[1];
     rrect(16, 16, 600, 108, 20, "rgba(34,26,46,0.92)");
     text(`${o.name}  ·  ${o.title}`, 34, 48, 28, (o.beam || ["#FFD25F"])[0], "left", 0, FONT_D);
-    const sub = g.state === "intro" ? `「${o.lines.intro}」` : `${l.roundNo}라운드 · 남은 시간 ${Math.max(0, Math.ceil(l.timeLeft))}초 · 나 ${l.f[0].wins} : ${l.f[1].wins} 상대 · 상대 가스 ${Math.round(l.f[1].gas)}`;
+    const sub = g.state === "intro" ? `「${o.lines.intro}」` : `${l.roundNo}라운드 · 남은 시간 ${Math.max(0, Math.ceil(l.timeLeft))}초 · 나 ${l.f[0].wins} : ${l.f[1].wins} 상대 · 가스 ${Math.round(l.f[1].gas)} · 필살 ${Math.round(l.f[1].special)}%`;
     text(sub, 34, 92, 17, "#B9B5B0", "left", 0, FONT_B);
   }
+  if (g.cutin) drawCutin(g);
   // 멈춤 버튼
   const pb = pauseRect(g); rrect(pb.x, pb.y, pb.w, pb.h, 16, "#4A3D63"); text("멈춤", pb.x + pb.w / 2, pb.y + pb.h / 2, 22, "#FFF5E9", "center", 0, FONT_B);
-  if (g.big) text(g.big, 360, L.ay + 140 * L.s, 72, "#FFD25F", "center", 16);
+  if (g.big && !g.cutin) text(g.big, 360, L.ay + 140 * L.s, 72, "#FFD25F", "center", 16);
 }
 function pauseRect(g) { return g.mode === "versus" ? { x: 620, y: H / 2 - 32, w: 88, h: 64 } : { x: 626, y: 38, w: 80, h: 64 }; }
 
@@ -598,7 +729,7 @@ function drawWith(other, fn) { const saved = ctx; ctx = other; try { fn(); } fin
 function startBattle(mode, opp) {
   $("title").hidden = true; $("select").hidden = true; closeOverlay();
   G = newBattle(mode, opp, false);
-  if (mode === "league" && !Save.tutorial) showTutorial();
+  if (mode === "league" && Save.tutorial !== 2) showTutorial();
 }
 function showTutorial() {
   openOverlay(`<h2>방귀 대결 방법</h2>
@@ -607,7 +738,8 @@ function showTutorial() {
     <p>③ 너무 오래 참으면 삐끗! 기절하고 빔이 나한테 와요.</p>
     <p>④ 상대가 크게 모으면 「코 막기」. 뀌기 직전에 막으면 튕겨내기!</p>
     <p>⑤ 가운데 나오는 음식을 탭하면 특수 효과! (고추 = 불꽃 빔)</p>
-    <p>⑥ 빔이 부딪히는 지점을 상대 엉덩이까지 밀면 승리!</p>`, [["알겠어! 뿡!", "", () => { Save.tutorial = true; writeSave(); closeOverlay(); }]]);
+    <p>⑥ 빔이 부딪히는 지점을 상대 엉덩이까지 밀면 승리!</p>
+    <p>⑦ 완벽한 뿡으로 <b>필살 게이지</b>를 채우면, 다음 완벽한 뿡이 필살기! (튕겨낼 수 없어요)</p>`, [["알겠어! 뿡!", "", () => { Save.tutorial = 2; writeSave(); closeOverlay(); }]]);
 }
 function pauseGame() {
   const g = G; if (!g) return;
@@ -629,7 +761,7 @@ function showResult(g) {
     }
     if (won && g.oppIndex + 1 < OPPONENTS.length) btns.push(["다음 상대와 대결", "", () => startBattle("league", g.oppIndex + 1)]);
   }
-  html += `<p class="muted">방귀 ${st.farts}번 · 완벽 ${st.perfect}번 · 삐끗 ${st.blunders}번 · 튕겨내기 ${st.parries}번 · 음식 ${st.foods}개</p>`;
+  html += `<p class="muted">방귀 ${st.farts}번 · 완벽 ${st.perfect}번 · 삐끗 ${st.blunders}번 · 튕겨내기 ${st.parries}번 · 필살 ${st.ults}번 · 음식 ${st.foods}개</p>`;
   btns.push(["한 판 더", btns.length ? "alt" : "", () => startBattle(g.mode, g.oppIndex)]);
   btns.push(["메뉴로", "alt", () => g.mode === "versus" ? showTitle() : showSelect()]);
   play(won || g.mode === "versus" ? "win" : "lose");

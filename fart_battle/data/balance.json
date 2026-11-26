@@ -29,5 +29,10 @@
   "milk_stun": 1.0,
   "knockout_stun": 1.8,
   "beam_min_time": 0.35,
-  "beam_extra_time": 0.7
+  "beam_extra_time": 0.7,
+  "special_gain_perfect": 34,
+  "special_gain_hit": 8,
+  "special_gain_parry": 25,
+  "special_mult": 2.0,
+  "special_block_pierce": 0.5
 }
