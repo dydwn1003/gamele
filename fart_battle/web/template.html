@@ -277,7 +277,7 @@ function audioInit() {
     big: [fart(0.85, 85, 0.85, 0.4), fart(0.95, 95, 0.85, 0.35)], mega: [fart(1.4, 62, 1, 0.5), fart(1.5, 70, 1, 0.55)],
     squeak: [tone([900, 700, 500, 350], 0.1, 0.3)], block: [tone([300, 450], 0.07, 0.3)], parry: [tone([600, 900, 1200], 0.06, 0.3)],
     eat: [tone([520, 660], 0.06, 0.25)], bad: [tone([260, 180], 0.12, 0.3)], win: [tone([523, 659, 784, 1046], 0.1, 0.3)],
-    lose: [tone([392, 330, 262], 0.16, 0.3)], ting: [tone([1320, 1760], 0.05, 0.18)], ult: [tone([400, 520, 660, 820, 1000, 1250, 1560, 1950], 0.045, 0.25)], click: [tone([700], 0.04, 0.2)] };
+    lose: [tone([392, 330, 262], 0.16, 0.3)], ting: [tone([1320, 1760], 0.05, 0.18)], nose: [tone([620, 760, 980, 1400], 0.035, 0.22)], ult: [tone([400, 520, 660, 820, 1000, 1250, 1560, 1950], 0.045, 0.25)], click: [tone([700], 0.04, 0.2)] };
 }
 function play(id, pitch) {
   if (!Save.sound || !Snd.ctx || !Snd.bufs[id]) return;
@@ -354,6 +354,12 @@ function drawCritter(def, st, t) {
   if (st.stunned) { line(ex - 5, ey - 5, ex + 5, ey + 5, "#1A1A1A", 3); line(ex + 5, ey - 5, ex - 5, ey + 5, "#1A1A1A", 3); }
   else if (st.mood === "happy") arcS(ex, ey, 6, Math.PI * 1.1, Math.PI * 1.9, "#1A1A1A", 3);
   else if (st.mood === "sad") arcS(ex, ey - 6, 6, Math.PI * 0.1, Math.PI * 0.9, "#1A1A1A", 3);
+  else if (st.blocking) {
+    ell(hx - r * 0.15, hy + r * 0.38, r * 0.42, r * 0.32, "rgba(255,120,150,0.85)");
+    line(ex - 8, ey - 6, ex + 2, ey, "#1A1A1A", 3.5); line(ex - 8, ey + 6, ex + 2, ey, "#1A1A1A", 3.5);
+    ctx.beginPath(); for (let i = 0; i <= 6; i++) ctx.lineTo(hx - r * 0.75 + i * 4, hy + r * 0.55 + (i % 2 ? 3 : -2)); ctx.strokeStyle = "#1A1A1A"; ctx.lineWidth = 2.5; ctx.stroke();
+    for (let i = 0; i < 3; i++) { const a = -2.2 + i * 0.5, rr = r * 1.35 + Math.sin(t * 20 + i) * 3; line(hx + Math.cos(a) * rr, hy + Math.sin(a) * rr, hx + Math.cos(a) * (rr + 10), hy + Math.sin(a) * (rr + 10), "#1A1A1A", 2.5); }
+  }
   else if (p > 0.55) { line(ex - 6, ey - 4, ex + 4, ey, "#1A1A1A", 3); line(ex - 6, ey + 4, ex + 4, ey, "#1A1A1A", 3); }
   else { circ(ex, ey, sp === "mole" ? 2.5 : 5, "#1A1A1A"); if (sp !== "mole") circ(ex - 1.5, ey - 1.5, 1.6, "#fff"); }
   if (p > 0.7 && !st.stunned) ell(hx + 4, hy - r - 2 + (t * 40) % 16, 4, 6, "rgba(128,204,255,0.8)");
@@ -362,9 +368,21 @@ function drawCritter(def, st, t) {
   if (sp === "boar") { ell(hx + 6, hy - r * 0.95, 10, 6, "#FF5FD2"); ell(hx + 6, hy - r * 0.95, 4, 4, "#FFE15F"); }
   if (sp === "hippo") { const cx = hx + 4, cy = hy - r - 6; ctx.beginPath(); [[-16, 6], [-16, -10], [-8, -2], [0, -14], [8, -2], [16, -10], [16, 6]].forEach(q => ctx.lineTo(cx + q[0], cy + q[1])); ctx.fillStyle = "#FFD25F"; ctx.fill(); }
   if (st.blocking) {
-    const nx = hx - 34 * big, ny = hy + 4;
-    ctx.fillStyle = "#FFD25F"; ctx.fillRect(nx - 6, ny - 16, 12, 22); ctx.fillStyle = "#D9A62F"; ctx.fillRect(nx - 6, ny - 16, 12, 5);
-    arcS(10, -60, 110, -Math.PI * 0.35, Math.PI * 0.35, `rgba(128,255,153,${0.35 + 0.2 * Math.sin(t * 12)})`, 6);
+    // 코에 커다란 빨래집게
+    const nx = hx - r * 0.98, ny = hy + 4, bp = 1 + 0.25 * (st.blockPop || 0);
+    ctx.save(); ctx.translate(nx, ny); ctx.scale(bp, bp); ctx.rotate(-0.35 + Math.sin(t * 30) * 0.05);
+    for (const sgn of [-1, 1]) { ctx.save(); ctx.rotate(sgn * 0.12); rrect(-8, sgn > 0 ? 2 : -40, 16, 38, 5, "#F2C24E"); rrect(-8, sgn > 0 ? 2 : -40, 16, 8, 4, "#C9962F"); ctx.restore(); }
+    circ(0, 0, 8, "#B8BCC8"); arcS(0, 0, 8, 0, TAU, "#7A7E8A", 2.5);
+    ctx.restore();
+    // 엉덩이 앞 냄새 차단 방패
+    const hit = st.shieldHit || 0, sx = 150 + hit * 6, sy = -62, rx = 28 + 8 * hit, ry = 96 + 10 * hit + 3 * Math.sin(t * 14), pc = st.shieldPink ? "255,95,210" : "95,232,255";
+    ell(sx, sy, rx, ry, `rgba(${pc},${0.16 + 0.35 * hit})`);
+    ctx.beginPath(); ctx.ellipse(sx, sy, rx, ry, 0, -Math.PI / 2, Math.PI / 2); ctx.strokeStyle = `rgba(${pc},0.95)`; ctx.lineWidth = 6 + 4 * hit; ctx.stroke();
+    for (let i = -3; i <= 3; i++) line(sx - 6, sy + i * 25, sx + rx * 0.7, sy + i * 25 + 4, `rgba(255,255,255,${0.35 + 0.4 * hit})`, 2);
+    // 냄새 금지 표시
+    const cy = sy - 6; circ(sx, cy, 18, "rgba(255,255,255,0.9)");
+    for (const [ox, oy, rr] of [[-6, 2, 7], [4, -3, 8], [6, 5, 6]]) circ(sx + ox, cy + oy, rr, "#9BD85A");
+    arcS(sx, cy, 18, 0, TAU, "#FF3B3B", 5); line(sx - 12, cy - 12, sx + 12, cy + 12, "#FF3B3B", 5);
   }
   if (st.stunned) for (let k = 0; k < 3; k++) { const a = t * 4 + k * TAU / 3; star(hx + Math.cos(a) * 30, hy - 38 + Math.sin(a) * 8, 7, "#FFE15F"); }
 }
@@ -412,8 +430,14 @@ function handleEvent(g, ev) {
     for (let i = 0; i < n; i++) g.parts.push({ x: bp.x, y: bp.y, vx: d * (60 + Math.random() * 200), vy: -90 + Math.random() * 150, life: 0.5 + Math.random() * 0.6, r: 8 + Math.random() * 12, c: "rgba(191,242,115,0.55)", k: "puff" });
     const w = WORDS[ev.size]; popup(g, bp.x + d * 40, bp.y - 70, w[Math.floor(Math.random() * w.length)], ev.perfect ? "#7BE85F" : "#FFE15F", { tiny: 26, medium: 34, big: 44, mega: 54 }[ev.size]);
     if (ev.perfect) popup(g, bp.x + d * 40, bp.y - 118, "완벽한 뿡!", "#7BE85F", 26);
-    if (ev.result === "blocked") { popup(g, buttPos(1 - ev.side).x - d * 30, bp.y - 110, "막았다!", "#5FE8FF", 28); play("block"); }
-    if (ev.result === "parry") { popup(g, buttPos(1 - ev.side).x - d * 30, bp.y - 110, "튕겨내기!!", "#FF5FD2", 34); g.flash = 1; play("parry"); }
+    if (ev.result === "blocked" || ev.result === "parry") {
+      const ts = 1 - ev.side, tb = buttPos(ts), sc = SPOT[ts].s, sx = tb.x - d * 62 * sc, st = g.st[ts];
+      st.shieldHit = 1; st.shieldPink = ev.result === "parry";
+      for (let i = 0; i < 26; i++) { const a = (d > 0 ? Math.PI : 0) + (Math.random() - 0.5) * 2.4, v = 160 + Math.random() * 260; g.parts.push({ x: sx, y: tb.y + (Math.random() - 0.5) * 60 * sc, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 120, life: 0.4 + Math.random() * 0.4, r: 3 + Math.random() * 4, c: ev.result === "parry" ? "#FF8FE0" : "#9FF3FF", k: "drop" }); }
+      wave(g, sx, tb.y, 150, ev.result === "parry" ? "#FF5FD2" : "#5FE8FF", 9);
+    }
+    if (ev.result === "blocked") { popup(g, buttPos(1 - ev.side).x - d * 30, bp.y - 120, "냄새 차단!", "#5FE8FF", 36); play("block"); g.shake = Math.max(g.shake, 0.4); }
+    if (ev.result === "parry") { popup(g, buttPos(1 - ev.side).x - d * 30, bp.y - 120, "튕겨내기!!", "#FF5FD2", 44); g.flash = 1; g.freeze = 0.12; play("parry"); if (!(g.shot && g.shot.kind !== "attack")) { g.shot = { kind: "attack", side: ev.side, t: 0, dur: 0.8 }; g.shotCd = 1.6; } }
     g.shake = Math.max(g.shake, { tiny: 0.1, medium: 0.3, big: 0.6, mega: 1 }[ev.size]);
     // 강한 방귀: 카메라가 맞는 쪽으로 확 당겨짐 + 반달 충격 궤적
     if (!ev.ult && ev.result !== "parry" && (ev.size === "mega" || (ev.perfect && ev.size === "big")) && g.shotCd <= 0 && !(g.shot && g.shot.kind !== "attack")) { g.shot = { kind: "attack", side: ev.side, t: 0, dur: 0.85 }; g.shotCd = 1.6; g.pendingArc = { side: ev.side, delay: 0.12, n: 1 }; }
@@ -459,7 +483,11 @@ function handleEvent(g, ev) {
   } else if (ev.type === "no_gas") {
     popup(g, headPos(ev.side).x, headPos(ev.side).y, "가스 부족!", "#B9B5B0", 24);
   } else if (ev.type === "block") {
-    if (!g.demo) play("block", 1.3);
+    const st = g.st[ev.side], hp = headPos(ev.side), bp = buttPos(ev.side);
+    st.blockPop = 1; st.shieldPink = false;
+    popup(g, hp.x, hp.y - 20, "코 막기!", "#5FE8FF", 38); popup(g, hp.x + (ev.side === 0 ? -50 : 50), hp.y + 40, "흡!", "#FFFFFF", 30);
+    wave(g, bp.x, bp.y, 120, "#5FE8FF", 7);
+    if (!g.demo) { play("nose"); play("block", 1.3); buzz(25); }
   } else if (ev.type === "round_end") {
     const w = ev.winner;
     if (w >= 0) { const bp = buttPos(1 - w); sparks(g, bp.x, bp.y, 30); g.shake = 1; wave(g, bp.x, bp.y, 380, "#FFFFFF", 14); wave(g, bp.x, bp.y, 240, beamColors(g, w)[0], 10); g.shot = { kind: "ko", side: w, t: 0, dur: 1.3 }; crescents(g, bp, 150, 2, beamColors(g, w)[0]); if (!g.demo) { g.slowT = 0.9; g.zoom = 0.1; } g.st[w].mood = "happy"; g.st[1 - w].mood = "sad"; }
@@ -501,6 +529,7 @@ function update(g, rdt) {
   } else if (g.state === "round_end") {
     g.stateT -= dt; if (g.stateT <= 0) { if (l.matchOver) showResult(g); else { g.big = ""; startCountdown(g); } }
   }
+  for (const st of g.st) { st.shieldHit = Math.max(0, (st.shieldHit || 0) - edt * 2.5); st.blockPop = Math.max(0, (st.blockPop || 0) - edt * 4); }
   for (let s = 0; s < 2; s++) { const f = l.f[s], st = g.st[s]; st.pressure = f.holding ? f.pressure : 0; st.stunned = f.stunT > 0; st.blocking = f.blockT > 0; st.recoil = Math.max(0, (st.recoil || 0) - dt * 3); st.eatT = Math.max(0, (st.eatT || 0) - dt); }
   const cp = clashPos(g), both = l.f[0].beamT > 0 && l.f[1].beamT > 0, sw = Math.min(1, edt * 60);
   if (both && Math.random() < 0.8 * sw) sparks(g, cp.x, cp.y, 2);
@@ -768,7 +797,8 @@ function drawPad(g, side, y0, flipped) {
   circ(b.x, b.y, b.r, shade(bc, -0.35)); circ(b.x, b.y - 4, b.r - 6, bc);
   if (cd > 0) arcS(b.x, b.y, b.r - 3, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - cd / BAL.block_cooldown), "rgba(255,255,255,0.8)", 6);
   ctx.fillStyle = "#FFD25F"; ctx.fillRect(b.x - 9, b.y - 42, 18, 34); ctx.fillStyle = "#D9A62F"; ctx.fillRect(b.x - 9, b.y - 42, 18, 8);
-  text("코 막기", b.x, b.y + 22, 24, "#1A2A33", "center", 0, FONT_D);
+  if (f.blockT > 0) { arcS(b.x, b.y, b.r + 8 + 4 * Math.sin(g.t * 20), 0, TAU, "#9BFFB0", 6); }
+  text(f.blockT > 0 ? "막는 중!" : "코 막기", b.x, b.y + 22, 24, "#1A2A33", "center", 0, FONT_D);
   const fb = PAD.fart, stun = f.stunT > 0, fc = stun ? "#6E6478" : acc, r = fb.r * (f.holding ? 0.94 : 1);
   circ(fb.x, fb.y + 8, r, shade(fc, -0.4)); circ(fb.x, fb.y, r, fc);
   if (p > 0) { circ(fb.x, fb.y, r * Math.min(1, p), "rgba(255,255,255,0.25)"); arcS(fb.x, fb.y, r + 6 + Math.sin(g.t * 50) * 3 * p, 0, TAU, "rgba(255,255,255,0.5)", 4); }
