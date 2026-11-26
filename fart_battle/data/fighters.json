@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "note": "species: 동물 종류(그리기), beam: 빔 색 2개, stage: 리그 챕터(배경), boss: 챕터 보스, prop: 소품(scarf/band/helmet/crown). power/control/gas_regen/stink, ai_* 는 컴퓨터 실력",
+  "note": "species: 동물 종류(그리기), beam: 빔 색 2개, stage: 리그 챕터(배경), boss: 챕터 보스, prop: 소품(scarf/band/helmet/crown). power/control/gas_regen/stink, ai_* 는 컴퓨터 실력 trait: 고유 특성(규칙에 반영), play: 플레이어가 고를 때 쓰는 균형 능력치(리그 상대일 땐 위 능력치 사용)",
   "player": {
     "id": "puang",
     "name": "두더지 뿌앙이",
@@ -20,7 +20,18 @@
       "#FF5FD2",
       "#5FE8FF"
     ],
-    "special": "땅굴 무지개 펌프"
+    "special": "땅굴 무지개 펌프",
+    "trait": {
+      "id": "wide",
+      "name": "넓은 손맛",
+      "desc": "완벽 구간이 넓어서 완벽한 뿡을 내기 쉽다"
+    },
+    "play": {
+      "power": 1.0,
+      "control": 1.12,
+      "gas_regen": 9,
+      "stink": 0
+    }
   },
   "opponents": [
     {
@@ -49,7 +60,18 @@
         "#FF9F43"
       ],
       "special": "도토리 소나기 뿡",
-      "stage": "forest"
+      "stage": "forest",
+      "trait": {
+        "id": "acorn",
+        "name": "도토리 저장",
+        "desc": "음식을 먹으면 가스 +15 추가"
+      },
+      "play": {
+        "power": 0.95,
+        "control": 1.0,
+        "gas_regen": 9.5,
+        "stink": 0
+      }
     },
     {
       "id": "grandma",
@@ -77,7 +99,18 @@
         "#FF7BD1"
       ],
       "special": "할매 꽃향기 대폭풍",
-      "stage": "forest"
+      "stage": "forest",
+      "trait": {
+        "id": "heavy",
+        "name": "한 방",
+        "desc": "압력 80% 이상으로 뀌면 파워 +20%"
+      },
+      "play": {
+        "power": 1.05,
+        "control": 0.95,
+        "gas_regen": 8,
+        "stink": 0
+      }
     },
     {
       "id": "muscle",
@@ -106,7 +139,18 @@
       ],
       "special": "근육 터보 뿌앙",
       "stage": "forest",
-      "boss": true
+      "boss": true,
+      "trait": {
+        "id": "rapid",
+        "name": "연사",
+        "desc": "압력이 15% 빨리 차고 가스 회복이 빠르다 (파워는 약함)"
+      },
+      "play": {
+        "power": 0.93,
+        "control": 1.0,
+        "gas_regen": 11,
+        "stink": 0
+      }
     },
     {
       "id": "pig",
@@ -134,7 +178,18 @@
       "ai_accuracy": 0.11,
       "ai_aggression": 0.6,
       "ai_block": 0.25,
-      "ai_greed": 0.95
+      "ai_greed": 0.95,
+      "trait": {
+        "id": "glutton",
+        "name": "먹방",
+        "desc": "음식을 먹으면 필살 게이지 +20"
+      },
+      "play": {
+        "power": 1.03,
+        "control": 1.0,
+        "gas_regen": 8.5,
+        "stink": 0
+      }
     },
     {
       "id": "doctor",
@@ -143,9 +198,9 @@
       "power": 0.95,
       "control": 1.05,
       "gas_regen": 9,
-      "stink": 0.8,
+      "stink": 0.6,
       "ai_reaction": 0.36,
-      "ai_accuracy": 0.1,
+      "ai_accuracy": 0.105,
       "ai_aggression": 0.55,
       "ai_block": 0.4,
       "ai_greed": 0.6,
@@ -162,7 +217,18 @@
         "#D2FF5F"
       ],
       "special": "실험실 독가스 레이저",
-      "stage": "night"
+      "stage": "night",
+      "trait": {
+        "id": "toxic",
+        "name": "독가스",
+        "desc": "맞힌 방귀 냄새가 남아서 계속 밀어낸다"
+      },
+      "play": {
+        "power": 0.9,
+        "control": 1.0,
+        "gas_regen": 9,
+        "stink": 0.8
+      }
     },
     {
       "id": "king",
@@ -191,7 +257,18 @@
       ],
       "special": "대왕 황금 해일 뿡",
       "stage": "night",
-      "boss": true
+      "boss": true,
+      "trait": {
+        "id": "iron",
+        "name": "철벽 엉덩이",
+        "desc": "코 막기가 90%를 막고 튕겨내기 판정이 0.1초 길다"
+      },
+      "play": {
+        "power": 1.02,
+        "control": 1.0,
+        "gas_regen": 8.5,
+        "stink": 0
+      }
     },
     {
       "id": "penguin",
@@ -220,7 +297,18 @@
       "ai_aggression": 0.9,
       "ai_block": 0.32,
       "ai_greed": 0.6,
-      "prop": "scarf"
+      "prop": "scarf",
+      "trait": {
+        "id": "slide",
+        "name": "미끄럼 연발",
+        "desc": "방귀 가스 소모 -20%"
+      },
+      "play": {
+        "power": 0.9,
+        "control": 1.0,
+        "gas_regen": 9,
+        "stink": 0
+      }
     },
     {
       "id": "ninja",
@@ -249,7 +337,18 @@
       "ai_aggression": 0.7,
       "ai_block": 0.55,
       "ai_greed": 0.65,
-      "prop": "band"
+      "prop": "band",
+      "trait": {
+        "id": "shadow",
+        "name": "그림자 막기",
+        "desc": "코 막기 대기 시간 -40%"
+      },
+      "play": {
+        "power": 1.0,
+        "control": 1.1,
+        "gas_regen": 9,
+        "stink": 0
+      }
     },
     {
       "id": "polar",
@@ -269,17 +368,28 @@
         "win": "눈사태처럼 밀어버렸다!",
         "lose": "장군의 체면이… 뿡…"
       },
-      "power": 1.1,
+      "power": 1.05,
       "control": 1.05,
       "gas_regen": 10,
       "stink": 0.3,
-      "ai_reaction": 0.28,
-      "ai_accuracy": 0.075,
+      "ai_reaction": 0.29,
+      "ai_accuracy": 0.085,
       "ai_aggression": 0.72,
-      "ai_block": 0.45,
+      "ai_block": 0.42,
       "ai_greed": 0.7,
       "boss": true,
-      "prop": "helmet"
+      "prop": "helmet",
+      "trait": {
+        "id": "avalanche",
+        "name": "눈사태",
+        "desc": "힘겨루기 에너지 +25%"
+      },
+      "play": {
+        "power": 1.02,
+        "control": 0.95,
+        "gas_regen": 8.5,
+        "stink": 0
+      }
     },
     {
       "id": "lava_boar",
@@ -299,15 +409,26 @@
         "win": "화산처럼 터졌다!",
         "lose": "불이… 꺼졌어…"
       },
-      "power": 1.1,
+      "power": 1.05,
       "control": 1.0,
       "gas_regen": 10.5,
       "stink": 0.2,
-      "ai_reaction": 0.27,
-      "ai_accuracy": 0.07,
+      "ai_reaction": 0.28,
+      "ai_accuracy": 0.078,
       "ai_aggression": 0.75,
       "ai_block": 0.4,
-      "ai_greed": 0.75
+      "ai_greed": 0.75,
+      "trait": {
+        "id": "magma",
+        "name": "마그마",
+        "desc": "4번째 방귀마다 저절로 불꽃 빔 (파워 +40%)"
+      },
+      "play": {
+        "power": 1.0,
+        "control": 0.95,
+        "gas_regen": 9,
+        "stink": 0
+      }
     },
     {
       "id": "fire_bear",
@@ -335,7 +456,18 @@
       "ai_accuracy": 0.067,
       "ai_aggression": 0.78,
       "ai_block": 0.45,
-      "ai_greed": 0.75
+      "ai_greed": 0.75,
+      "trait": {
+        "id": "endure",
+        "name": "참을성",
+        "desc": "과충전 여유 시간 2.5배, 삐끗해도 기절 절반"
+      },
+      "play": {
+        "power": 1.05,
+        "control": 1.0,
+        "gas_regen": 9,
+        "stink": 0
+      }
     },
     {
       "id": "legend",
@@ -355,17 +487,28 @@
         "win": "왕의 방귀는 꺾이지 않는다.",
         "lose": "새로운 방귀왕의 탄생이로구나…"
       },
-      "power": 1.12,
-      "control": 1.15,
+      "power": 1.08,
+      "control": 1.12,
       "gas_regen": 11,
       "stink": 0.4,
-      "ai_reaction": 0.24,
-      "ai_accuracy": 0.062,
+      "ai_reaction": 0.25,
+      "ai_accuracy": 0.07,
       "ai_aggression": 0.8,
       "ai_block": 0.5,
       "ai_greed": 0.8,
       "boss": true,
-      "prop": "crown"
+      "prop": "crown",
+      "trait": {
+        "id": "majesty",
+        "name": "왕의 위엄",
+        "desc": "필살 게이지가 1.5배 빨리 찬다"
+      },
+      "play": {
+        "power": 1.0,
+        "control": 1.0,
+        "gas_regen": 9,
+        "stink": 0
+      }
     }
   ],
   "stages": [

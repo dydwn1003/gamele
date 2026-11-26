@@ -13,7 +13,7 @@ const PORT = Number(process.env.PORT) || 8080;
 const PAGE = process.env.GAME_PAGE || path.join(__dirname, "..", "web", "fart_battle.html");
 const MAX_MSG = 16 * 1024;
 const RELAY_DELAY_MS = Number(process.env.RELAY_DELAY_MS) || 0; // 테스트용: 네트워크 지연 흉내
-const FIGHTERS = ["puang", "kid", "grandma", "muscle", "doctor", "king"];
+const FIGHTERS = ["puang", "kid", "grandma", "muscle", "pig", "doctor", "king", "penguin", "ninja", "polar", "lava_boar", "fire_bear", "legend"];
 
 const MANIFEST = JSON.stringify({
   name: "방귀 대결", short_name: "방귀 대결", start_url: "/", display: "standalone", orientation: "portrait",

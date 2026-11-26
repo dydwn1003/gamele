@@ -41,6 +41,19 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; }
 .card p { margin: 0; color: var(--sub); font-size: 14px; }
 .card .btn { min-height: 52px; font-size: 20px; width: 100%; }
 #online { background: var(--bg); overflow-y: auto; }
+#chars { background: var(--bg); overflow-y: auto; align-items: stretch; }
+.ch-list { width: min(640px, 100%); margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+.ch { display: flex; gap: 10px; align-items: center; background: var(--panel2); border-radius: 18px; padding: 10px 12px; border: 3px solid transparent; }
+.ch.sel { border-color: var(--accent); }
+.ch.locked { background: var(--dark); }
+.ch canvas { width: 104px; height: 76px; flex: none; align-self: flex-start; }
+.ch .info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.ch h3 { margin: 0; font-family: "Jua", sans-serif; font-size: 22px; font-weight: 400; }
+.ch .tr { color: #FFB43B; font-weight: 800; font-size: 15px; }
+.ch p { margin: 0; color: var(--sub); font-size: 13px; line-height: 1.35; }
+.bars { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; align-items: center; font-size: 12px; color: var(--sub); margin-top: 2px; }
+.bar { height: 7px; border-radius: 4px; background: rgba(0,0,0,0.4); overflow: hidden; } .bar i { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+.ch .btn { width: 100%; min-height: 46px; font-size: 17px; margin-top: 6px; }
 .on-box { width: min(640px, 100%); margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
 .on-box .btn { width: 100%; }
 .on-row { display: flex; gap: 10px; align-items: center; }
@@ -75,6 +88,7 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; }
   <p class="title-sub">뿌앙 리그</p>
   <div class="grow"></div>
   <button class="btn" id="btn-league">혼자 하기 · 리그 도전</button>
+  <button class="btn ghost" id="btn-chars">내 캐릭터: 뿌앙이 (바꾸기)</button>
   <button class="btn" id="btn-online" style="background:#5FE8FF;box-shadow:0 6px 0 #2F9AB0">온라인 대전</button>
   <button class="btn alt" id="btn-versus">둘이서 대결 (폰 하나로)</button>
   <button class="btn ghost" id="btn-sound">소리 켜짐</button>
@@ -83,7 +97,14 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; }
 
 <div id="select" class="screen" hidden>
   <div class="sel-head"><button class="btn alt" id="btn-back">뒤로</button><h2>뿌앙 리그 · 상대 고르기</h2></div>
+  <div class="sel-head"><button class="btn ghost" id="sel-char" style="width:100%"></button></div>
   <div id="cards" style="display:flex;flex-direction:column;gap:12px;width:100%"></div>
+</div>
+
+<div id="chars" class="screen" hidden>
+  <div class="sel-head"><button class="btn alt" id="ch-back">뒤로</button><h2 id="ch-title">캐릭터 고르기</h2></div>
+  <p class="small" id="ch-sub">리그에서 이긴 상대는 내 캐릭터로 쓸 수 있어요.</p>
+  <div id="ch-list" class="ch-list"></div>
 </div>
 
 <div id="online" class="screen" hidden>
@@ -2406,7 +2427,7 @@ var qrcode = function() {
 <script>
 "use strict";
 // ───────── 데이터 (data/*.json 에서 빌드 시 주입) ─────────
-const DATA = {"player": {"id": "puang", "name": "두더지 뿌앙이", "title": "땅속 방귀 신동", "power": 1.0, "control": 1.0, "gas_regen": 9.0, "stink": 0.0, "body": "#6B5A70", "lines": {"win": "뿌앙~ 땅속까지 시원하다!", "lose": "고추 두 개 먹고 다시 온다…"}, "species": "mole", "belly": "#C9A0B8", "beam": ["#FF5FD2", "#5FE8FF"], "special": "땅굴 무지개 펌프"}, "opponents": [{"id": "kid", "name": "꼬마 다람쥐", "title": "도토리 방귀 초보", "power": 0.8, "control": 0.9, "gas_regen": 7.5, "stink": 0, "ai_reaction": 0.65, "ai_accuracy": 0.22, "ai_aggression": 0.5, "ai_block": 0.12, "ai_greed": 0.35, "body": "#C9824A", "lines": {"intro": "히히, 도토리 많이 먹었지롱!", "win": "뽀옹! 이겼당!", "lose": "으앙 냄새나…"}, "species": "squirrel", "belly": "#F2D2A8", "beam": ["#FFD25F", "#FF9F43"], "special": "도토리 소나기 뿡", "stage": "forest"}, {"id": "grandma", "name": "멧돼지 할매", "title": "고구마 한 방의 전설", "power": 1.2, "control": 0.85, "gas_regen": 6.5, "stink": 0, "ai_reaction": 0.5, "ai_accuracy": 0.15, "ai_aggression": 0.35, "ai_block": 0.15, "ai_greed": 0.6, "body": "#8A5A44", "lines": {"intro": "고구마 삶아 먹고 왔제~", "win": "아이고 시원하다~", "lose": "고구마가 덜 익었나 보네"}, "species": "boar", "belly": "#C99A7A", "beam": ["#B57BFF", "#FF7BD1"], "special": "할매 꽃향기 대폭풍", "stage": "forest"}, {"id": "muscle", "name": "헬스 고릴라", "title": "숲의 보스 · 연속 방귀 전문", "power": 0.95, "control": 1.0, "gas_regen": 10.5, "stink": 0, "ai_reaction": 0.38, "ai_accuracy": 0.12, "ai_aggression": 0.8, "ai_block": 0.25, "ai_greed": 0.5, "body": "#3A3A44", "lines": {"intro": "단백질 셰이크 세 잔 마셨다!", "win": "근손실 없는 방귀!", "lose": "프로틴이 부족했군…"}, "species": "gorilla", "belly": "#7A7A88", "beam": ["#FF5F5F", "#FFB45F"], "special": "근육 터보 뿌앙", "stage": "forest", "boss": true}, {"id": "pig", "name": "꿀꿀 돼지", "title": "배부른 방귀 먹방러", "stage": "night", "species": "pig", "body": "#F2A2B8", "belly": "#FFD6E0", "beam": ["#FF8FB8", "#FFE15F"], "special": "꿀꿀 먹방 폭풍", "lines": {"intro": "음식은 다 내 거야! 꿀꿀!", "win": "배불러서 이겼다 꿀!", "lose": "배고파서 진 거야…"}, "power": 1.0, "control": 1.0, "gas_regen": 9.5, "stink": 0, "ai_reaction": 0.38, "ai_accuracy": 0.11, "ai_aggression": 0.6, "ai_block": 0.25, "ai_greed": 0.95}, {"id": "doctor", "name": "스컹크 박사", "title": "냄새 연구 30년", "power": 0.95, "control": 1.05, "gas_regen": 9, "stink": 0.8, "ai_reaction": 0.36, "ai_accuracy": 0.1, "ai_aggression": 0.55, "ai_block": 0.4, "ai_greed": 0.6, "body": "#2A2A33", "lines": {"intro": "이론상 내 방귀는 3시간 간다네.", "win": "실험 성공!", "lose": "가설이 틀렸군…"}, "species": "skunk", "belly": "#FFFFFF", "beam": ["#7BFF5F", "#D2FF5F"], "special": "실험실 독가스 레이저", "stage": "night"}, {"id": "king", "name": "하마 대왕", "title": "늪의 보스 · 뿌앙 리그 챔피언", "power": 1.05, "control": 1.05, "gas_regen": 9.5, "stink": 0.5, "ai_reaction": 0.32, "ai_accuracy": 0.09, "ai_aggression": 0.65, "ai_block": 0.45, "ai_greed": 0.7, "body": "#8E9AC9", "lines": {"intro": "왕관은 냄새로 지키는 것이다.", "win": "짐의 방귀를 받아라!", "lose": "새로운 왕의 탄생인가…"}, "species": "hippo", "belly": "#D9C2E0", "beam": ["#FFE15F", "#FF5FD2"], "special": "대왕 황금 해일 뿡", "stage": "night", "boss": true}, {"id": "penguin", "name": "펭귄 형제", "title": "미끄럼 연발 방귀", "stage": "snow", "species": "penguin", "body": "#2A3040", "belly": "#FFFFFF", "beam": ["#7FD8FF", "#FFFFFF"], "special": "얼음 미끄럼 연발 뿡", "lines": {"intro": "뿡뿡뿡! 우린 쉬지 않아!", "win": "미끄러지듯 이겼다!", "lose": "배가 꽁꽁 얼었어…"}, "power": 0.95, "control": 1.0, "gas_regen": 11.5, "stink": 0, "ai_reaction": 0.3, "ai_accuracy": 0.08, "ai_aggression": 0.9, "ai_block": 0.32, "ai_greed": 0.6, "prop": "scarf"}, {"id": "ninja", "name": "눈다람쥐 닌자", "title": "보이지 않는 코 막기", "stage": "snow", "species": "squirrel", "body": "#E8EEF6", "belly": "#FFFFFF", "beam": ["#B4A0FF", "#E0F0FF"], "special": "설화 그림자 뿡", "lines": {"intro": "네 방귀는 이미 읽었다.", "win": "닌자는 냄새를 남기지 않는다.", "lose": "코… 코를 못 막았다…"}, "power": 0.9, "control": 1.15, "gas_regen": 9.5, "stink": 0, "ai_reaction": 0.3, "ai_accuracy": 0.08, "ai_aggression": 0.7, "ai_block": 0.55, "ai_greed": 0.65, "prop": "band"}, {"id": "polar", "name": "북극곰 장군", "title": "설산의 보스", "stage": "snow", "species": "bear", "body": "#F4F6FA", "belly": "#DCE4EE", "beam": ["#9FE3FF", "#3FA9FF"], "special": "북극 눈사태 대방귀", "lines": {"intro": "이 산을 넘으려면 내 방귀를 넘어라!", "win": "눈사태처럼 밀어버렸다!", "lose": "장군의 체면이… 뿡…"}, "power": 1.1, "control": 1.05, "gas_regen": 10, "stink": 0.3, "ai_reaction": 0.28, "ai_accuracy": 0.075, "ai_aggression": 0.72, "ai_block": 0.45, "ai_greed": 0.7, "boss": true, "prop": "helmet"}, {"id": "lava_boar", "name": "화산 멧돼지", "title": "용암 고구마 마니아", "stage": "volcano", "species": "boar", "body": "#5A2A26", "belly": "#A0584A", "beam": ["#FF5F1F", "#FFD25F"], "special": "마그마 돌진 뿡", "lines": {"intro": "용암에 구운 고구마 맛 좀 봐라!", "win": "화산처럼 터졌다!", "lose": "불이… 꺼졌어…"}, "power": 1.1, "control": 1.0, "gas_regen": 10.5, "stink": 0.2, "ai_reaction": 0.27, "ai_accuracy": 0.07, "ai_aggression": 0.75, "ai_block": 0.4, "ai_greed": 0.75}, {"id": "fire_bear", "name": "용암 불곰", "title": "불꽃 방귀 수호자", "stage": "volcano", "species": "bear", "body": "#8A3A22", "belly": "#D98A5A", "beam": ["#FF3B1F", "#FFB43B"], "special": "불곰 화산 분화", "lines": {"intro": "뜨거운 방귀 버틸 수 있겠어?", "win": "활활 이겼다!", "lose": "내 불꽃보다 뜨겁다니…"}, "power": 1.05, "control": 1.1, "gas_regen": 10.5, "stink": 0.3, "ai_reaction": 0.26, "ai_accuracy": 0.067, "ai_aggression": 0.78, "ai_block": 0.45, "ai_greed": 0.75}, {"id": "legend", "name": "전설의 방귀왕", "title": "최종 보스 · 모든 방귀의 왕", "stage": "volcano", "species": "gorilla", "body": "#2A2230", "belly": "#C9A040", "beam": ["#FFE15F", "#FF5FD2"], "special": "전설의 천지개벽 뿡", "lines": {"intro": "여기까지 온 걸 칭찬하마. 하지만 끝이다.", "win": "왕의 방귀는 꺾이지 않는다.", "lose": "새로운 방귀왕의 탄생이로구나…"}, "power": 1.12, "control": 1.15, "gas_regen": 11, "stink": 0.4, "ai_reaction": 0.24, "ai_accuracy": 0.062, "ai_aggression": 0.8, "ai_block": 0.5, "ai_greed": 0.8, "boss": true, "prop": "crown"}], "stages": [{"id": "forest", "name": "햇살 숲", "desc": "방귀 수련의 시작"}, {"id": "night", "name": "달밤 늪", "desc": "반딧불 아래 냄새 대결"}, {"id": "snow", "name": "눈꽃 산", "desc": "얼어붙은 방귀도 터진다"}, {"id": "volcano", "name": "불꽃 화산", "desc": "전설의 방귀왕이 기다린다"}], "foods": [{"id": "chili", "name": "매운 고추", "desc": "다음 방귀 2번 불꽃 빔! 파워 +70%", "weight": 1.1, "effect": "fire", "value": 1.7, "count": 2, "color": "#E5302A", "inner": "#5FA84A"}, {"id": "sweet_potato", "name": "고구마", "desc": "다음 방귀 3번 파워 +40%", "weight": 1.2, "effect": "power", "value": 1.4, "count": 3, "color": "#B5577A", "inner": "#F2B04A"}, {"id": "beans", "name": "콩", "desc": "가스 +50 즉시 충전", "weight": 1.2, "effect": "gas", "value": 50, "color": "#C9A36B", "inner": "#E8D3A0"}, {"id": "egg", "name": "삶은 계란", "desc": "다음 방귀 냄새가 3초 동안 남음", "weight": 1.0, "effect": "stink", "value": 3.0, "color": "#FFF8E6", "inner": "#F5C842"}, {"id": "soda", "name": "탄산음료", "desc": "6초 동안 압력 2배 빨리 참", "weight": 0.9, "effect": "fast", "value": 6.0, "color": "#E5483A", "inner": "#FFF5E9"}, {"id": "cabbage", "name": "양배추", "desc": "8초 동안 가스 충전 2배", "weight": 0.9, "effect": "regen", "value": 8.0, "color": "#7FC66B", "inner": "#C9EAA0"}, {"id": "milk", "name": "우유", "desc": "도박! 초강력 방귀 아니면 배탈", "weight": 0.7, "effect": "gamble", "value": 2.2, "color": "#FFFFFF", "inner": "#7FB6E8"}], "balance": {"version": 1, "round_time": 40.0, "rounds_to_win": 2, "gas_max": 100.0, "gas_start": 70.0, "gas_cost_full": 45.0, "min_release": 0.12, "pressure_fill_time": 1.25, "sweet_min": 0.72, "sweet_width": 0.16, "overcharge_grace": 0.35, "perfect_mult": 1.6, "push_strength": 0.85, "cloud_friction": 2.4, "cloud_max_speed": 1.6, "blunder_stun": 1.5, "blunder_backfire": 0.28, "block_duration": 0.8, "block_cooldown": 3.0, "block_reduce": 0.75, "parry_window": 0.3, "parry_reflect": 0.45, "stink_push": 0.09, "food_interval_min": 4.0, "food_interval_max": 6.5, "food_lifetime": 4.0, "milk_bad_chance": 0.5, "milk_stun": 1.0, "knockout_stun": 1.8, "beam_min_time": 0.35, "beam_extra_time": 0.7, "special_gain_perfect": 34, "special_gain_hit": 8, "special_gain_parry": 25, "special_mult": 2.0, "special_block_pierce": 0.5, "clash_beats": 3, "clash_beat_len": 0.85, "clash_perfect": 0.08, "clash_good": 0.17, "clash_tap_gas": 6, "clash_shift": 0.42, "clash_win_push": 0.75, "clash_cooldown": 2.5, "clash_min_beam": 0.12, "clash_min_power": 0.4, "clash_draw": 0.12, "clash_stun": 0.7}};
+const DATA = {"player": {"id": "puang", "name": "두더지 뿌앙이", "title": "땅속 방귀 신동", "power": 1.0, "control": 1.0, "gas_regen": 9.0, "stink": 0.0, "body": "#6B5A70", "lines": {"win": "뿌앙~ 땅속까지 시원하다!", "lose": "고추 두 개 먹고 다시 온다…"}, "species": "mole", "belly": "#C9A0B8", "beam": ["#FF5FD2", "#5FE8FF"], "special": "땅굴 무지개 펌프", "trait": {"id": "wide", "name": "넓은 손맛", "desc": "완벽 구간이 넓어서 완벽한 뿡을 내기 쉽다"}, "play": {"power": 1.0, "control": 1.12, "gas_regen": 9, "stink": 0}}, "opponents": [{"id": "kid", "name": "꼬마 다람쥐", "title": "도토리 방귀 초보", "power": 0.8, "control": 0.9, "gas_regen": 7.5, "stink": 0, "ai_reaction": 0.65, "ai_accuracy": 0.22, "ai_aggression": 0.5, "ai_block": 0.12, "ai_greed": 0.35, "body": "#C9824A", "lines": {"intro": "히히, 도토리 많이 먹었지롱!", "win": "뽀옹! 이겼당!", "lose": "으앙 냄새나…"}, "species": "squirrel", "belly": "#F2D2A8", "beam": ["#FFD25F", "#FF9F43"], "special": "도토리 소나기 뿡", "stage": "forest", "trait": {"id": "acorn", "name": "도토리 저장", "desc": "음식을 먹으면 가스 +15 추가"}, "play": {"power": 0.95, "control": 1.0, "gas_regen": 9.5, "stink": 0}}, {"id": "grandma", "name": "멧돼지 할매", "title": "고구마 한 방의 전설", "power": 1.2, "control": 0.85, "gas_regen": 6.5, "stink": 0, "ai_reaction": 0.5, "ai_accuracy": 0.15, "ai_aggression": 0.35, "ai_block": 0.15, "ai_greed": 0.6, "body": "#8A5A44", "lines": {"intro": "고구마 삶아 먹고 왔제~", "win": "아이고 시원하다~", "lose": "고구마가 덜 익었나 보네"}, "species": "boar", "belly": "#C99A7A", "beam": ["#B57BFF", "#FF7BD1"], "special": "할매 꽃향기 대폭풍", "stage": "forest", "trait": {"id": "heavy", "name": "한 방", "desc": "압력 80% 이상으로 뀌면 파워 +20%"}, "play": {"power": 1.05, "control": 0.95, "gas_regen": 8, "stink": 0}}, {"id": "muscle", "name": "헬스 고릴라", "title": "숲의 보스 · 연속 방귀 전문", "power": 0.95, "control": 1.0, "gas_regen": 10.5, "stink": 0, "ai_reaction": 0.38, "ai_accuracy": 0.12, "ai_aggression": 0.8, "ai_block": 0.25, "ai_greed": 0.5, "body": "#3A3A44", "lines": {"intro": "단백질 셰이크 세 잔 마셨다!", "win": "근손실 없는 방귀!", "lose": "프로틴이 부족했군…"}, "species": "gorilla", "belly": "#7A7A88", "beam": ["#FF5F5F", "#FFB45F"], "special": "근육 터보 뿌앙", "stage": "forest", "boss": true, "trait": {"id": "rapid", "name": "연사", "desc": "압력이 15% 빨리 차고 가스 회복이 빠르다 (파워는 약함)"}, "play": {"power": 0.93, "control": 1.0, "gas_regen": 11, "stink": 0}}, {"id": "pig", "name": "꿀꿀 돼지", "title": "배부른 방귀 먹방러", "stage": "night", "species": "pig", "body": "#F2A2B8", "belly": "#FFD6E0", "beam": ["#FF8FB8", "#FFE15F"], "special": "꿀꿀 먹방 폭풍", "lines": {"intro": "음식은 다 내 거야! 꿀꿀!", "win": "배불러서 이겼다 꿀!", "lose": "배고파서 진 거야…"}, "power": 1.0, "control": 1.0, "gas_regen": 9.5, "stink": 0, "ai_reaction": 0.38, "ai_accuracy": 0.11, "ai_aggression": 0.6, "ai_block": 0.25, "ai_greed": 0.95, "trait": {"id": "glutton", "name": "먹방", "desc": "음식을 먹으면 필살 게이지 +20"}, "play": {"power": 1.03, "control": 1.0, "gas_regen": 8.5, "stink": 0}}, {"id": "doctor", "name": "스컹크 박사", "title": "냄새 연구 30년", "power": 0.95, "control": 1.05, "gas_regen": 9, "stink": 0.6, "ai_reaction": 0.36, "ai_accuracy": 0.105, "ai_aggression": 0.55, "ai_block": 0.4, "ai_greed": 0.6, "body": "#2A2A33", "lines": {"intro": "이론상 내 방귀는 3시간 간다네.", "win": "실험 성공!", "lose": "가설이 틀렸군…"}, "species": "skunk", "belly": "#FFFFFF", "beam": ["#7BFF5F", "#D2FF5F"], "special": "실험실 독가스 레이저", "stage": "night", "trait": {"id": "toxic", "name": "독가스", "desc": "맞힌 방귀 냄새가 남아서 계속 밀어낸다"}, "play": {"power": 0.9, "control": 1.0, "gas_regen": 9, "stink": 0.8}}, {"id": "king", "name": "하마 대왕", "title": "늪의 보스 · 뿌앙 리그 챔피언", "power": 1.05, "control": 1.05, "gas_regen": 9.5, "stink": 0.5, "ai_reaction": 0.32, "ai_accuracy": 0.09, "ai_aggression": 0.65, "ai_block": 0.45, "ai_greed": 0.7, "body": "#8E9AC9", "lines": {"intro": "왕관은 냄새로 지키는 것이다.", "win": "짐의 방귀를 받아라!", "lose": "새로운 왕의 탄생인가…"}, "species": "hippo", "belly": "#D9C2E0", "beam": ["#FFE15F", "#FF5FD2"], "special": "대왕 황금 해일 뿡", "stage": "night", "boss": true, "trait": {"id": "iron", "name": "철벽 엉덩이", "desc": "코 막기가 90%를 막고 튕겨내기 판정이 0.1초 길다"}, "play": {"power": 1.02, "control": 1.0, "gas_regen": 8.5, "stink": 0}}, {"id": "penguin", "name": "펭귄 형제", "title": "미끄럼 연발 방귀", "stage": "snow", "species": "penguin", "body": "#2A3040", "belly": "#FFFFFF", "beam": ["#7FD8FF", "#FFFFFF"], "special": "얼음 미끄럼 연발 뿡", "lines": {"intro": "뿡뿡뿡! 우린 쉬지 않아!", "win": "미끄러지듯 이겼다!", "lose": "배가 꽁꽁 얼었어…"}, "power": 0.95, "control": 1.0, "gas_regen": 11.5, "stink": 0, "ai_reaction": 0.3, "ai_accuracy": 0.08, "ai_aggression": 0.9, "ai_block": 0.32, "ai_greed": 0.6, "prop": "scarf", "trait": {"id": "slide", "name": "미끄럼 연발", "desc": "방귀 가스 소모 -20%"}, "play": {"power": 0.9, "control": 1.0, "gas_regen": 9, "stink": 0}}, {"id": "ninja", "name": "눈다람쥐 닌자", "title": "보이지 않는 코 막기", "stage": "snow", "species": "squirrel", "body": "#E8EEF6", "belly": "#FFFFFF", "beam": ["#B4A0FF", "#E0F0FF"], "special": "설화 그림자 뿡", "lines": {"intro": "네 방귀는 이미 읽었다.", "win": "닌자는 냄새를 남기지 않는다.", "lose": "코… 코를 못 막았다…"}, "power": 0.9, "control": 1.15, "gas_regen": 9.5, "stink": 0, "ai_reaction": 0.3, "ai_accuracy": 0.08, "ai_aggression": 0.7, "ai_block": 0.55, "ai_greed": 0.65, "prop": "band", "trait": {"id": "shadow", "name": "그림자 막기", "desc": "코 막기 대기 시간 -40%"}, "play": {"power": 1.0, "control": 1.1, "gas_regen": 9, "stink": 0}}, {"id": "polar", "name": "북극곰 장군", "title": "설산의 보스", "stage": "snow", "species": "bear", "body": "#F4F6FA", "belly": "#DCE4EE", "beam": ["#9FE3FF", "#3FA9FF"], "special": "북극 눈사태 대방귀", "lines": {"intro": "이 산을 넘으려면 내 방귀를 넘어라!", "win": "눈사태처럼 밀어버렸다!", "lose": "장군의 체면이… 뿡…"}, "power": 1.05, "control": 1.05, "gas_regen": 10, "stink": 0.3, "ai_reaction": 0.29, "ai_accuracy": 0.085, "ai_aggression": 0.72, "ai_block": 0.42, "ai_greed": 0.7, "boss": true, "prop": "helmet", "trait": {"id": "avalanche", "name": "눈사태", "desc": "힘겨루기 에너지 +25%"}, "play": {"power": 1.02, "control": 0.95, "gas_regen": 8.5, "stink": 0}}, {"id": "lava_boar", "name": "화산 멧돼지", "title": "용암 고구마 마니아", "stage": "volcano", "species": "boar", "body": "#5A2A26", "belly": "#A0584A", "beam": ["#FF5F1F", "#FFD25F"], "special": "마그마 돌진 뿡", "lines": {"intro": "용암에 구운 고구마 맛 좀 봐라!", "win": "화산처럼 터졌다!", "lose": "불이… 꺼졌어…"}, "power": 1.05, "control": 1.0, "gas_regen": 10.5, "stink": 0.2, "ai_reaction": 0.28, "ai_accuracy": 0.078, "ai_aggression": 0.75, "ai_block": 0.4, "ai_greed": 0.75, "trait": {"id": "magma", "name": "마그마", "desc": "4번째 방귀마다 저절로 불꽃 빔 (파워 +40%)"}, "play": {"power": 1.0, "control": 0.95, "gas_regen": 9, "stink": 0}}, {"id": "fire_bear", "name": "용암 불곰", "title": "불꽃 방귀 수호자", "stage": "volcano", "species": "bear", "body": "#8A3A22", "belly": "#D98A5A", "beam": ["#FF3B1F", "#FFB43B"], "special": "불곰 화산 분화", "lines": {"intro": "뜨거운 방귀 버틸 수 있겠어?", "win": "활활 이겼다!", "lose": "내 불꽃보다 뜨겁다니…"}, "power": 1.05, "control": 1.1, "gas_regen": 10.5, "stink": 0.3, "ai_reaction": 0.26, "ai_accuracy": 0.067, "ai_aggression": 0.78, "ai_block": 0.45, "ai_greed": 0.75, "trait": {"id": "endure", "name": "참을성", "desc": "과충전 여유 시간 2.5배, 삐끗해도 기절 절반"}, "play": {"power": 1.05, "control": 1.0, "gas_regen": 9, "stink": 0}}, {"id": "legend", "name": "전설의 방귀왕", "title": "최종 보스 · 모든 방귀의 왕", "stage": "volcano", "species": "gorilla", "body": "#2A2230", "belly": "#C9A040", "beam": ["#FFE15F", "#FF5FD2"], "special": "전설의 천지개벽 뿡", "lines": {"intro": "여기까지 온 걸 칭찬하마. 하지만 끝이다.", "win": "왕의 방귀는 꺾이지 않는다.", "lose": "새로운 방귀왕의 탄생이로구나…"}, "power": 1.08, "control": 1.12, "gas_regen": 11, "stink": 0.4, "ai_reaction": 0.25, "ai_accuracy": 0.07, "ai_aggression": 0.8, "ai_block": 0.5, "ai_greed": 0.8, "boss": true, "prop": "crown", "trait": {"id": "majesty", "name": "왕의 위엄", "desc": "필살 게이지가 1.5배 빨리 찬다"}, "play": {"power": 1.0, "control": 1.0, "gas_regen": 9, "stink": 0}}], "stages": [{"id": "forest", "name": "햇살 숲", "desc": "방귀 수련의 시작"}, {"id": "night", "name": "달밤 늪", "desc": "반딧불 아래 냄새 대결"}, {"id": "snow", "name": "눈꽃 산", "desc": "얼어붙은 방귀도 터진다"}, {"id": "volcano", "name": "불꽃 화산", "desc": "전설의 방귀왕이 기다린다"}], "foods": [{"id": "chili", "name": "매운 고추", "desc": "다음 방귀 2번 불꽃 빔! 파워 +70%", "weight": 1.1, "effect": "fire", "value": 1.7, "count": 2, "color": "#E5302A", "inner": "#5FA84A"}, {"id": "sweet_potato", "name": "고구마", "desc": "다음 방귀 3번 파워 +40%", "weight": 1.2, "effect": "power", "value": 1.4, "count": 3, "color": "#B5577A", "inner": "#F2B04A"}, {"id": "beans", "name": "콩", "desc": "가스 +50 즉시 충전", "weight": 1.2, "effect": "gas", "value": 50, "color": "#C9A36B", "inner": "#E8D3A0"}, {"id": "egg", "name": "삶은 계란", "desc": "다음 방귀 냄새가 3초 동안 남음", "weight": 1.0, "effect": "stink", "value": 3.0, "color": "#FFF8E6", "inner": "#F5C842"}, {"id": "soda", "name": "탄산음료", "desc": "6초 동안 압력 2배 빨리 참", "weight": 0.9, "effect": "fast", "value": 6.0, "color": "#E5483A", "inner": "#FFF5E9"}, {"id": "cabbage", "name": "양배추", "desc": "8초 동안 가스 충전 2배", "weight": 0.9, "effect": "regen", "value": 8.0, "color": "#7FC66B", "inner": "#C9EAA0"}, {"id": "milk", "name": "우유", "desc": "도박! 초강력 방귀 아니면 배탈", "weight": 0.7, "effect": "gamble", "value": 2.2, "color": "#FFFFFF", "inner": "#7FB6E8"}], "balance": {"version": 1, "round_time": 40.0, "rounds_to_win": 2, "gas_max": 100.0, "gas_start": 70.0, "gas_cost_full": 45.0, "min_release": 0.12, "pressure_fill_time": 1.25, "sweet_min": 0.72, "sweet_width": 0.16, "overcharge_grace": 0.35, "perfect_mult": 1.6, "push_strength": 0.85, "cloud_friction": 2.4, "cloud_max_speed": 1.6, "blunder_stun": 1.5, "blunder_backfire": 0.28, "block_duration": 0.8, "block_cooldown": 3.0, "block_reduce": 0.75, "parry_window": 0.3, "parry_reflect": 0.45, "stink_push": 0.09, "food_interval_min": 4.0, "food_interval_max": 6.5, "food_lifetime": 4.0, "milk_bad_chance": 0.5, "milk_stun": 1.0, "knockout_stun": 1.8, "beam_min_time": 0.35, "beam_extra_time": 0.7, "special_gain_perfect": 34, "special_gain_hit": 8, "special_gain_parry": 25, "special_mult": 2.0, "special_block_pierce": 0.5, "clash_beats": 3, "clash_beat_len": 0.85, "clash_perfect": 0.08, "clash_good": 0.17, "clash_tap_gas": 6, "clash_shift": 0.42, "clash_win_push": 0.75, "clash_cooldown": 2.5, "clash_min_beam": 0.12, "clash_min_power": 0.4, "clash_draw": 0.12, "clash_stun": 0.7}};
 const BAL = DATA.balance, PLAYER = DATA.player, OPPONENTS = DATA.opponents, FOODS = DATA.foods, STAGES = DATA.stages || [];
 const FONT_D = '"Jua","Noto Sans KR",sans-serif';
 const FONT_B = '"Noto Sans KR",system-ui,sans-serif';
@@ -2428,10 +2449,16 @@ class Logic {
   dir(s) { return s === 0 ? 1 : -1; }
   sweet(s) { const lo = BAL.sweet_min; return [lo, Math.min(1, lo + BAL.sweet_width * (this.f[s].def.control || 1))]; }
   canAct(s) { return !this.roundOver && this.f[s].stunT <= 0; }
-  maxP(s) { return Math.max(0, Math.min(1, this.f[s].gas / BAL.gas_cost_full)); }
+  // 캐릭터 특성 (fighters.json 의 trait.id)
+  tr(s) { const t = this.f[s].def.trait; return t ? t.id : ""; }
+  costFull(s) { return BAL.gas_cost_full * (this.tr(s) === "slide" ? 0.8 : 1); }
+  fillRate(s) { return (1 / BAL.pressure_fill_time) * (this.f[s].fastT > 0 ? 2 : 1) * (this.tr(s) === "rapid" ? 1.15 : 1); }
+  blockReduce(s) { return this.tr(s) === "iron" ? 0.9 : BAL.block_reduce; }
+  blockCdMax(s) { return BAL.block_cooldown * (this.tr(s) === "shadow" ? 0.6 : 1); }
+  maxP(s) { return Math.max(0, Math.min(1, this.f[s].gas / this.costFull(s))); }
   press(s) { if (!this.canAct(s) || this.clash) return false; const f = this.f[s]; if (f.holding) return true; if (this.maxP(s) < BAL.min_release) { this.events.push({ type: "no_gas", side: s }); return false; } f.holding = true; f.pressure = 0; f.overT = 0; return true; }
   release(s) { const f = this.f[s]; if (!f.holding) return null; f.holding = false; const p = f.pressure; f.pressure = 0; f.overT = 0; if (this.roundOver) return null; return this.fart(s, p); }
-  block(s) { if (!this.canAct(s) || this.clash) return false; const f = this.f[s]; if (f.blockCd > 0) return false; f.blockT = BAL.block_duration; f.blockCd = BAL.block_cooldown; f.blockStarted = this.elapsed; this.events.push({ type: "block", side: s }); return true; }
+  block(s) { if (!this.canAct(s) || this.clash) return false; const f = this.f[s]; if (f.blockCd > 0) return false; f.blockT = BAL.block_duration; f.blockCd = this.blockCdMax(s); f.blockStarted = this.elapsed; this.events.push({ type: "block", side: s }); return true; }
   eat(s, uid) { if (this.roundOver || this.clash) return false; const i = this.foods.findIndex(x => x.uid === uid); if (i < 0) return false; const fd = this.foods.splice(i, 1)[0]; this.applyFood(s, fd.id); return true; }
   tick(dt) {
     if (this.roundOver) return;
@@ -2449,17 +2476,18 @@ class Logic {
   tickF(s, dt) {
     const f = this.f[s], o = this.f[1 - s];
     for (const k of ["stunT", "blockT", "blockCd", "fastT", "regenT"]) f[k] = Math.max(0, f[k] - dt);
-    if (f.beamT > 0) { const d = Math.min(dt, f.beamT); f.beamT -= dt; let force = f.beamForce; if (!f.beamBlocked && o.blockT > 0) force *= 1 - BAL.block_reduce * (f.beamUlt ? BAL.special_block_pierce : 1); this.vel += this.dir(s) * force * d; }
-    if (f.stinkT > 0) { f.stinkT = Math.max(0, f.stinkT - dt); let push = this.dir(s) * BAL.stink_push * dt; if (o.blockT > 0) push *= 1 - BAL.block_reduce; this.cloud += push; }
+    if (f.beamT > 0) { const d = Math.min(dt, f.beamT); f.beamT -= dt; let force = f.beamForce; if (!f.beamBlocked && o.blockT > 0) force *= 1 - this.blockReduce(1 - s) * (f.beamUlt ? BAL.special_block_pierce : 1); this.vel += this.dir(s) * force * d; }
+    if (f.stinkT > 0) { f.stinkT = Math.max(0, f.stinkT - dt); let push = this.dir(s) * BAL.stink_push * dt; if (o.blockT > 0) push *= 1 - this.blockReduce(1 - s); this.cloud += push; }
     if (f.holding) {
-      const rate = (1 / BAL.pressure_fill_time) * (f.fastT > 0 ? 2 : 1), cap = this.maxP(s);
+      const rate = this.fillRate(s), cap = this.maxP(s);
       f.pressure = Math.min(cap, f.pressure + rate * dt);
-      if (f.pressure >= cap - 0.0001) { f.overT += dt; if (f.overT > BAL.overcharge_grace) this.blunder(s); }
+      if (f.pressure >= cap - 0.0001) { f.overT += dt; if (f.overT > BAL.overcharge_grace * (this.tr(s) === "endure" ? 2.5 : 1)) this.blunder(s); }
     } else { f.gas = Math.min(BAL.gas_max, f.gas + f.def.gas_regen * (f.regenT > 0 ? 2 : 1) * dt); }
   }
   fart(s, p) {
     const f = this.f[s], def = f.def, t = this.f[1 - s];
-    f.gas = Math.max(0, f.gas - p * BAL.gas_cost_full);
+    f.gas = Math.max(0, f.gas - p * this.costFull(s));
+    let tfx = "";
     const sw = this.sweet(s), perfect = p >= sw[0] && p <= sw[1];
     let power = def.power * p;
     if (p < BAL.min_release) power *= 0.3;
@@ -2467,29 +2495,32 @@ class Logic {
     if (f.powerCount > 0) { power *= f.powerMult; f.powerCount--; }
     power *= f.boostNext; f.boostNext = 1;
     let fire = false; if (f.fireCount > 0) { power *= f.fireMult; f.fireCount--; fire = true; }
+    if (this.tr(s) === "heavy" && p >= 0.8) { power *= 1.2; tfx = "한 방!"; }
+    if (this.tr(s) === "magma" && !fire && f.stats.farts % 4 === 3) { power *= 1.4; fire = true; tfx = "마그마!"; }
     // 필살: 게이지가 꽉 찬 상태에서 완벽한 뿡 → 파워 2배, 튕겨내기 불가, 막아도 절반만 줄어듦
     const ult = perfect && f.special >= 100; if (ult) { power *= BAL.special_mult; f.special = 0; f.stats.ults++; }
     let push = power * BAL.push_strength, result = "hit";
-    if (t.blockT > 0) { if (!ult && this.elapsed - t.blockStarted <= BAL.parry_window) { result = "parry"; push = -push * BAL.parry_reflect; t.stats.parries++; } else result = "blocked"; }
+    if (t.blockT > 0) { if (!ult && this.elapsed - t.blockStarted <= BAL.parry_window + (this.tr(1 - s) === "iron" ? 0.1 : 0)) { result = "parry"; push = -push * BAL.parry_reflect; t.stats.parries++; } else result = "blocked"; }
     if (result === "parry") { this.vel += this.dir(s) * push; f.beamT = 0; }
-    else { const dur = (BAL.beam_min_time + BAL.beam_extra_time * p) * (ult ? 1.6 : 1); Object.assign(f, { beamT: dur, beamTotal: dur, beamForce: push / dur * (result === "blocked" ? 1 - BAL.block_reduce * (ult ? BAL.special_block_pierce : 1) : 1), beamBlocked: result === "blocked", beamPerfect: perfect, beamPower: power, beamFire: fire, beamUlt: ult, beamBubble: f.fastT > 0 }); }
-    if (!ult) f.special = Math.min(100, f.special + (perfect ? BAL.special_gain_perfect : 0) + (result === "hit" ? BAL.special_gain_hit : 0));
-    if (result === "parry") t.special = Math.min(100, t.special + BAL.special_gain_parry);
+    else { const dur = (BAL.beam_min_time + BAL.beam_extra_time * p) * (ult ? 1.6 : 1); Object.assign(f, { beamT: dur, beamTotal: dur, beamForce: push / dur * (result === "blocked" ? 1 - this.blockReduce(1 - s) * (ult ? BAL.special_block_pierce : 1) : 1), beamBlocked: result === "blocked", beamPerfect: perfect, beamPower: power, beamFire: fire, beamUlt: ult, beamBubble: f.fastT > 0 }); }
+    const sg = side => this.tr(side) === "majesty" ? 1.5 : 1;
+    if (!ult) f.special = Math.min(100, f.special + ((perfect ? BAL.special_gain_perfect : 0) + (result === "hit" ? BAL.special_gain_hit : 0)) * sg(s));
+    if (result === "parry") t.special = Math.min(100, t.special + BAL.special_gain_parry * sg(1 - s));
     const stink = Math.max(f.stinkNext, def.stink || 0); f.stinkNext = 0; if (stink > 0 && result === "hit") f.stinkT = Math.max(f.stinkT, stink);
     f.stats.farts++; if (perfect) f.stats.perfect++;
     const size = power >= 1.4 ? "mega" : power >= 0.9 ? "big" : power >= 0.4 ? "medium" : "tiny";
-    const ev = { type: "fart", side: s, p, power, perfect, size, result, fire, ult }; this.events.push(ev); return ev;
+    const ev = { type: "fart", side: s, p, power, perfect, size, result, fire, ult, tfx }; this.events.push(ev); return ev;
   }
   // ── 힘겨루기: 두 빔이 정면으로 부딪히면 시작. 에너지(빔 세기 × 남은 가스)로 시작 위치가 정해지고,
   //    박자마다 원이 맞닿는 순간 탭(완벽 ×1.6 / 좋아 ×1.0 / 놓침 ×0.4, 가스 부족이면 절반)으로 밀어낸다.
-  energy(s) { const f = this.f[s]; return f.beamPower * (0.6 + 0.4 * f.gas / BAL.gas_max); }
+  energy(s) { const f = this.f[s]; return f.beamPower * (0.6 + 0.4 * f.gas / BAL.gas_max) * (this.tr(s) === "avalanche" ? 1.25 : 1); }
   clashTarget() { return BAL.clash_beat_len * 0.75; }
   startClash() {
     const E = [this.energy(0), this.energy(1)];
     this.f.forEach(f => { f.holding = false; f.pressure = 0; f.overT = 0; });
     this.vel = 0;
     this.clash = { beat: 0, bt: 0, E, m: (E[0] - E[1]) / (E[0] + E[1]) * 0.5, taps: [null, null], log: [] };
-    this.events.push({ type: "clash_start", E, m: this.clash.m });
+    this.events.push({ type: "clash_start", E, m: this.clash.m, tfx: [0, 1].map(s => this.tr(s) === "avalanche" ? "눈사태! 에너지+25%" : "") });
   }
   clashTap(s, offIn, beat) {
     const c = this.clash; if (!c || c.taps[s]) return null;
@@ -2525,7 +2556,7 @@ class Logic {
     fw.stats.clashWins++;
     this.events.push({ type: "clash_end", winner: w, m });
   }
-  blunder(s) { const f = this.f[s]; Object.assign(f, { holding: false, pressure: 0, overT: 0, stunT: BAL.blunder_stun, beamT: 0, gas: f.gas * 0.5 }); f.stats.blunders++; this.vel -= this.dir(s) * BAL.blunder_backfire; this.events.push({ type: "blunder", side: s }); }
+  blunder(s) { const f = this.f[s]; Object.assign(f, { holding: false, pressure: 0, overT: 0, stunT: BAL.blunder_stun * (this.tr(s) === "endure" ? 0.5 : 1), beamT: 0, gas: f.gas * 0.5 }); f.stats.blunders++; this.vel -= this.dir(s) * BAL.blunder_backfire; this.events.push({ type: "blunder", side: s }); }
   applyFood(s, id) {
     const fd = FOODS.find(x => x.id === id); if (!fd) return; const f = this.f[s]; f.stats.foods++;
     const ev = { type: "eat", side: s, name: fd.name, good: true };
@@ -2538,6 +2569,8 @@ class Logic {
       case "regen": f.regenT = fd.value; break;
       case "gamble": if (Math.random() < BAL.milk_bad_chance) { f.stunT = Math.max(f.stunT, BAL.milk_stun); f.holding = false; f.pressure = 0; ev.good = false; } else f.boostNext = fd.value; break;
     }
+    if (this.tr(s) === "acorn") { f.gas = Math.min(BAL.gas_max, f.gas + 15); ev.tfx = "도토리 저장! 가스+15"; }
+    if (this.tr(s) === "glutton") { f.special = Math.min(100, f.special + 20); ev.tfx = "먹방! 필살+20"; }
     this.events.push(ev);
   }
   tickFoods(dt) {
@@ -2755,10 +2788,14 @@ function persp(y) { return Math.max(0.55, Math.min(1.45, 0.74 + (1.3 - 0.74) * (
 const WORDS = { tiny: ["뽁", "뿡", "뽀옹"], medium: ["뿌웅!", "뿡뿡!", "뿌르륵!"], big: ["뿌아앙!", "뿌우우웅!", "뿌르르릉!"], mega: ["뿌아아아앙!!", "부와아아앙!!", "뿌르르르릉!!"] };
 let G = null; // 현재 대결 상태
 
+// 플레이어가 고르는 캐릭터: 모습·특성은 그대로, 능력치는 균형 잡힌 play 값
+function playDef(id) { const base = [PLAYER, ...OPPONENTS].find(x => x.id === id) || PLAYER; return Object.assign({}, base, base.play || {}); }
+function charUnlocked(id) { return id === PLAYER.id || (Save.wins[id] || 0) > 0; }
+const VS = { p1: "puang", p2: "kid" };
 function newBattle(mode, oppIndex, demo) {
   const opp = OPPONENTS[oppIndex];
-  let p1 = Object.assign({}, PLAYER), p2 = Object.assign({}, opp);
-  if (mode === "versus") { for (const k of ["power", "control", "gas_regen", "stink"]) p2[k] = p1[k]; p1.name = "1P " + p1.name; p2.name = "2P " + opp.name; }
+  let p1 = demo ? Object.assign({}, PLAYER) : playDef(Save.char || PLAYER.id), p2 = Object.assign({}, opp);
+  if (mode === "versus") { p1 = playDef(VS.p1); p2 = playDef(VS.p2); p1.name = "1P " + p1.name; p2.name = "2P " + p2.name; }
   const logic = new Logic(p1, p2);
   const g = { mode, oppIndex, demo: !!demo, logic, defs: [p1, p2], ai: null, ai0: null, st: [{ mood: "normal" }, { mood: "normal" }], parts: [], pops: [], waves: [], arcs: [], cam: { x: 360, y: 360, z: 1, r: 0 }, shot: null, shotCd: 0, freeze: 0, slowT: 0, cutin: null, zoom: 0, shake: 0, flash: 0, state: "intro", stateT: demo ? 0.1 : 1.6, count: 3, big: "", touches: {}, saved: false, t: 0 };
   const themeIds = Object.keys(THEMES);
@@ -2792,6 +2829,7 @@ function handleEvent(g, ev) {
     for (let i = 0; i < n; i++) g.parts.push({ x: bp.x, y: bp.y, vx: d * (60 + Math.random() * 200), vy: -90 + Math.random() * 150, life: 0.5 + Math.random() * 0.6, r: 8 + Math.random() * 12, c: "rgba(191,242,115,0.55)", k: "puff" });
     const w = WORDS[ev.size]; popup(g, bp.x + d * 40, bp.y - 70, w[Math.floor(Math.random() * w.length)], ev.perfect ? "#7BE85F" : "#FFE15F", { tiny: 26, medium: 34, big: 44, mega: 54 }[ev.size]);
     if (ev.perfect) popup(g, bp.x + d * 40, bp.y - 118, "완벽한 뿡!", "#7BE85F", 26);
+    if (ev.tfx) { const hp = headPos(ev.side); popup(g, hp.x, hp.y - 50, ev.tfx, "#FFB43B", 28); }
     if (ev.result === "blocked" || ev.result === "parry") {
       const ts = 1 - ev.side, tb = buttPos(ts), sc = SPOT[ts].s, sx = tb.x - d * 62 * sc, st = g.st[ts];
       st.shieldHit = 1; st.shieldPink = ev.result === "parry";
@@ -2814,7 +2852,8 @@ function handleEvent(g, ev) {
   } else if (ev.type === "clash_start") {
     const cp = clashPos(g);
     g.shot = { kind: "clash", side: 0, t: 0, dur: 99 }; g.flash = 0.7; g.shake = 0.8; g.freeze = 0.1;
-    popup(g, cp.x, cp.y - 120, "힘겨루기!!", "#FFE15F", 46); wave(g, cp.x, cp.y, 260, "#FFFFFF", 12);
+    popup(g, cp.x, cp.y - 120, "힘겨루기!!", "#FFE15F", 46);
+    (ev.tfx || []).forEach((t, s) => { if (t) popup(g, cp.x + (s === 0 ? -90 : 90), cp.y + 70, t, "#9FE3FF", 24); }); wave(g, cp.x, cp.y, 260, "#FFFFFF", 12);
     if (!g.demo) { play("mega", 0.7); buzz(60); }
   } else if (ev.type === "clash_tap") {
     const cp = clashPos(g), d = ev.side === 0 ? -1 : 1;
@@ -2840,6 +2879,7 @@ function handleEvent(g, ev) {
     if (!g.demo) { play("squeak"); buzz(80); }
   } else if (ev.type === "eat") {
     g.st[ev.side].eatT = 0.6;
+    if (ev.tfx) { const hp = headPos(ev.side); popup(g, hp.x, hp.y - 60, ev.tfx, "#FFB43B", 24); }
     popup(g, headPos(ev.side).x, headPos(ev.side).y, ev.good ? ev.name + " 냠!" : "배탈…", ev.good ? "#FFFFFF" : "#B9B5B0", 26);
     if (!g.demo) play(ev.good ? "eat" : "bad");
   } else if (ev.type === "no_gas") {
@@ -3179,6 +3219,7 @@ function drawPad(g, side, y0, flipped) {
   text(def.name, 24, 30, 20, acc, "left", 0, FONT_B);
   const spv = f.special || 0, ready = spv >= 100, rb = `hsl(${(g.t * 400) % 360},100%,65%)`;
   rrect(24, 52, 170, 14, 7, "rgba(0,0,0,0.45)"); if (spv > 0) rrect(24, 52, Math.max(14, 170 * spv / 100), 14, 7, ready ? rb : "#FFB43B");
+  if (def.trait) text("특성 · " + def.trait.name, 300, 58, 14, "#FFB43B", "left", 0, FONT_B);
   text(ready ? "필살 준비! 완벽하게 떼기" : "필살 게이지", 24, 80, 13, ready ? "#FFE15F" : "#B9B5B0", "left", 0, FONT_B);
   rrect(210, 18, 250, 22, 11, "rgba(0,0,0,0.4)");
   const gk = f.gas / BAL.gas_max; if (gk > 0) rrect(210, 18, Math.max(22, 250 * gk), 22, 11, f.regenT > 0 ? "#5FE8FF" : "#9BE05F");
@@ -3195,7 +3236,7 @@ function drawPad(g, side, y0, flipped) {
   text("압력", gg.x + gg.w / 2, gg.y + gg.h + 22, 15, "#B9B5B0", "center", 0, FONT_B);
   const b = PAD.block, cd = f.blockCd, bc = f.blockT > 0 ? "#9BFFB0" : cd <= 0 ? "#5FE8FF" : "#4A5A6E";
   circ(b.x, b.y, b.r, shade(bc, -0.35)); circ(b.x, b.y - 4, b.r - 6, bc);
-  if (cd > 0) arcS(b.x, b.y, b.r - 3, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - cd / BAL.block_cooldown), "rgba(255,255,255,0.8)", 6);
+  if (cd > 0) arcS(b.x, b.y, b.r - 3, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - cd / l.blockCdMax(side)), "rgba(255,255,255,0.8)", 6);
   ctx.fillStyle = "#FFD25F"; ctx.fillRect(b.x - 9, b.y - 42, 18, 34); ctx.fillStyle = "#D9A62F"; ctx.fillRect(b.x - 9, b.y - 42, 18, 8);
   if (f.blockT > 0) { arcS(b.x, b.y, b.r + 8 + 4 * Math.sin(g.t * 20), 0, TAU, "#9BFFB0", 6); }
   text(f.blockT > 0 ? "막는 중!" : "코 막기", b.x, b.y + 22, 24, "#1A2A33", "center", 0, FONT_D);
@@ -3316,13 +3357,16 @@ function openOverlay(html, buttons) {
   $("overlay").hidden = false;
 }
 function showTitle() {
-  $("title").hidden = false; $("select").hidden = true; $("online").hidden = true; closeOverlay();
+  $("title").hidden = false; $("select").hidden = true; $("online").hidden = true; $("chars").hidden = true; closeOverlay();
+  if (!charUnlocked(Save.char || PLAYER.id)) Save.char = PLAYER.id;
+  $("btn-chars").textContent = `내 캐릭터: ${playDef(Save.char || PLAYER.id).name} (바꾸기)`;
   G = newBattle("league", Math.floor(Math.random() * OPPONENTS.length), true);
   $("btn-sound").textContent = Save.sound ? "소리 켜짐" : "소리 꺼짐";
   $("record").textContent = `전적 ${Save.stats.matchWins}승 ${Save.stats.matches - Save.stats.matchWins}패 · 완벽한 뿡 ${Save.stats.perfect}번`;
 }
 function showSelect() {
-  $("title").hidden = true; $("select").hidden = false;
+  $("title").hidden = true; $("select").hidden = false; $("chars").hidden = true;
+  { const me = playDef(Save.char || PLAYER.id); $("sel-char").textContent = `내 캐릭터: ${me.name} · 특성 「${me.trait.name}」 (바꾸기)`; }
   const box = $("cards"); box.innerHTML = "";
   let lastStage = null, focus = null;
   OPPONENTS.forEach((o, i) => {
@@ -3338,7 +3382,7 @@ function showSelect() {
     if (open) focus = card;
     const c = document.createElement("canvas"); c.width = 300; c.height = 220; card.appendChild(c);
     const info = document.createElement("div"); info.className = "info";
-    info.innerHTML = `<h3 style="color:${open ? o.beam[0] : "#B9B5B0"}">${i + 1}. ${open ? o.name : "???"}${o.boss ? ' <span class="badge">보스</span>' : ""}</h3><p>${open ? o.title : "앞 상대를 이기면 열려요"}</p>${open ? `<p>「${o.lines.intro}」</p>` : ""}`;
+    info.innerHTML = `<h3 style="color:${open ? o.beam[0] : "#B9B5B0"}">${i + 1}. ${open ? o.name : "???"}${o.boss ? ' <span class="badge">보스</span>' : ""}</h3><p>${open ? o.title : "앞 상대를 이기면 열려요"}</p>${open && o.trait ? `<p style="color:#FFB43B">특성 · ${o.trait.name}: ${o.trait.desc}</p>` : ""}${open ? `<p>「${o.lines.intro}」</p>` : ""}`;
     const b = document.createElement("button"); b.className = "btn"; b.textContent = wins ? `도전! (승리 ${wins})` : "도전!"; b.disabled = !open;
     b.onclick = () => { audioInit(); play("medium"); startBattle("league", i); };
     info.appendChild(b); card.appendChild(info); box.appendChild(card);
@@ -3350,8 +3394,42 @@ function showSelect() {
 }
 // ctx 를 잠깐 다른 캔버스로 바꿔 그리기
 function drawWith(other, fn) { const saved = ctx; ctx = other; try { fn(); } finally { ctx = saved; } }
+let charMode = "me";
+function showChars(mode) {
+  charMode = mode || "me";
+  for (const id of ["title", "select", "online"]) $(id).hidden = true; $("chars").hidden = false; closeOverlay();
+  $("ch-title").textContent = charMode === "vs1" ? "1P 캐릭터 고르기" : charMode === "vs2" ? "2P 캐릭터 고르기" : "내 캐릭터 고르기";
+  $("ch-sub").textContent = charMode === "vs2" ? "2P가 고르세요. 같은 캐릭터도 돼요." : "리그에서 이긴 상대는 내 캐릭터로 쓸 수 있어요.";
+  const box = $("ch-list"); box.innerHTML = "";
+  const cur = charMode === "vs1" ? VS.p1 : charMode === "vs2" ? VS.p2 : (Save.char || PLAYER.id);
+  [PLAYER, ...OPPONENTS].forEach((base, i) => {
+    const open = charUnlocked(base.id), d = playDef(base.id), row = document.createElement("div");
+    row.className = "ch" + (open ? "" : " locked") + (open && base.id === cur ? " sel" : "");
+    const c = document.createElement("canvas"); c.width = 240; c.height = 176; row.appendChild(c);
+    const info = document.createElement("div"); info.className = "info";
+    const bar = (lab, v) => `<span>${lab}</span><div class="bar"><i style="width:${Math.round(Math.max(0.08, Math.min(1, v)) * 100)}%"></i></div>`;
+    info.innerHTML = open
+      ? `<h3 style="color:${base.beam[0]}">${base.name}</h3><span class="tr">특성 · ${base.trait.name}</span><p>${base.trait.desc}</p><div class="bars">${bar("파워", (d.power - 0.6) / 0.6)}${bar("조절", (d.control - 0.7) / 0.6)}${bar("회복", (d.gas_regen - 6) / 6)}</div>`
+      : `<h3 style="color:#8A8496">???</h3><p>리그 ${i}번째 상대를 이기면 해금</p>`;
+    row.appendChild(info);
+    const b = document.createElement("button"); b.className = "btn"; b.disabled = !open; b.textContent = open && base.id === cur && charMode === "me" ? "선택됨" : "선택";
+    b.onclick = () => {
+      play("click");
+      if (charMode === "vs1") { VS.p1 = base.id; showChars("vs2"); return; }
+      if (charMode === "vs2") { VS.p2 = base.id; play("big"); startBattle("versus", 0); return; }
+      Save.char = base.id; writeSave(); showChars("me");
+    };
+    info.appendChild(b); box.appendChild(row);
+    const cx = c.getContext("2d"); cx.save(); cx.translate(124, 162); cx.scale(-0.9, 0.9); drawWith(cx, () => drawCritter(d, { mood: "normal" }, 0)); cx.restore();
+    if (!open) { cx.globalCompositeOperation = "source-atop"; cx.fillStyle = "rgba(0,0,0,0.85)"; cx.fillRect(0, 0, 240, 176); }
+  });
+}
+$("ch-back").onclick = () => { play("click"); if (charMode === "vs2") showChars("vs1"); else if (charFrom === "select") showSelect(); else showTitle(); };
+let charFrom = "title";
+$("btn-chars").onclick = () => { audioInit(); play("click"); charFrom = "title"; showChars("me"); };
+$("sel-char").onclick = () => { play("click"); charFrom = "select"; showChars("me"); };
 function startBattle(mode, opp) {
-  $("title").hidden = true; $("select").hidden = true; $("online").hidden = true; closeOverlay();
+  $("title").hidden = true; $("select").hidden = true; $("online").hidden = true; $("chars").hidden = true; closeOverlay();
   G = newBattle(mode, opp, false);
   if (mode === "league" && Save.tutorial !== 3) showTutorial();
 }
@@ -3380,10 +3458,10 @@ function showResult(g) {
   const btns = [];
   if (g.mode === "online") { onlineResult(g, html, won, st); return; }
   if (g.mode === "league") {
-    html += `<p><b>「${PLAYER.lines[won ? "win" : "lose"]}」</b></p><p class="muted">${g.defs[1].name}: 「${g.defs[1].lines[won ? "lose" : "win"]}」</p>`;
+    html += `<p><b>「${(g.defs[0].lines || PLAYER.lines)[won ? "win" : "lose"]}」</b></p><p class="muted">${g.defs[1].name}: 「${g.defs[1].lines[won ? "lose" : "win"]}」</p>`;
     if (!g.saved) {
       g.saved = true; Save.stats.matches++; Save.stats.farts += st.farts; Save.stats.perfect += st.perfect;
-      if (won) { Save.stats.matchWins++; Save.wins[g.defs[1].id] = (Save.wins[g.defs[1].id] || 0) + 1; if (g.oppIndex + 1 >= Save.unlocked && g.oppIndex + 1 < OPPONENTS.length) { Save.unlocked = g.oppIndex + 2; const nx = OPPONENTS[g.oppIndex + 1], ns = STAGES.find(x => x.id === nx.stage); html += nx.stage !== g.defs[1].stage && ns ? `<p class="good">새 챕터 열림: ${ns.name}! 첫 상대 ${nx.name}</p>` : `<p class="good">새 상대 등장: ${nx.name}!</p>`; } else if (g.oppIndex + 1 >= OPPONENTS.length) html += `<p class="good">뿌앙 리그 챔피언 달성!</p>`; }
+      if (won) { Save.stats.matchWins++; if (!Save.wins[g.defs[1].id]) html += `<p class="good">새 캐릭터 해금: ${g.defs[1].name} (특성 「${g.defs[1].trait.name}」)</p>`; Save.wins[g.defs[1].id] = (Save.wins[g.defs[1].id] || 0) + 1; if (g.oppIndex + 1 >= Save.unlocked && g.oppIndex + 1 < OPPONENTS.length) { Save.unlocked = g.oppIndex + 2; const nx = OPPONENTS[g.oppIndex + 1], ns = STAGES.find(x => x.id === nx.stage); html += nx.stage !== g.defs[1].stage && ns ? `<p class="good">새 챕터 열림: ${ns.name}! 첫 상대 ${nx.name}</p>` : `<p class="good">새 상대 등장: ${nx.name}!</p>`; } else if (g.oppIndex + 1 >= OPPONENTS.length) html += `<p class="good">뿌앙 리그 챔피언 달성!</p>`; }
       writeSave();
     }
     if (won && g.oppIndex + 1 < OPPONENTS.length) btns.push(["다음 상대와 대결", "", () => startBattle("league", g.oppIndex + 1)]);
@@ -3391,11 +3469,12 @@ function showResult(g) {
   html += `<p class="muted">방귀 ${st.farts}번 · 완벽 ${st.perfect}번 · 삐끗 ${st.blunders}번 · 튕겨내기 ${st.parries}번 · 필살 ${st.ults}번 · 힘겨루기 승 ${st.clashWins}번 · 음식 ${st.foods}개</p>`;
   btns.push(["한 판 더", btns.length ? "alt" : "", () => startBattle(g.mode, g.oppIndex)]);
   btns.push(["메뉴로", "alt", () => g.mode === "versus" ? showTitle() : showSelect()]);
+  if (g.mode === "versus") btns.splice(btns.length - 1, 0, ["캐릭터 다시 고르기", "alt", () => showChars("vs1")]);
   play(won || g.mode === "versus" ? "win" : "lose");
   openOverlay(html, btns);
 }
 $("btn-league").onclick = () => { audioInit(); play("medium"); showSelect(); };
-$("btn-versus").onclick = () => { audioInit(); play("big"); startBattle("versus", Math.floor(Math.random() * OPPONENTS.length)); };
+$("btn-versus").onclick = () => { audioInit(); play("click"); charFrom = "title"; showChars("vs1"); };
 $("btn-sound").onclick = () => { audioInit(); Save.sound = !Save.sound; writeSave(); $("btn-sound").textContent = Save.sound ? "소리 켜짐" : "소리 꺼짐"; };
 $("btn-back").onclick = () => { play("click"); showTitle(); };
 
@@ -3419,7 +3498,7 @@ function netConnect() {
   Net.status = "connecting"; lobbyRender();
   let ws; try { ws = new WebSocket(url); } catch (e) { Net.status = "error"; lobbyRender(); return; }
   Net.ws = ws;
-  ws.onopen = () => { Net.status = "on"; Net.retry = 0; netSend({ t: "hello", name: Save.nick, fighter: Save.fighter }); lobbyRender(); };
+  ws.onopen = () => { Net.status = "on"; Net.retry = 0; netSend({ t: "hello", name: Save.nick, fighter: Save.char }); lobbyRender(); };
   ws.onclose = () => {
     Net.status = "off"; Net.ws = null; lobbyRender();
     if (G && G.net && !G.net.dead) netOppLeft("연결이 끊겼어요");
@@ -3448,14 +3527,10 @@ function netOnRelay(g, d) {
   else if (d.k === "rematch") { g.net.rematch.opp = true; checkRematch(g); refreshRematch(g); }
   else if (d.k === "restart" && g.net.role === "guest") startOnline("guest", g.net.opp);
 }
-function onlineDef(fid, nick) {
-  const base = ALL_FIGHTERS.find(x => x.id === fid) || PLAYER, d = Object.assign({}, base);
-  for (const k of ["power", "control", "gas_regen", "stink"]) d[k] = PLAYER[k]; // 온라인은 능력치 동일, 모습만 다름
-  d.title = base.name; d.name = nick; return d;
-}
+function onlineDef(fid, nick) { const d = playDef(fid); d.title = d.name; d.name = nick; return d; }
 function startOnline(role, opp) {
   $("title").hidden = true; $("select").hidden = true; $("online").hidden = true; closeOverlay();
-  const g = newBattle("online", 0, false), me = onlineDef(Save.fighter, Save.nick), them = onlineDef(opp.fighter, opp.name);
+  const g = newBattle("online", 0, false), me = onlineDef(Save.char, Save.nick), them = onlineDef(opp.fighter, opp.name);
   g.defs = [me, them]; g.logic = new Logic(me, them); g.ai = null;
   g.net = { role, opp, evq: [], acc: 0, inbox: [], hold: null, myTap: null, rematch: { me: false, opp: false }, dead: false };
   if (role === "host") g.logic.netGrace = [0, 0.45];
@@ -3467,7 +3542,7 @@ function netPump(g) {
   const l = g.logic;
   for (const d of g.net.inbox.splice(0)) {
     if (d.k !== "in") continue;
-    if (d.a === "release") { const f = l.f[1]; if (f.holding) { const rate = (1 / BAL.pressure_fill_time) * (f.fastT > 0 ? 2 : 1); f.pressure = Math.min(l.maxP(1), Math.max(0, +d.held || 0) * rate); l.release(1); } continue; }
+    if (d.a === "release") { const f = l.f[1]; if (f.holding) { const rate = l.fillRate(1); f.pressure = Math.min(l.maxP(1), Math.max(0, +d.held || 0) * rate); l.release(1); } continue; }
     if (g.state !== "fight") continue;
     if (d.a === "press") l.press(1);
     else if (d.a === "block") l.block(1);
@@ -3490,7 +3565,7 @@ function mirrorEv(e) {
   if ("side" in e) e.side = 1 - e.side;
   if ("winner" in e && e.winner >= 0) e.winner = 1 - e.winner;
   if ("m" in e) e.m = -e.m; if ("delta" in e) e.delta = -e.delta;
-  if (e.E) e.E = [e.E[1], e.E[0]]; if (e.grades) e.grades = [e.grades[1], e.grades[0]];
+  if (e.E) e.E = [e.E[1], e.E[0]]; if (e.grades) e.grades = [e.grades[1], e.grades[0]]; if (Array.isArray(e.tfx)) e.tfx = [e.tfx[1], e.tfx[0]];
   return e;
 }
 function applySnap(g, s) {
@@ -3509,7 +3584,7 @@ function guestTick(g, dt) {
   if (g.state === "fight" && !l.roundOver) { if (l.clash) l.clash.bt += dt; else { l.cloud += l.vel * dt; for (const f of l.f) f.beamT = Math.max(0, f.beamT - dt); } }
   const f = l.f[0];
   if (n.hold && (f.stunT > 0 || l.clash || l.roundOver || g.state !== "fight")) n.hold = null;
-  if (n.hold) { f.holding = true; f.pressure = Math.min(l.maxP(0), (performance.now() - n.hold.t0) / 1000 / BAL.pressure_fill_time * (f.fastT > 0 ? 2 : 1)); }
+  if (n.hold) { f.holding = true; f.pressure = Math.min(l.maxP(0), (performance.now() - n.hold.t0) / 1000 * l.fillRate(0)); }
   else { f.holding = false; f.pressure = 0; }
   if (l.clash && n.myTap && n.myTap.beat === l.clash.beat && !l.clash.taps[0]) l.clash.taps[0] = { grade: n.myTap.grade };
   if (l.matchOver && g.state === "result" && !g.resultShown) { g.resultShown = true; showResult(g); }
@@ -3533,21 +3608,21 @@ function netOppLeft(msg) {
 // 로비 화면
 function showOnline() {
   if (!netUrl()) { openOverlay(`<h2>온라인 대전</h2><p>온라인 대전은 게임 서버 주소로 열었을 때만 돼요.</p><p class="muted">fart_battle/server 에서 <b>npm start</b> 로 서버를 켜고 그 주소로 접속하세요.</p>`, [["확인", "", () => closeOverlay()]]); return; }
-  $("title").hidden = true; $("select").hidden = true; $("online").hidden = false; closeOverlay();
+  $("title").hidden = true; $("select").hidden = true; $("chars").hidden = true; $("online").hidden = false; closeOverlay();
   if (!Save.nick) { Save.nick = "뿡뿡이" + Math.floor(1000 + Math.random() * 9000); writeSave(); }
-  if (!Save.fighter) Save.fighter = "puang";
+  if (!Save.char || !charUnlocked(Save.char)) Save.char = PLAYER.id;
   $("on-name").value = Save.nick;
   G = newBattle("league", 0, true); // 뒤에 데모는 숨겨져도 상관없음
   buildFighterPicker(); netConnect(); lobbyRender();
-  if (Net.status === "on") netSend({ t: "hello", name: Save.nick, fighter: Save.fighter });
+  if (Net.status === "on") netSend({ t: "hello", name: Save.nick, fighter: Save.char });
 }
 function miniCritter(c, def, scale) { const cx = c.getContext("2d"); cx.clearRect(0, 0, c.width, c.height); cx.save(); cx.translate(c.width / 2 + 6, c.height - 12); cx.scale(-scale, scale); drawWith(cx, () => drawCritter(def, { mood: "normal" }, 0)); cx.restore(); }
 function buildFighterPicker() {
   const box = $("on-fighters"); box.innerHTML = "";
-  for (const f of ALL_FIGHTERS) {
-    const b = document.createElement("button"); b.setAttribute("aria-pressed", String(f.id === Save.fighter)); b.title = f.name; b.setAttribute("aria-label", f.name);
+  for (const f of ALL_FIGHTERS.filter(x => charUnlocked(x.id))) {
+    const b = document.createElement("button"); b.setAttribute("aria-pressed", String(f.id === Save.char)); b.title = f.name; b.setAttribute("aria-label", f.name);
     const c = document.createElement("canvas"); c.width = 160; c.height = 120; b.appendChild(c); box.appendChild(b); miniCritter(c, f, 0.55);
-    b.onclick = () => { play("click"); Save.fighter = f.id; writeSave(); buildFighterPicker(); netSend({ t: "hello", name: Save.nick, fighter: Save.fighter }); };
+    b.onclick = () => { play("click"); Save.char = f.id; writeSave(); buildFighterPicker(); netSend({ t: "hello", name: Save.nick, fighter: Save.char }); };
   }
 }
 function lobbyRender() {
@@ -3592,7 +3667,7 @@ function drawQR(text) {
   try { const q = qrcode(0, "M"); q.addData(text); q.make(); const img = new Image(); img.alt = "초대 QR 코드"; img.src = q.createDataURL(6, 2); el.innerHTML = ""; el.appendChild(img); } catch (e) {}
 }
 $("on-back").onclick = () => { play("click"); netSend({ t: "cancel" }); showTitle(); };
-$("on-name").onchange = () => { Save.nick = $("on-name").value.trim().slice(0, 12) || Save.nick; $("on-name").value = Save.nick; writeSave(); netSend({ t: "hello", name: Save.nick, fighter: Save.fighter }); };
+$("on-name").onchange = () => { Save.nick = $("on-name").value.trim().slice(0, 12) || Save.nick; $("on-name").value = Save.nick; writeSave(); netSend({ t: "hello", name: Save.nick, fighter: Save.char }); };
 $("on-invite").onclick = () => { audioInit(); play("click"); netSend({ t: "create", public: false }); };
 $("on-quick").onclick = () => { audioInit(); play("click"); netSend({ t: "quick" }); };
 $("on-create").onclick = () => { audioInit(); play("click"); netSend({ t: "create", public: true }); };

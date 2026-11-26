@@ -41,6 +41,19 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; }
 .card p { margin: 0; color: var(--sub); font-size: 14px; }
 .card .btn { min-height: 52px; font-size: 20px; width: 100%; }
 #online { background: var(--bg); overflow-y: auto; }
+#chars { background: var(--bg); overflow-y: auto; align-items: stretch; }
+.ch-list { width: min(640px, 100%); margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+.ch { display: flex; gap: 10px; align-items: center; background: var(--panel2); border-radius: 18px; padding: 10px 12px; border: 3px solid transparent; }
+.ch.sel { border-color: var(--accent); }
+.ch.locked { background: var(--dark); }
+.ch canvas { width: 104px; height: 76px; flex: none; align-self: flex-start; }
+.ch .info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.ch h3 { margin: 0; font-family: "Jua", sans-serif; font-size: 22px; font-weight: 400; }
+.ch .tr { color: #FFB43B; font-weight: 800; font-size: 15px; }
+.ch p { margin: 0; color: var(--sub); font-size: 13px; line-height: 1.35; }
+.bars { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; align-items: center; font-size: 12px; color: var(--sub); margin-top: 2px; }
+.bar { height: 7px; border-radius: 4px; background: rgba(0,0,0,0.4); overflow: hidden; } .bar i { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+.ch .btn { width: 100%; min-height: 46px; font-size: 17px; margin-top: 6px; }
 .on-box { width: min(640px, 100%); margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
 .on-box .btn { width: 100%; }
 .on-row { display: flex; gap: 10px; align-items: center; }
@@ -75,6 +88,7 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; }
   <p class="title-sub">뿌앙 리그</p>
   <div class="grow"></div>
   <button class="btn" id="btn-league">혼자 하기 · 리그 도전</button>
+  <button class="btn ghost" id="btn-chars">내 캐릭터: 뿌앙이 (바꾸기)</button>
   <button class="btn" id="btn-online" style="background:#5FE8FF;box-shadow:0 6px 0 #2F9AB0">온라인 대전</button>
   <button class="btn alt" id="btn-versus">둘이서 대결 (폰 하나로)</button>
   <button class="btn ghost" id="btn-sound">소리 켜짐</button>
@@ -83,7 +97,14 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; }
 
 <div id="select" class="screen" hidden>
   <div class="sel-head"><button class="btn alt" id="btn-back">뒤로</button><h2>뿌앙 리그 · 상대 고르기</h2></div>
+  <div class="sel-head"><button class="btn ghost" id="sel-char" style="width:100%"></button></div>
   <div id="cards" style="display:flex;flex-direction:column;gap:12px;width:100%"></div>
+</div>
+
+<div id="chars" class="screen" hidden>
+  <div class="sel-head"><button class="btn alt" id="ch-back">뒤로</button><h2 id="ch-title">캐릭터 고르기</h2></div>
+  <p class="small" id="ch-sub">리그에서 이긴 상대는 내 캐릭터로 쓸 수 있어요.</p>
+  <div id="ch-list" class="ch-list"></div>
 </div>
 
 <div id="online" class="screen" hidden>
@@ -131,10 +152,16 @@ class Logic {
   dir(s) { return s === 0 ? 1 : -1; }
   sweet(s) { const lo = BAL.sweet_min; return [lo, Math.min(1, lo + BAL.sweet_width * (this.f[s].def.control || 1))]; }
   canAct(s) { return !this.roundOver && this.f[s].stunT <= 0; }
-  maxP(s) { return Math.max(0, Math.min(1, this.f[s].gas / BAL.gas_cost_full)); }
+  // 캐릭터 특성 (fighters.json 의 trait.id)
+  tr(s) { const t = this.f[s].def.trait; return t ? t.id : ""; }
+  costFull(s) { return BAL.gas_cost_full * (this.tr(s) === "slide" ? 0.8 : 1); }
+  fillRate(s) { return (1 / BAL.pressure_fill_time) * (this.f[s].fastT > 0 ? 2 : 1) * (this.tr(s) === "rapid" ? 1.15 : 1); }
+  blockReduce(s) { return this.tr(s) === "iron" ? 0.9 : BAL.block_reduce; }
+  blockCdMax(s) { return BAL.block_cooldown * (this.tr(s) === "shadow" ? 0.6 : 1); }
+  maxP(s) { return Math.max(0, Math.min(1, this.f[s].gas / this.costFull(s))); }
   press(s) { if (!this.canAct(s) || this.clash) return false; const f = this.f[s]; if (f.holding) return true; if (this.maxP(s) < BAL.min_release) { this.events.push({ type: "no_gas", side: s }); return false; } f.holding = true; f.pressure = 0; f.overT = 0; return true; }
   release(s) { const f = this.f[s]; if (!f.holding) return null; f.holding = false; const p = f.pressure; f.pressure = 0; f.overT = 0; if (this.roundOver) return null; return this.fart(s, p); }
-  block(s) { if (!this.canAct(s) || this.clash) return false; const f = this.f[s]; if (f.blockCd > 0) return false; f.blockT = BAL.block_duration; f.blockCd = BAL.block_cooldown; f.blockStarted = this.elapsed; this.events.push({ type: "block", side: s }); return true; }
+  block(s) { if (!this.canAct(s) || this.clash) return false; const f = this.f[s]; if (f.blockCd > 0) return false; f.blockT = BAL.block_duration; f.blockCd = this.blockCdMax(s); f.blockStarted = this.elapsed; this.events.push({ type: "block", side: s }); return true; }
   eat(s, uid) { if (this.roundOver || this.clash) return false; const i = this.foods.findIndex(x => x.uid === uid); if (i < 0) return false; const fd = this.foods.splice(i, 1)[0]; this.applyFood(s, fd.id); return true; }
   tick(dt) {
     if (this.roundOver) return;
@@ -152,17 +179,18 @@ class Logic {
   tickF(s, dt) {
     const f = this.f[s], o = this.f[1 - s];
     for (const k of ["stunT", "blockT", "blockCd", "fastT", "regenT"]) f[k] = Math.max(0, f[k] - dt);
-    if (f.beamT > 0) { const d = Math.min(dt, f.beamT); f.beamT -= dt; let force = f.beamForce; if (!f.beamBlocked && o.blockT > 0) force *= 1 - BAL.block_reduce * (f.beamUlt ? BAL.special_block_pierce : 1); this.vel += this.dir(s) * force * d; }
-    if (f.stinkT > 0) { f.stinkT = Math.max(0, f.stinkT - dt); let push = this.dir(s) * BAL.stink_push * dt; if (o.blockT > 0) push *= 1 - BAL.block_reduce; this.cloud += push; }
+    if (f.beamT > 0) { const d = Math.min(dt, f.beamT); f.beamT -= dt; let force = f.beamForce; if (!f.beamBlocked && o.blockT > 0) force *= 1 - this.blockReduce(1 - s) * (f.beamUlt ? BAL.special_block_pierce : 1); this.vel += this.dir(s) * force * d; }
+    if (f.stinkT > 0) { f.stinkT = Math.max(0, f.stinkT - dt); let push = this.dir(s) * BAL.stink_push * dt; if (o.blockT > 0) push *= 1 - this.blockReduce(1 - s); this.cloud += push; }
     if (f.holding) {
-      const rate = (1 / BAL.pressure_fill_time) * (f.fastT > 0 ? 2 : 1), cap = this.maxP(s);
+      const rate = this.fillRate(s), cap = this.maxP(s);
       f.pressure = Math.min(cap, f.pressure + rate * dt);
-      if (f.pressure >= cap - 0.0001) { f.overT += dt; if (f.overT > BAL.overcharge_grace) this.blunder(s); }
+      if (f.pressure >= cap - 0.0001) { f.overT += dt; if (f.overT > BAL.overcharge_grace * (this.tr(s) === "endure" ? 2.5 : 1)) this.blunder(s); }
     } else { f.gas = Math.min(BAL.gas_max, f.gas + f.def.gas_regen * (f.regenT > 0 ? 2 : 1) * dt); }
   }
   fart(s, p) {
     const f = this.f[s], def = f.def, t = this.f[1 - s];
-    f.gas = Math.max(0, f.gas - p * BAL.gas_cost_full);
+    f.gas = Math.max(0, f.gas - p * this.costFull(s));
+    let tfx = "";
     const sw = this.sweet(s), perfect = p >= sw[0] && p <= sw[1];
     let power = def.power * p;
     if (p < BAL.min_release) power *= 0.3;
@@ -170,29 +198,32 @@ class Logic {
     if (f.powerCount > 0) { power *= f.powerMult; f.powerCount--; }
     power *= f.boostNext; f.boostNext = 1;
     let fire = false; if (f.fireCount > 0) { power *= f.fireMult; f.fireCount--; fire = true; }
+    if (this.tr(s) === "heavy" && p >= 0.8) { power *= 1.2; tfx = "한 방!"; }
+    if (this.tr(s) === "magma" && !fire && f.stats.farts % 4 === 3) { power *= 1.4; fire = true; tfx = "마그마!"; }
     // 필살: 게이지가 꽉 찬 상태에서 완벽한 뿡 → 파워 2배, 튕겨내기 불가, 막아도 절반만 줄어듦
     const ult = perfect && f.special >= 100; if (ult) { power *= BAL.special_mult; f.special = 0; f.stats.ults++; }
     let push = power * BAL.push_strength, result = "hit";
-    if (t.blockT > 0) { if (!ult && this.elapsed - t.blockStarted <= BAL.parry_window) { result = "parry"; push = -push * BAL.parry_reflect; t.stats.parries++; } else result = "blocked"; }
+    if (t.blockT > 0) { if (!ult && this.elapsed - t.blockStarted <= BAL.parry_window + (this.tr(1 - s) === "iron" ? 0.1 : 0)) { result = "parry"; push = -push * BAL.parry_reflect; t.stats.parries++; } else result = "blocked"; }
     if (result === "parry") { this.vel += this.dir(s) * push; f.beamT = 0; }
-    else { const dur = (BAL.beam_min_time + BAL.beam_extra_time * p) * (ult ? 1.6 : 1); Object.assign(f, { beamT: dur, beamTotal: dur, beamForce: push / dur * (result === "blocked" ? 1 - BAL.block_reduce * (ult ? BAL.special_block_pierce : 1) : 1), beamBlocked: result === "blocked", beamPerfect: perfect, beamPower: power, beamFire: fire, beamUlt: ult, beamBubble: f.fastT > 0 }); }
-    if (!ult) f.special = Math.min(100, f.special + (perfect ? BAL.special_gain_perfect : 0) + (result === "hit" ? BAL.special_gain_hit : 0));
-    if (result === "parry") t.special = Math.min(100, t.special + BAL.special_gain_parry);
+    else { const dur = (BAL.beam_min_time + BAL.beam_extra_time * p) * (ult ? 1.6 : 1); Object.assign(f, { beamT: dur, beamTotal: dur, beamForce: push / dur * (result === "blocked" ? 1 - this.blockReduce(1 - s) * (ult ? BAL.special_block_pierce : 1) : 1), beamBlocked: result === "blocked", beamPerfect: perfect, beamPower: power, beamFire: fire, beamUlt: ult, beamBubble: f.fastT > 0 }); }
+    const sg = side => this.tr(side) === "majesty" ? 1.5 : 1;
+    if (!ult) f.special = Math.min(100, f.special + ((perfect ? BAL.special_gain_perfect : 0) + (result === "hit" ? BAL.special_gain_hit : 0)) * sg(s));
+    if (result === "parry") t.special = Math.min(100, t.special + BAL.special_gain_parry * sg(1 - s));
     const stink = Math.max(f.stinkNext, def.stink || 0); f.stinkNext = 0; if (stink > 0 && result === "hit") f.stinkT = Math.max(f.stinkT, stink);
     f.stats.farts++; if (perfect) f.stats.perfect++;
     const size = power >= 1.4 ? "mega" : power >= 0.9 ? "big" : power >= 0.4 ? "medium" : "tiny";
-    const ev = { type: "fart", side: s, p, power, perfect, size, result, fire, ult }; this.events.push(ev); return ev;
+    const ev = { type: "fart", side: s, p, power, perfect, size, result, fire, ult, tfx }; this.events.push(ev); return ev;
   }
   // ── 힘겨루기: 두 빔이 정면으로 부딪히면 시작. 에너지(빔 세기 × 남은 가스)로 시작 위치가 정해지고,
   //    박자마다 원이 맞닿는 순간 탭(완벽 ×1.6 / 좋아 ×1.0 / 놓침 ×0.4, 가스 부족이면 절반)으로 밀어낸다.
-  energy(s) { const f = this.f[s]; return f.beamPower * (0.6 + 0.4 * f.gas / BAL.gas_max); }
+  energy(s) { const f = this.f[s]; return f.beamPower * (0.6 + 0.4 * f.gas / BAL.gas_max) * (this.tr(s) === "avalanche" ? 1.25 : 1); }
   clashTarget() { return BAL.clash_beat_len * 0.75; }
   startClash() {
     const E = [this.energy(0), this.energy(1)];
     this.f.forEach(f => { f.holding = false; f.pressure = 0; f.overT = 0; });
     this.vel = 0;
     this.clash = { beat: 0, bt: 0, E, m: (E[0] - E[1]) / (E[0] + E[1]) * 0.5, taps: [null, null], log: [] };
-    this.events.push({ type: "clash_start", E, m: this.clash.m });
+    this.events.push({ type: "clash_start", E, m: this.clash.m, tfx: [0, 1].map(s => this.tr(s) === "avalanche" ? "눈사태! 에너지+25%" : "") });
   }
   clashTap(s, offIn, beat) {
     const c = this.clash; if (!c || c.taps[s]) return null;
@@ -228,7 +259,7 @@ class Logic {
     fw.stats.clashWins++;
     this.events.push({ type: "clash_end", winner: w, m });
   }
-  blunder(s) { const f = this.f[s]; Object.assign(f, { holding: false, pressure: 0, overT: 0, stunT: BAL.blunder_stun, beamT: 0, gas: f.gas * 0.5 }); f.stats.blunders++; this.vel -= this.dir(s) * BAL.blunder_backfire; this.events.push({ type: "blunder", side: s }); }
+  blunder(s) { const f = this.f[s]; Object.assign(f, { holding: false, pressure: 0, overT: 0, stunT: BAL.blunder_stun * (this.tr(s) === "endure" ? 0.5 : 1), beamT: 0, gas: f.gas * 0.5 }); f.stats.blunders++; this.vel -= this.dir(s) * BAL.blunder_backfire; this.events.push({ type: "blunder", side: s }); }
   applyFood(s, id) {
     const fd = FOODS.find(x => x.id === id); if (!fd) return; const f = this.f[s]; f.stats.foods++;
     const ev = { type: "eat", side: s, name: fd.name, good: true };
@@ -241,6 +272,8 @@ class Logic {
       case "regen": f.regenT = fd.value; break;
       case "gamble": if (Math.random() < BAL.milk_bad_chance) { f.stunT = Math.max(f.stunT, BAL.milk_stun); f.holding = false; f.pressure = 0; ev.good = false; } else f.boostNext = fd.value; break;
     }
+    if (this.tr(s) === "acorn") { f.gas = Math.min(BAL.gas_max, f.gas + 15); ev.tfx = "도토리 저장! 가스+15"; }
+    if (this.tr(s) === "glutton") { f.special = Math.min(100, f.special + 20); ev.tfx = "먹방! 필살+20"; }
     this.events.push(ev);
   }
   tickFoods(dt) {
@@ -458,10 +491,14 @@ function persp(y) { return Math.max(0.55, Math.min(1.45, 0.74 + (1.3 - 0.74) * (
 const WORDS = { tiny: ["뽁", "뿡", "뽀옹"], medium: ["뿌웅!", "뿡뿡!", "뿌르륵!"], big: ["뿌아앙!", "뿌우우웅!", "뿌르르릉!"], mega: ["뿌아아아앙!!", "부와아아앙!!", "뿌르르르릉!!"] };
 let G = null; // 현재 대결 상태
 
+// 플레이어가 고르는 캐릭터: 모습·특성은 그대로, 능력치는 균형 잡힌 play 값
+function playDef(id) { const base = [PLAYER, ...OPPONENTS].find(x => x.id === id) || PLAYER; return Object.assign({}, base, base.play || {}); }
+function charUnlocked(id) { return id === PLAYER.id || (Save.wins[id] || 0) > 0; }
+const VS = { p1: "puang", p2: "kid" };
 function newBattle(mode, oppIndex, demo) {
   const opp = OPPONENTS[oppIndex];
-  let p1 = Object.assign({}, PLAYER), p2 = Object.assign({}, opp);
-  if (mode === "versus") { for (const k of ["power", "control", "gas_regen", "stink"]) p2[k] = p1[k]; p1.name = "1P " + p1.name; p2.name = "2P " + opp.name; }
+  let p1 = demo ? Object.assign({}, PLAYER) : playDef(Save.char || PLAYER.id), p2 = Object.assign({}, opp);
+  if (mode === "versus") { p1 = playDef(VS.p1); p2 = playDef(VS.p2); p1.name = "1P " + p1.name; p2.name = "2P " + p2.name; }
   const logic = new Logic(p1, p2);
   const g = { mode, oppIndex, demo: !!demo, logic, defs: [p1, p2], ai: null, ai0: null, st: [{ mood: "normal" }, { mood: "normal" }], parts: [], pops: [], waves: [], arcs: [], cam: { x: 360, y: 360, z: 1, r: 0 }, shot: null, shotCd: 0, freeze: 0, slowT: 0, cutin: null, zoom: 0, shake: 0, flash: 0, state: "intro", stateT: demo ? 0.1 : 1.6, count: 3, big: "", touches: {}, saved: false, t: 0 };
   const themeIds = Object.keys(THEMES);
@@ -495,6 +532,7 @@ function handleEvent(g, ev) {
     for (let i = 0; i < n; i++) g.parts.push({ x: bp.x, y: bp.y, vx: d * (60 + Math.random() * 200), vy: -90 + Math.random() * 150, life: 0.5 + Math.random() * 0.6, r: 8 + Math.random() * 12, c: "rgba(191,242,115,0.55)", k: "puff" });
     const w = WORDS[ev.size]; popup(g, bp.x + d * 40, bp.y - 70, w[Math.floor(Math.random() * w.length)], ev.perfect ? "#7BE85F" : "#FFE15F", { tiny: 26, medium: 34, big: 44, mega: 54 }[ev.size]);
     if (ev.perfect) popup(g, bp.x + d * 40, bp.y - 118, "완벽한 뿡!", "#7BE85F", 26);
+    if (ev.tfx) { const hp = headPos(ev.side); popup(g, hp.x, hp.y - 50, ev.tfx, "#FFB43B", 28); }
     if (ev.result === "blocked" || ev.result === "parry") {
       const ts = 1 - ev.side, tb = buttPos(ts), sc = SPOT[ts].s, sx = tb.x - d * 62 * sc, st = g.st[ts];
       st.shieldHit = 1; st.shieldPink = ev.result === "parry";
@@ -517,7 +555,8 @@ function handleEvent(g, ev) {
   } else if (ev.type === "clash_start") {
     const cp = clashPos(g);
     g.shot = { kind: "clash", side: 0, t: 0, dur: 99 }; g.flash = 0.7; g.shake = 0.8; g.freeze = 0.1;
-    popup(g, cp.x, cp.y - 120, "힘겨루기!!", "#FFE15F", 46); wave(g, cp.x, cp.y, 260, "#FFFFFF", 12);
+    popup(g, cp.x, cp.y - 120, "힘겨루기!!", "#FFE15F", 46);
+    (ev.tfx || []).forEach((t, s) => { if (t) popup(g, cp.x + (s === 0 ? -90 : 90), cp.y + 70, t, "#9FE3FF", 24); }); wave(g, cp.x, cp.y, 260, "#FFFFFF", 12);
     if (!g.demo) { play("mega", 0.7); buzz(60); }
   } else if (ev.type === "clash_tap") {
     const cp = clashPos(g), d = ev.side === 0 ? -1 : 1;
@@ -543,6 +582,7 @@ function handleEvent(g, ev) {
     if (!g.demo) { play("squeak"); buzz(80); }
   } else if (ev.type === "eat") {
     g.st[ev.side].eatT = 0.6;
+    if (ev.tfx) { const hp = headPos(ev.side); popup(g, hp.x, hp.y - 60, ev.tfx, "#FFB43B", 24); }
     popup(g, headPos(ev.side).x, headPos(ev.side).y, ev.good ? ev.name + " 냠!" : "배탈…", ev.good ? "#FFFFFF" : "#B9B5B0", 26);
     if (!g.demo) play(ev.good ? "eat" : "bad");
   } else if (ev.type === "no_gas") {
@@ -882,6 +922,7 @@ function drawPad(g, side, y0, flipped) {
   text(def.name, 24, 30, 20, acc, "left", 0, FONT_B);
   const spv = f.special || 0, ready = spv >= 100, rb = `hsl(${(g.t * 400) % 360},100%,65%)`;
   rrect(24, 52, 170, 14, 7, "rgba(0,0,0,0.45)"); if (spv > 0) rrect(24, 52, Math.max(14, 170 * spv / 100), 14, 7, ready ? rb : "#FFB43B");
+  if (def.trait) text("특성 · " + def.trait.name, 300, 58, 14, "#FFB43B", "left", 0, FONT_B);
   text(ready ? "필살 준비! 완벽하게 떼기" : "필살 게이지", 24, 80, 13, ready ? "#FFE15F" : "#B9B5B0", "left", 0, FONT_B);
   rrect(210, 18, 250, 22, 11, "rgba(0,0,0,0.4)");
   const gk = f.gas / BAL.gas_max; if (gk > 0) rrect(210, 18, Math.max(22, 250 * gk), 22, 11, f.regenT > 0 ? "#5FE8FF" : "#9BE05F");
@@ -898,7 +939,7 @@ function drawPad(g, side, y0, flipped) {
   text("압력", gg.x + gg.w / 2, gg.y + gg.h + 22, 15, "#B9B5B0", "center", 0, FONT_B);
   const b = PAD.block, cd = f.blockCd, bc = f.blockT > 0 ? "#9BFFB0" : cd <= 0 ? "#5FE8FF" : "#4A5A6E";
   circ(b.x, b.y, b.r, shade(bc, -0.35)); circ(b.x, b.y - 4, b.r - 6, bc);
-  if (cd > 0) arcS(b.x, b.y, b.r - 3, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - cd / BAL.block_cooldown), "rgba(255,255,255,0.8)", 6);
+  if (cd > 0) arcS(b.x, b.y, b.r - 3, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - cd / l.blockCdMax(side)), "rgba(255,255,255,0.8)", 6);
   ctx.fillStyle = "#FFD25F"; ctx.fillRect(b.x - 9, b.y - 42, 18, 34); ctx.fillStyle = "#D9A62F"; ctx.fillRect(b.x - 9, b.y - 42, 18, 8);
   if (f.blockT > 0) { arcS(b.x, b.y, b.r + 8 + 4 * Math.sin(g.t * 20), 0, TAU, "#9BFFB0", 6); }
   text(f.blockT > 0 ? "막는 중!" : "코 막기", b.x, b.y + 22, 24, "#1A2A33", "center", 0, FONT_D);
@@ -1019,13 +1060,16 @@ function openOverlay(html, buttons) {
   $("overlay").hidden = false;
 }
 function showTitle() {
-  $("title").hidden = false; $("select").hidden = true; $("online").hidden = true; closeOverlay();
+  $("title").hidden = false; $("select").hidden = true; $("online").hidden = true; $("chars").hidden = true; closeOverlay();
+  if (!charUnlocked(Save.char || PLAYER.id)) Save.char = PLAYER.id;
+  $("btn-chars").textContent = `내 캐릭터: ${playDef(Save.char || PLAYER.id).name} (바꾸기)`;
   G = newBattle("league", Math.floor(Math.random() * OPPONENTS.length), true);
   $("btn-sound").textContent = Save.sound ? "소리 켜짐" : "소리 꺼짐";
   $("record").textContent = `전적 ${Save.stats.matchWins}승 ${Save.stats.matches - Save.stats.matchWins}패 · 완벽한 뿡 ${Save.stats.perfect}번`;
 }
 function showSelect() {
-  $("title").hidden = true; $("select").hidden = false;
+  $("title").hidden = true; $("select").hidden = false; $("chars").hidden = true;
+  { const me = playDef(Save.char || PLAYER.id); $("sel-char").textContent = `내 캐릭터: ${me.name} · 특성 「${me.trait.name}」 (바꾸기)`; }
   const box = $("cards"); box.innerHTML = "";
   let lastStage = null, focus = null;
   OPPONENTS.forEach((o, i) => {
@@ -1041,7 +1085,7 @@ function showSelect() {
     if (open) focus = card;
     const c = document.createElement("canvas"); c.width = 300; c.height = 220; card.appendChild(c);
     const info = document.createElement("div"); info.className = "info";
-    info.innerHTML = `<h3 style="color:${open ? o.beam[0] : "#B9B5B0"}">${i + 1}. ${open ? o.name : "???"}${o.boss ? ' <span class="badge">보스</span>' : ""}</h3><p>${open ? o.title : "앞 상대를 이기면 열려요"}</p>${open ? `<p>「${o.lines.intro}」</p>` : ""}`;
+    info.innerHTML = `<h3 style="color:${open ? o.beam[0] : "#B9B5B0"}">${i + 1}. ${open ? o.name : "???"}${o.boss ? ' <span class="badge">보스</span>' : ""}</h3><p>${open ? o.title : "앞 상대를 이기면 열려요"}</p>${open && o.trait ? `<p style="color:#FFB43B">특성 · ${o.trait.name}: ${o.trait.desc}</p>` : ""}${open ? `<p>「${o.lines.intro}」</p>` : ""}`;
     const b = document.createElement("button"); b.className = "btn"; b.textContent = wins ? `도전! (승리 ${wins})` : "도전!"; b.disabled = !open;
     b.onclick = () => { audioInit(); play("medium"); startBattle("league", i); };
     info.appendChild(b); card.appendChild(info); box.appendChild(card);
@@ -1053,8 +1097,42 @@ function showSelect() {
 }
 // ctx 를 잠깐 다른 캔버스로 바꿔 그리기
 function drawWith(other, fn) { const saved = ctx; ctx = other; try { fn(); } finally { ctx = saved; } }
+let charMode = "me";
+function showChars(mode) {
+  charMode = mode || "me";
+  for (const id of ["title", "select", "online"]) $(id).hidden = true; $("chars").hidden = false; closeOverlay();
+  $("ch-title").textContent = charMode === "vs1" ? "1P 캐릭터 고르기" : charMode === "vs2" ? "2P 캐릭터 고르기" : "내 캐릭터 고르기";
+  $("ch-sub").textContent = charMode === "vs2" ? "2P가 고르세요. 같은 캐릭터도 돼요." : "리그에서 이긴 상대는 내 캐릭터로 쓸 수 있어요.";
+  const box = $("ch-list"); box.innerHTML = "";
+  const cur = charMode === "vs1" ? VS.p1 : charMode === "vs2" ? VS.p2 : (Save.char || PLAYER.id);
+  [PLAYER, ...OPPONENTS].forEach((base, i) => {
+    const open = charUnlocked(base.id), d = playDef(base.id), row = document.createElement("div");
+    row.className = "ch" + (open ? "" : " locked") + (open && base.id === cur ? " sel" : "");
+    const c = document.createElement("canvas"); c.width = 240; c.height = 176; row.appendChild(c);
+    const info = document.createElement("div"); info.className = "info";
+    const bar = (lab, v) => `<span>${lab}</span><div class="bar"><i style="width:${Math.round(Math.max(0.08, Math.min(1, v)) * 100)}%"></i></div>`;
+    info.innerHTML = open
+      ? `<h3 style="color:${base.beam[0]}">${base.name}</h3><span class="tr">특성 · ${base.trait.name}</span><p>${base.trait.desc}</p><div class="bars">${bar("파워", (d.power - 0.6) / 0.6)}${bar("조절", (d.control - 0.7) / 0.6)}${bar("회복", (d.gas_regen - 6) / 6)}</div>`
+      : `<h3 style="color:#8A8496">???</h3><p>리그 ${i}번째 상대를 이기면 해금</p>`;
+    row.appendChild(info);
+    const b = document.createElement("button"); b.className = "btn"; b.disabled = !open; b.textContent = open && base.id === cur && charMode === "me" ? "선택됨" : "선택";
+    b.onclick = () => {
+      play("click");
+      if (charMode === "vs1") { VS.p1 = base.id; showChars("vs2"); return; }
+      if (charMode === "vs2") { VS.p2 = base.id; play("big"); startBattle("versus", 0); return; }
+      Save.char = base.id; writeSave(); showChars("me");
+    };
+    info.appendChild(b); box.appendChild(row);
+    const cx = c.getContext("2d"); cx.save(); cx.translate(124, 162); cx.scale(-0.9, 0.9); drawWith(cx, () => drawCritter(d, { mood: "normal" }, 0)); cx.restore();
+    if (!open) { cx.globalCompositeOperation = "source-atop"; cx.fillStyle = "rgba(0,0,0,0.85)"; cx.fillRect(0, 0, 240, 176); }
+  });
+}
+$("ch-back").onclick = () => { play("click"); if (charMode === "vs2") showChars("vs1"); else if (charFrom === "select") showSelect(); else showTitle(); };
+let charFrom = "title";
+$("btn-chars").onclick = () => { audioInit(); play("click"); charFrom = "title"; showChars("me"); };
+$("sel-char").onclick = () => { play("click"); charFrom = "select"; showChars("me"); };
 function startBattle(mode, opp) {
-  $("title").hidden = true; $("select").hidden = true; $("online").hidden = true; closeOverlay();
+  $("title").hidden = true; $("select").hidden = true; $("online").hidden = true; $("chars").hidden = true; closeOverlay();
   G = newBattle(mode, opp, false);
   if (mode === "league" && Save.tutorial !== 3) showTutorial();
 }
@@ -1083,10 +1161,10 @@ function showResult(g) {
   const btns = [];
   if (g.mode === "online") { onlineResult(g, html, won, st); return; }
   if (g.mode === "league") {
-    html += `<p><b>「${PLAYER.lines[won ? "win" : "lose"]}」</b></p><p class="muted">${g.defs[1].name}: 「${g.defs[1].lines[won ? "lose" : "win"]}」</p>`;
+    html += `<p><b>「${(g.defs[0].lines || PLAYER.lines)[won ? "win" : "lose"]}」</b></p><p class="muted">${g.defs[1].name}: 「${g.defs[1].lines[won ? "lose" : "win"]}」</p>`;
     if (!g.saved) {
       g.saved = true; Save.stats.matches++; Save.stats.farts += st.farts; Save.stats.perfect += st.perfect;
-      if (won) { Save.stats.matchWins++; Save.wins[g.defs[1].id] = (Save.wins[g.defs[1].id] || 0) + 1; if (g.oppIndex + 1 >= Save.unlocked && g.oppIndex + 1 < OPPONENTS.length) { Save.unlocked = g.oppIndex + 2; const nx = OPPONENTS[g.oppIndex + 1], ns = STAGES.find(x => x.id === nx.stage); html += nx.stage !== g.defs[1].stage && ns ? `<p class="good">새 챕터 열림: ${ns.name}! 첫 상대 ${nx.name}</p>` : `<p class="good">새 상대 등장: ${nx.name}!</p>`; } else if (g.oppIndex + 1 >= OPPONENTS.length) html += `<p class="good">뿌앙 리그 챔피언 달성!</p>`; }
+      if (won) { Save.stats.matchWins++; if (!Save.wins[g.defs[1].id]) html += `<p class="good">새 캐릭터 해금: ${g.defs[1].name} (특성 「${g.defs[1].trait.name}」)</p>`; Save.wins[g.defs[1].id] = (Save.wins[g.defs[1].id] || 0) + 1; if (g.oppIndex + 1 >= Save.unlocked && g.oppIndex + 1 < OPPONENTS.length) { Save.unlocked = g.oppIndex + 2; const nx = OPPONENTS[g.oppIndex + 1], ns = STAGES.find(x => x.id === nx.stage); html += nx.stage !== g.defs[1].stage && ns ? `<p class="good">새 챕터 열림: ${ns.name}! 첫 상대 ${nx.name}</p>` : `<p class="good">새 상대 등장: ${nx.name}!</p>`; } else if (g.oppIndex + 1 >= OPPONENTS.length) html += `<p class="good">뿌앙 리그 챔피언 달성!</p>`; }
       writeSave();
     }
     if (won && g.oppIndex + 1 < OPPONENTS.length) btns.push(["다음 상대와 대결", "", () => startBattle("league", g.oppIndex + 1)]);
@@ -1094,11 +1172,12 @@ function showResult(g) {
   html += `<p class="muted">방귀 ${st.farts}번 · 완벽 ${st.perfect}번 · 삐끗 ${st.blunders}번 · 튕겨내기 ${st.parries}번 · 필살 ${st.ults}번 · 힘겨루기 승 ${st.clashWins}번 · 음식 ${st.foods}개</p>`;
   btns.push(["한 판 더", btns.length ? "alt" : "", () => startBattle(g.mode, g.oppIndex)]);
   btns.push(["메뉴로", "alt", () => g.mode === "versus" ? showTitle() : showSelect()]);
+  if (g.mode === "versus") btns.splice(btns.length - 1, 0, ["캐릭터 다시 고르기", "alt", () => showChars("vs1")]);
   play(won || g.mode === "versus" ? "win" : "lose");
   openOverlay(html, btns);
 }
 $("btn-league").onclick = () => { audioInit(); play("medium"); showSelect(); };
-$("btn-versus").onclick = () => { audioInit(); play("big"); startBattle("versus", Math.floor(Math.random() * OPPONENTS.length)); };
+$("btn-versus").onclick = () => { audioInit(); play("click"); charFrom = "title"; showChars("vs1"); };
 $("btn-sound").onclick = () => { audioInit(); Save.sound = !Save.sound; writeSave(); $("btn-sound").textContent = Save.sound ? "소리 켜짐" : "소리 꺼짐"; };
 $("btn-back").onclick = () => { play("click"); showTitle(); };
 
@@ -1122,7 +1201,7 @@ function netConnect() {
   Net.status = "connecting"; lobbyRender();
   let ws; try { ws = new WebSocket(url); } catch (e) { Net.status = "error"; lobbyRender(); return; }
   Net.ws = ws;
-  ws.onopen = () => { Net.status = "on"; Net.retry = 0; netSend({ t: "hello", name: Save.nick, fighter: Save.fighter }); lobbyRender(); };
+  ws.onopen = () => { Net.status = "on"; Net.retry = 0; netSend({ t: "hello", name: Save.nick, fighter: Save.char }); lobbyRender(); };
   ws.onclose = () => {
     Net.status = "off"; Net.ws = null; lobbyRender();
     if (G && G.net && !G.net.dead) netOppLeft("연결이 끊겼어요");
@@ -1151,14 +1230,10 @@ function netOnRelay(g, d) {
   else if (d.k === "rematch") { g.net.rematch.opp = true; checkRematch(g); refreshRematch(g); }
   else if (d.k === "restart" && g.net.role === "guest") startOnline("guest", g.net.opp);
 }
-function onlineDef(fid, nick) {
-  const base = ALL_FIGHTERS.find(x => x.id === fid) || PLAYER, d = Object.assign({}, base);
-  for (const k of ["power", "control", "gas_regen", "stink"]) d[k] = PLAYER[k]; // 온라인은 능력치 동일, 모습만 다름
-  d.title = base.name; d.name = nick; return d;
-}
+function onlineDef(fid, nick) { const d = playDef(fid); d.title = d.name; d.name = nick; return d; }
 function startOnline(role, opp) {
   $("title").hidden = true; $("select").hidden = true; $("online").hidden = true; closeOverlay();
-  const g = newBattle("online", 0, false), me = onlineDef(Save.fighter, Save.nick), them = onlineDef(opp.fighter, opp.name);
+  const g = newBattle("online", 0, false), me = onlineDef(Save.char, Save.nick), them = onlineDef(opp.fighter, opp.name);
   g.defs = [me, them]; g.logic = new Logic(me, them); g.ai = null;
   g.net = { role, opp, evq: [], acc: 0, inbox: [], hold: null, myTap: null, rematch: { me: false, opp: false }, dead: false };
   if (role === "host") g.logic.netGrace = [0, 0.45];
@@ -1170,7 +1245,7 @@ function netPump(g) {
   const l = g.logic;
   for (const d of g.net.inbox.splice(0)) {
     if (d.k !== "in") continue;
-    if (d.a === "release") { const f = l.f[1]; if (f.holding) { const rate = (1 / BAL.pressure_fill_time) * (f.fastT > 0 ? 2 : 1); f.pressure = Math.min(l.maxP(1), Math.max(0, +d.held || 0) * rate); l.release(1); } continue; }
+    if (d.a === "release") { const f = l.f[1]; if (f.holding) { const rate = l.fillRate(1); f.pressure = Math.min(l.maxP(1), Math.max(0, +d.held || 0) * rate); l.release(1); } continue; }
     if (g.state !== "fight") continue;
     if (d.a === "press") l.press(1);
     else if (d.a === "block") l.block(1);
@@ -1193,7 +1268,7 @@ function mirrorEv(e) {
   if ("side" in e) e.side = 1 - e.side;
   if ("winner" in e && e.winner >= 0) e.winner = 1 - e.winner;
   if ("m" in e) e.m = -e.m; if ("delta" in e) e.delta = -e.delta;
-  if (e.E) e.E = [e.E[1], e.E[0]]; if (e.grades) e.grades = [e.grades[1], e.grades[0]];
+  if (e.E) e.E = [e.E[1], e.E[0]]; if (e.grades) e.grades = [e.grades[1], e.grades[0]]; if (Array.isArray(e.tfx)) e.tfx = [e.tfx[1], e.tfx[0]];
   return e;
 }
 function applySnap(g, s) {
@@ -1212,7 +1287,7 @@ function guestTick(g, dt) {
   if (g.state === "fight" && !l.roundOver) { if (l.clash) l.clash.bt += dt; else { l.cloud += l.vel * dt; for (const f of l.f) f.beamT = Math.max(0, f.beamT - dt); } }
   const f = l.f[0];
   if (n.hold && (f.stunT > 0 || l.clash || l.roundOver || g.state !== "fight")) n.hold = null;
-  if (n.hold) { f.holding = true; f.pressure = Math.min(l.maxP(0), (performance.now() - n.hold.t0) / 1000 / BAL.pressure_fill_time * (f.fastT > 0 ? 2 : 1)); }
+  if (n.hold) { f.holding = true; f.pressure = Math.min(l.maxP(0), (performance.now() - n.hold.t0) / 1000 * l.fillRate(0)); }
   else { f.holding = false; f.pressure = 0; }
   if (l.clash && n.myTap && n.myTap.beat === l.clash.beat && !l.clash.taps[0]) l.clash.taps[0] = { grade: n.myTap.grade };
   if (l.matchOver && g.state === "result" && !g.resultShown) { g.resultShown = true; showResult(g); }
@@ -1236,21 +1311,21 @@ function netOppLeft(msg) {
 // 로비 화면
 function showOnline() {
   if (!netUrl()) { openOverlay(`<h2>온라인 대전</h2><p>온라인 대전은 게임 서버 주소로 열었을 때만 돼요.</p><p class="muted">fart_battle/server 에서 <b>npm start</b> 로 서버를 켜고 그 주소로 접속하세요.</p>`, [["확인", "", () => closeOverlay()]]); return; }
-  $("title").hidden = true; $("select").hidden = true; $("online").hidden = false; closeOverlay();
+  $("title").hidden = true; $("select").hidden = true; $("chars").hidden = true; $("online").hidden = false; closeOverlay();
   if (!Save.nick) { Save.nick = "뿡뿡이" + Math.floor(1000 + Math.random() * 9000); writeSave(); }
-  if (!Save.fighter) Save.fighter = "puang";
+  if (!Save.char || !charUnlocked(Save.char)) Save.char = PLAYER.id;
   $("on-name").value = Save.nick;
   G = newBattle("league", 0, true); // 뒤에 데모는 숨겨져도 상관없음
   buildFighterPicker(); netConnect(); lobbyRender();
-  if (Net.status === "on") netSend({ t: "hello", name: Save.nick, fighter: Save.fighter });
+  if (Net.status === "on") netSend({ t: "hello", name: Save.nick, fighter: Save.char });
 }
 function miniCritter(c, def, scale) { const cx = c.getContext("2d"); cx.clearRect(0, 0, c.width, c.height); cx.save(); cx.translate(c.width / 2 + 6, c.height - 12); cx.scale(-scale, scale); drawWith(cx, () => drawCritter(def, { mood: "normal" }, 0)); cx.restore(); }
 function buildFighterPicker() {
   const box = $("on-fighters"); box.innerHTML = "";
-  for (const f of ALL_FIGHTERS) {
-    const b = document.createElement("button"); b.setAttribute("aria-pressed", String(f.id === Save.fighter)); b.title = f.name; b.setAttribute("aria-label", f.name);
+  for (const f of ALL_FIGHTERS.filter(x => charUnlocked(x.id))) {
+    const b = document.createElement("button"); b.setAttribute("aria-pressed", String(f.id === Save.char)); b.title = f.name; b.setAttribute("aria-label", f.name);
     const c = document.createElement("canvas"); c.width = 160; c.height = 120; b.appendChild(c); box.appendChild(b); miniCritter(c, f, 0.55);
-    b.onclick = () => { play("click"); Save.fighter = f.id; writeSave(); buildFighterPicker(); netSend({ t: "hello", name: Save.nick, fighter: Save.fighter }); };
+    b.onclick = () => { play("click"); Save.char = f.id; writeSave(); buildFighterPicker(); netSend({ t: "hello", name: Save.nick, fighter: Save.char }); };
   }
 }
 function lobbyRender() {
@@ -1295,7 +1370,7 @@ function drawQR(text) {
   try { const q = qrcode(0, "M"); q.addData(text); q.make(); const img = new Image(); img.alt = "초대 QR 코드"; img.src = q.createDataURL(6, 2); el.innerHTML = ""; el.appendChild(img); } catch (e) {}
 }
 $("on-back").onclick = () => { play("click"); netSend({ t: "cancel" }); showTitle(); };
-$("on-name").onchange = () => { Save.nick = $("on-name").value.trim().slice(0, 12) || Save.nick; $("on-name").value = Save.nick; writeSave(); netSend({ t: "hello", name: Save.nick, fighter: Save.fighter }); };
+$("on-name").onchange = () => { Save.nick = $("on-name").value.trim().slice(0, 12) || Save.nick; $("on-name").value = Save.nick; writeSave(); netSend({ t: "hello", name: Save.nick, fighter: Save.char }); };
 $("on-invite").onclick = () => { audioInit(); play("click"); netSend({ t: "create", public: false }); };
 $("on-quick").onclick = () => { audioInit(); play("click"); netSend({ t: "quick" }); };
 $("on-create").onclick = () => { audioInit(); play("click"); netSend({ t: "create", public: true }); };
