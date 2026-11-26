@@ -27,3 +27,9 @@ PC 에서는 마우스 클릭이 터치로 동작하고, 스페이스 = 뿡, B =
 - `scripts/battle/` 대결장(arena), 동물(critter), 조작부(pad), 대결 흐름(battle)
 - `scripts/audio/fart_synth.gd` 방귀 효과음 합성 · `scripts/core/save.gd` 리그 진행/전적 저장
 - `data/*.json` 캐릭터·음식·밸런스 수치 (코드 수정 없이 조정)
+
+## HTML 버전 (Godot 없이 바로 실행)
+
+`web/fart_battle.html` 하나만 브라우저로 열면 됩니다 (인터넷 없으면 기본 글꼴로 표시).
+규칙은 `scripts/core/battle_logic.gd` 를 JavaScript 로 옮긴 것이고, 수치는 `data/*.json` 에서 가져옵니다.
+수치나 `web/template.html` 을 고치면 `bash tools/build_html.sh` 로 다시 만드세요.

@@ -3,4 +3,5 @@
 - 규칙은 scripts/core/battle_logic.gd(순수 로직), 화면은 scripts/battle. 수치는 data/*.json.
 - class_name 대신 preload, := 로 Variant 추론 금지.
 - 테스트: bash tools/test.sh · 화면 확인: bash tools/screenshots.sh · 웹: bash tools/build_web.sh
+- HTML 버전: web/template.html 수정 후 bash tools/build_html.sh (규칙을 바꾸면 battle_logic.gd 와 template.html 둘 다 고친다)
 - 실행해 보지 않은 것을 테스트했다고 기록하지 않는다.
