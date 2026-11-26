@@ -318,17 +318,19 @@ function drawCritter(def, st, t) {
 }
 
 // ───────── 대결 화면 ─────────
-const ARENA = { w: 720, h: 560, ground: 470, left: 118, right: 602 };
+const ARENA = { w: 720, h: 720, horizon: 150 };
+const SPOT = [{ x: 132, y: 640, s: 1.3 }, { x: 598, y: 300, s: 0.74 }];
+function persp(y) { return Math.max(0.55, Math.min(1.45, 0.74 + (1.3 - 0.74) * (y - 300) / 340)); }
 const WORDS = { tiny: ["뽁", "뿡", "뽀옹"], medium: ["뿌웅!", "뿡뿡!", "뿌르륵!"], big: ["뿌아앙!", "뿌우우웅!", "뿌르르릉!"], mega: ["뿌아아아앙!!", "부와아아앙!!", "뿌르르르릉!!"] };
 let G = null; // 현재 대결 상태
-const LEAVES = Array.from({ length: 14 }, () => ({ x: Math.random() * 720, y: Math.random() * 460, s: 10 + Math.random() * 20, ph: Math.random() * TAU }));
+const LEAVES = Array.from({ length: 16 }, () => ({ x: Math.random() * 720, y: Math.random() * 700, s: 10 + Math.random() * 20, ph: Math.random() * TAU }));
 
 function newBattle(mode, oppIndex, demo) {
   const opp = OPPONENTS[oppIndex];
   let p1 = Object.assign({}, PLAYER), p2 = Object.assign({}, opp);
   if (mode === "versus") { for (const k of ["power", "control", "gas_regen", "stink"]) p2[k] = p1[k]; p1.name = "1P " + p1.name; p2.name = "2P " + opp.name; }
   const logic = new Logic(p1, p2);
-  const g = { mode, oppIndex, demo: !!demo, logic, defs: [p1, p2], ai: null, ai0: null, st: [{ mood: "normal" }, { mood: "normal" }], parts: [], pops: [], waves: [], freeze: 0, slowT: 0, cutin: null, zoom: 0, shake: 0, flash: 0, state: "intro", stateT: demo ? 0.1 : 1.6, count: 3, big: "", touches: {}, saved: false, t: 0 };
+  const g = { mode, oppIndex, demo: !!demo, logic, defs: [p1, p2], ai: null, ai0: null, st: [{ mood: "normal" }, { mood: "normal" }], parts: [], pops: [], waves: [], arcs: [], cam: { x: 360, y: 360, z: 1, r: 0 }, shot: null, shotCd: 0, freeze: 0, slowT: 0, cutin: null, zoom: 0, shake: 0, flash: 0, state: "intro", stateT: demo ? 0.1 : 1.6, count: 3, big: "", touches: {}, saved: false, t: 0 };
   if (mode === "league" || demo) g.ai = new AI(logic, 1, demo ? { ai_reaction: 0.3, ai_accuracy: 0.1, ai_aggression: 0.9, ai_block: 0.3, ai_greed: 0.8 } : null);
   if (demo) g.ai0 = new AI(logic, 0, { ai_reaction: 0.3, ai_accuracy: 0.1, ai_aggression: 0.9, ai_block: 0.3, ai_greed: 0.8 });
   return g;
@@ -337,13 +339,15 @@ function newBattle(mode, oppIndex, demo) {
 function layout(g) {
   const topH = g.demo ? 0 : (g.mode === "versus" ? 300 : 150), padH = g.demo ? 0 : 300;
   const area = { y: topH, h: H - topH - padH };
-  const s = g.demo ? 1 : Math.min(1, area.h / ARENA.h);
-  const ay = g.demo ? H * 0.28 : area.y + area.h - ARENA.h * s + 20 * s;
+  const s = g.demo ? 0.82 : Math.min(1, area.h / ARENA.h);
+  const ay = g.demo ? H * 0.22 : area.y + area.h - ARENA.h * s + 30 * s;
   return { topH, padH, s, ax: (720 - ARENA.w * s) / 2, ay };
 }
-function buttPos(side) { return side === 0 ? { x: ARENA.left + BUTT.x, y: ARENA.ground + BUTT.y } : { x: ARENA.right - BUTT.x, y: ARENA.ground + BUTT.y }; }
-function clashPos(g) { const a = buttPos(0), b = buttPos(1), k = Math.max(0, Math.min(1, (g.logic.cloud + 1) / 2)); return { x: a.x + (b.x - a.x) * k, y: a.y }; }
-function foodPos(g, fd) { return { x: 90 + fd.x * 540, y: 110 + (fd.y - 0.3) / 0.4 * 220 + Math.sin(g.t * 3 + fd.uid) * 6 }; }
+function buttPos(side) { const p = SPOT[side], d = side === 0 ? 1 : -1; return { x: p.x + d * BUTT.x * p.s, y: p.y + BUTT.y * p.s }; }
+function headPos(side) { const p = SPOT[side]; return { x: p.x - (side === 0 ? 1 : -1) * 30 * p.s, y: p.y - 150 * p.s }; }
+function clashPos(g) { const a = buttPos(0), b = buttPos(1), k = Math.max(0, Math.min(1, (g.logic.cloud + 1) / 2)); return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k }; }
+// 음식은 빔 선을 피해 왼쪽 위 / 오른쪽 아래 빈 땅에 나온다
+function foodPos(g, fd) { const v = (fd.y - 0.3) / 0.4, bob = Math.sin(g.t * 3 + fd.uid) * 6; return fd.x < 0.5 ? { x: 80 + fd.x * 2 * 250, y: 200 + v * 170 + bob } : { x: 460 + (fd.x - 0.5) * 2 * 200, y: 450 + v * 160 + bob }; }
 function popup(g, x, y, t, c, s) { g.pops.push({ x, y, t, c, s, age: 0 }); }
 function sparks(g, x, y, n) { for (let i = 0; i < n; i++) { const a = Math.random() * TAU, v = 80 + Math.random() * 240; g.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.2 + Math.random() * 0.3, r: 3 + Math.random() * 4, c: `hsl(${Math.random() * 360},90%,70%)`, k: "spark" }); } }
 
@@ -359,27 +363,30 @@ function handleEvent(g, ev) {
     if (ev.result === "blocked") { popup(g, buttPos(1 - ev.side).x - d * 30, bp.y - 110, "막았다!", "#5FE8FF", 28); play("block"); }
     if (ev.result === "parry") { popup(g, buttPos(1 - ev.side).x - d * 30, bp.y - 110, "튕겨내기!!", "#FF5FD2", 34); g.flash = 1; play("parry"); }
     g.shake = Math.max(g.shake, { tiny: 0.1, medium: 0.3, big: 0.6, mega: 1 }[ev.size]);
+    // 강한 방귀: 카메라가 맞는 쪽으로 확 당겨짐 + 반달 충격 궤적
+    if (!ev.ult && ev.result !== "parry" && (ev.size === "mega" || (ev.perfect && ev.size === "big")) && g.shotCd <= 0 && !(g.shot && g.shot.kind !== "attack")) { g.shot = { kind: "attack", side: ev.side, t: 0, dur: 0.85 }; g.shotCd = 1.6; g.pendingArc = { side: ev.side, delay: 0.12, n: 1 }; }
+    if (ev.result === "parry") crescents(g, buttPos(1 - ev.side), 110, 1, "#FF5FD2");
     if (ev.size === "big" || ev.size === "mega") { g.freeze = ev.size === "mega" ? 0.09 : 0.05; g.zoom = Math.max(g.zoom, ev.size === "mega" ? 0.06 : 0.03); wave(g, bp.x, bp.y, 150, beamColors(g, ev.side)[1], 8); }
     if (ev.ult) {
       popup(g, bp.x + d * 60, bp.y - 160, "필살!!", "#FFE15F", 52);
       if (!g.demo) { g.cutin = { side: ev.side, t: 0, dur: 1.25 }; play("ult"); buzz(120); }
-      else { g.flash = 1; g.zoom = 0.1; wave(g, bp.x, bp.y, 320, "#FFFFFF", 12); }
+      else { g.flash = 1; wave(g, bp.x, bp.y, 320, "#FFFFFF", 12); g.shot = { kind: "ult", side: ev.side, t: 0, dur: 1.4 }; g.pendingArc = { side: ev.side, delay: 0.35, n: 3 }; }
     }
     if (!g.demo) { play(ev.size); if (ev.side === 0 || g.mode === "versus") buzz(ev.size === "tiny" || ev.size === "medium" ? 20 : 50); }
   } else if (ev.type === "blunder") {
-    popup(g, ev.side === 0 ? ARENA.left : ARENA.right, ARENA.ground - 150, "삐끗!", "#FF5F5F", 44); g.shake = Math.max(g.shake, 0.5);
+    popup(g, headPos(ev.side).x, headPos(ev.side).y, "삐끗!", "#FF5F5F", 44); g.shake = Math.max(g.shake, 0.5);
     if (!g.demo) { play("squeak"); buzz(80); }
   } else if (ev.type === "eat") {
     g.st[ev.side].eatT = 0.6;
-    popup(g, ev.side === 0 ? ARENA.left : ARENA.right, ARENA.ground - 150, ev.good ? ev.name + " 냠!" : "배탈…", ev.good ? "#FFFFFF" : "#B9B5B0", 26);
+    popup(g, headPos(ev.side).x, headPos(ev.side).y, ev.good ? ev.name + " 냠!" : "배탈…", ev.good ? "#FFFFFF" : "#B9B5B0", 26);
     if (!g.demo) play(ev.good ? "eat" : "bad");
   } else if (ev.type === "no_gas") {
-    popup(g, ev.side === 0 ? ARENA.left : ARENA.right, ARENA.ground - 150, "가스 부족!", "#B9B5B0", 24);
+    popup(g, headPos(ev.side).x, headPos(ev.side).y, "가스 부족!", "#B9B5B0", 24);
   } else if (ev.type === "block") {
     if (!g.demo) play("block", 1.3);
   } else if (ev.type === "round_end") {
     const w = ev.winner;
-    if (w >= 0) { const bp = buttPos(1 - w); sparks(g, bp.x, bp.y, 30); g.shake = 1; wave(g, bp.x, bp.y, 380, "#FFFFFF", 14); wave(g, bp.x, bp.y, 240, beamColors(g, w)[0], 10); if (!g.demo) { g.slowT = 0.9; g.zoom = 0.1; } g.st[w].mood = "happy"; g.st[1 - w].mood = "sad"; }
+    if (w >= 0) { const bp = buttPos(1 - w); sparks(g, bp.x, bp.y, 30); g.shake = 1; wave(g, bp.x, bp.y, 380, "#FFFFFF", 14); wave(g, bp.x, bp.y, 240, beamColors(g, w)[0], 10); g.shot = { kind: "ko", side: w, t: 0, dur: 1.3 }; crescents(g, bp, 150, 2, beamColors(g, w)[0]); if (!g.demo) { g.slowT = 0.9; g.zoom = 0.1; } g.st[w].mood = "happy"; g.st[1 - w].mood = "sad"; }
     if (!g.demo) {
       g.state = "round_end"; g.stateT = 2; g.touches = {};
       g.big = w < 0 ? "무승부!" : g.mode === "versus" ? g.defs[w].name + " 승리!" : (w === 0 ? "라운드 승리!" : "라운드 패배…");
@@ -397,7 +404,7 @@ function update(g, rdt) {
   let ldt = rdt, edt = rdt;
   if (g.cutin) {
     g.cutin.t += rdt; ldt = 0; edt = rdt * 0.08;
-    if (g.cutin.t >= g.cutin.dur) { const cp = clashPos(g); g.cutin = null; g.shake = 1.3; g.flash = 1; g.zoom = 0.12; wave(g, cp.x, cp.y, 420, "#FFFFFF", 16); wave(g, cp.x, cp.y, 280, "#FFE15F", 10); play("mega"); play("big", 0.8); }
+    if (g.cutin.t >= g.cutin.dur) { const cp = clashPos(g); g.cutin = null; g.shake = 1.3; g.flash = 1; g.zoom = 0.05; g.shot = { kind: "ult", side: g.logic.f[0].beamUlt ? 0 : 1, t: 0, dur: 1.5 }; g.pendingArc = { side: g.shot.side, delay: 0.35, n: 3 }; wave(g, cp.x, cp.y, 420, "#FFFFFF", 16); wave(g, cp.x, cp.y, 280, "#FFE15F", 10); play("mega"); play("big", 0.8); }
   } else if (g.freeze > 0) { g.freeze -= rdt; ldt = 0; edt = 0; }
   else if (g.slowT > 0) { g.slowT -= rdt; ldt *= 0.3; edt *= 0.3; }
   const dt = ldt;
@@ -430,15 +437,16 @@ function update(g, rdt) {
     st.inSweet = inSweet; st.ting = Math.max(0, (st.ting || 0) - edt * 2.5);
     // 빔: 물보라 / 거품
     if (f.beamT > 0) {
+      const dx = cp.x - bp.x, dy = cp.y - bp.y, dl = Math.hypot(dx, dy) || 1, ux = dx / dl, uy = dy / dl;
       const w = beamW(f), n = edt * (40 + 50 * f.beamPower) * (f.beamUlt ? 2 : 1);
       for (let i = 0; i < n || (i === 0 && Math.random() < n); i++) {
-        const u = Math.random(), x = bp.x + (cp.x - bp.x) * u, y = bp.y + (Math.random() - 0.5) * w;
-        if (f.beamBubble) g.parts.push({ x, y, vx: d * (40 + Math.random() * 80), vy: -30 - Math.random() * 60, life: 0.6 + Math.random() * 0.5, r: 4 + Math.random() * 6, c: "#FFFFFF", k: "bubble" });
-        else g.parts.push({ x, y, vx: d * (80 + Math.random() * 220), vy: -(60 + Math.random() * 240) * (Math.random() < 0.3 ? -0.4 : 1), life: 0.35 + Math.random() * 0.4, r: 2 + Math.random() * 3.5, c: Math.random() < 0.5 ? "#FFFFFF" : alpha(cs[1], 1), k: "drop" });
+        const u = Math.random(), off = (Math.random() - 0.5) * w * persp(bp.y + (cp.y - bp.y) * u), x = bp.x + dx * u - uy * off, y = bp.y + dy * u + ux * off, sp = 80 + Math.random() * 220;
+        if (f.beamBubble) g.parts.push({ x, y, vx: ux * 60 + (Math.random() - 0.5) * 60, vy: uy * 60 - 30 - Math.random() * 60, life: 0.6 + Math.random() * 0.5, r: 4 + Math.random() * 6, c: "#FFFFFF", k: "bubble" });
+        else g.parts.push({ x, y, vx: ux * sp + (Math.random() - 0.5) * 140, vy: uy * sp - (60 + Math.random() * 220) * (Math.random() < 0.3 ? -0.4 : 1), life: 0.35 + Math.random() * 0.4, r: 2 + Math.random() * 3.5, c: Math.random() < 0.5 ? "#FFFFFF" : alpha(cs[1], 1), k: "drop" });
       }
       // 부딪힘 지점 물보라
       const m = edt * (both ? 90 : 35);
-      for (let i = 0; i < m; i++) { const a = both ? -Math.PI / 2 + (Math.random() - 0.5) * 2.6 : (d > 0 ? Math.PI : 0) + (Math.random() - 0.5) * 1.8 - d * 0.5, v = 120 + Math.random() * 320; g.parts.push({ x: cp.x, y: cp.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.3 + Math.random() * 0.45, r: 2 + Math.random() * 4, c: Math.random() < 0.5 ? "#FFFFFF" : alpha(cs[0], 1), k: "drop" }); }
+      for (let i = 0; i < m; i++) { const a = both ? -Math.PI / 2 + (Math.random() - 0.5) * 2.6 : Math.atan2(-uy, -ux) + (Math.random() - 0.5) * 1.8, v = 120 + Math.random() * 320; g.parts.push({ x: cp.x, y: cp.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 80, life: 0.3 + Math.random() * 0.45, r: 2 + Math.random() * 4, c: Math.random() < 0.5 ? "#FFFFFF" : alpha(cs[0], 1), k: "drop" }); }
     }
   }
   if (g.parts.length > 700) g.parts.splice(0, g.parts.length - 700);
@@ -449,6 +457,13 @@ function update(g, rdt) {
   }
   for (const w of g.waves.slice()) { w.r += (w.max - w.r) * Math.min(1, edt * 7); w.life -= edt * 2.2; if (w.life <= 0) g.waves.splice(g.waves.indexOf(w), 1); }
   for (const p of g.pops.slice()) { p.age += edt; if (p.age > 1.1) g.pops.splice(g.pops.indexOf(p), 1); }
+  for (const a of g.arcs.slice()) { a.t += edt; if (a.t >= a.dur) g.arcs.splice(g.arcs.indexOf(a), 1); }
+  if (g.pendingArc && !g.cutin) { g.pendingArc.delay -= edt; if (g.pendingArc.delay <= 0) { crescents(g, clashPos(g), g.pendingArc.n > 1 ? 150 : 115, g.pendingArc.n, beamColors(g, g.pendingArc.side)[1]); g.pendingArc = null; } }
+  g.shotCd = Math.max(0, g.shotCd - rdt);
+  if (g.shot && !g.cutin) { g.shot.t += rdt; if (g.shot.t >= g.shot.dur) g.shot = null; }
+  const ct = camTarget(g); if (g.demo) ct.z = 1 + (ct.z - 1) * 0.45;
+  const cr = Math.min(1, rdt * (g.shot ? 9 : 3.5)), cam = g.cam;
+  cam.x += (ct.x - cam.x) * cr; cam.y += (ct.y - cam.y) * cr; cam.z += (ct.z - cam.z) * cr; cam.r += (ct.r - cam.r) * cr;
 }
 
 function beamColors(g, side) {
@@ -463,24 +478,34 @@ function alpha(c, a) { if (c.startsWith("#")) return col(c, a); if (c.startsWith
 
 function drawArena(g) {
   const t = g.t, l = g.logic;
-  // 숲 배경
-  const grd = ctx.createLinearGradient(0, -900, 0, ARENA.ground); grd.addColorStop(0, "#F6D58A"); grd.addColorStop(1, "#5E9A54");
-  ctx.fillStyle = grd; ctx.fillRect(-400, -1200, 1520, ARENA.ground + 1200);
-  for (let i = 0; i < 7; i++) { const x = -40 + i * 128 + (i % 2 ? 0 : 40); ctx.fillStyle = "#5C5236"; ctx.fillRect(x, -900, 26, ARENA.ground + 900); }
-  for (let row = 0; row < 4; row++) for (let i = 0; i < 12; i++) circ(-30 + i * 68 + row * 30, 30 + (i % 3) * 22 - row * 150, 74, ["#4E8A47", "#5E9A4F", "#6EA954", "#7FB85A"][(i + row) % 4]);
-  for (let i = 0; i < 5; i++) { const x0 = 160 + i * 110; ctx.beginPath(); ctx.moveTo(x0, 0); ctx.lineTo(x0 + 50, 0); ctx.lineTo(x0 - 60, ARENA.ground); ctx.lineTo(x0 - 140, ARENA.ground); ctx.fillStyle = `rgba(255,242,178,${0.08 + 0.04 * Math.sin(t * 0.8 + i)})`; ctx.fill(); }
-  for (const lf of LEAVES) circ(lf.x + Math.sin(t * 0.7 + lf.ph) * 20, (lf.y + t * lf.s) % ARENA.ground, 3, "rgba(255,230,128,0.6)");
-  ctx.fillStyle = "#4C8C3E"; ctx.fillRect(-400, ARENA.ground, 1520, 600); ctx.fillStyle = "#6FB255"; ctx.fillRect(-400, ARENA.ground, 1520, 10);
-  for (let i = 0; i < 30; i++) line(-20 + i * 26, ARENA.ground + 2, -16 + i * 26, ARENA.ground - 12, "#7FC66B", 3);
-  for (let i = 0; i < 8; i++) circ(30 + i * 92, ARENA.ground + 34 + (i % 2) * 18, 5, ["#FFD25F", "#FF8FB8", "#FFFFFF"][i % 3]);
-  // 동물
-  ctx.save(); ctx.translate(ARENA.left, ARENA.ground); drawCritter(g.defs[0], g.st[0], t); ctx.restore();
-  ctx.save(); ctx.translate(ARENA.right, ARENA.ground); ctx.scale(-1, 1); drawCritter(g.defs[1], g.st[1], t + 1.3); ctx.restore();
+  // 하늘 + 먼 숲
+  const HZ = ARENA.horizon;
+  let grd = ctx.createLinearGradient(0, -900, 0, HZ); grd.addColorStop(0, "#FBE6A6"); grd.addColorStop(1, "#D8EBA8");
+  ctx.fillStyle = grd; ctx.fillRect(-500, -1400, 1720, HZ + 1400);
+  for (let row = 0; row < 3; row++) for (let i = 0; i < 14; i++) { const x = -60 + i * 62 + row * 24, y = HZ - 30 - row * 46 - (i % 3) * 14; ctx.fillStyle = "#6E6142"; ctx.fillRect(x - 5, y, 10, HZ - y + 4); circ(x, y - 20, 46 - row * 4, ["#86BC62", "#76AE58", "#689F50"][(i + row) % 3]); }
+  for (let i = 0; i < 5; i++) { const x0 = 120 + i * 130; ctx.beginPath(); ctx.moveTo(x0, -300); ctx.lineTo(x0 + 60, -300); ctx.lineTo(x0 - 120, ARENA.h); ctx.lineTo(x0 - 220, ARENA.h); ctx.fillStyle = `rgba(255,244,190,${0.07 + 0.04 * Math.sin(t * 0.8 + i)})`; ctx.fill(); }
+  // 땅 (원근 줄무늬 잔디)
+  grd = ctx.createLinearGradient(0, HZ, 0, ARENA.h + 200); grd.addColorStop(0, "#9BD06E"); grd.addColorStop(1, "#4E9A44");
+  ctx.fillStyle = grd; ctx.fillRect(-500, HZ, 1720, ARENA.h + 800);
+  for (let i = 0; i < 12; i += 2) { const y0 = HZ + (ARENA.h + 260 - HZ) * Math.pow(i / 12, 1.7), y1 = HZ + (ARENA.h + 260 - HZ) * Math.pow((i + 1) / 12, 1.7); ctx.fillStyle = "rgba(255,255,255,0.06)"; ctx.fillRect(-500, y0, 1720, y1 - y0); }
+  // 대결장 (원근 타원 + 중앙선)
+  ctx.save(); ctx.translate(372, 455); ctx.rotate(-0.12);
+  ell(0, 0, 400, 205, "rgba(255,240,200,0.16)"); ctx.beginPath(); ctx.ellipse(0, 0, 400, 205, 0, 0, TAU); ctx.strokeStyle = "rgba(255,255,255,0.5)"; ctx.lineWidth = 4; ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(0, 0, 70, 36, 0, 0, TAU); ctx.stroke(); line(-300, 140, 300, -140, "rgba(255,255,255,0.35)", 3);
+  ctx.restore();
+  // 선수 발판
+  for (let s = 0; s < 2; s++) { const p = SPOT[s]; ell(p.x + 10 * p.s, p.y + 8 * p.s, 150 * p.s, 44 * p.s, "#3E7F37"); ell(p.x + 10 * p.s, p.y + 2 * p.s, 142 * p.s, 38 * p.s, "#8FD06A"); ell(p.x + 10 * p.s, p.y, 110 * p.s, 26 * p.s, "rgba(255,255,255,0.12)"); }
+  for (let i = 0; i < 10; i++) { const x = 40 + ((i * 173) % 640), y = HZ + 40 + ((i * 97) % 520), sc = persp(y); circ(x, y, 4 * sc, ["#FFD25F", "#FF8FB8", "#FFFFFF"][i % 3]); line(x - 8 * sc, y + 6 * sc, x - 6 * sc, y - 6 * sc, "#6FB255", 2.5 * sc); }
+  // 동물: 뒤(1) 먼저, 앞(0) 나중
+  for (const s of [1, 0]) { const p = SPOT[s]; ctx.save(); ctx.translate(p.x, p.y); ctx.scale(s === 0 ? p.s : -p.s, p.s); drawCritter(g.defs[s], g.st[s], t + s * 1.3); ctx.restore(); }
+  // 양옆 나무 (화면 틀)
+  for (const [x, d] of [[-30, 1], [750, -1]]) { ctx.fillStyle = "#5C5236"; ctx.fillRect(x - 22, -1400, 44, 1400 + HZ + 60); for (let k = 0; k < 6; k++) circ(x + d * (30 + (k % 2) * 40), HZ - 40 - k * 120, 90, k % 2 ? "#4E8A47" : "#5E9A4F"); }
+  for (const lf of LEAVES) circ(lf.x + Math.sin(t * 0.7 + lf.ph) * 20, (lf.y + t * lf.s) % ARENA.h - 60, 3, "rgba(255,230,128,0.6)");
   // 모으기 오라
   for (let s = 0; s < 2; s++) {
     const f = l.f[s], st = g.st[s], bp = buttPos(s), cs = beamColors(g, s);
     if (f.holding) {
-      const p = f.pressure, r = 26 + 56 * p;
+      const p = f.pressure, r = (26 + 56 * p) * SPOT[s].s;
       ctx.save(); ctx.globalCompositeOperation = "lighter";
       const gr = ctx.createRadialGradient(bp.x, bp.y, 0, bp.x, bp.y, r); gr.addColorStop(0, `rgba(255,255,255,${0.6 * p})`); gr.addColorStop(0.5, alpha(cs[1], 0.45 * p)); gr.addColorStop(1, alpha(cs[0], 0));
       ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(bp.x, bp.y, r, 0, TAU); ctx.fill();
@@ -502,13 +527,17 @@ function drawArena(g) {
   // 음식
   for (const fd of l.foods) {
     if (fd.life < 1.2 && (t % 0.3) > 0.18) continue;
-    const p = foodPos(g, fd), d = FOODS.find(x => x.id === fd.id);
-    circ(p.x, p.y, 44, "rgba(255,255,255,0.25)"); arcS(p.x, p.y, 44, 0, TAU, "rgba(255,255,255,0.7)", 3);
-    drawFood(fd.id, p.x, p.y, d.color, d.inner);
-    text(d.name, p.x, p.y + 60, 20, "#fff", "center", 6, FONT_B);
+    const p = foodPos(g, fd), d = FOODS.find(x => x.id === fd.id), sc = persp(p.y);
+    ctx.save(); ctx.translate(p.x, p.y); ctx.scale(sc, sc);
+    ell(4, 58, 34, 9, "rgba(0,0,0,0.18)");
+    circ(0, 0, 44, "rgba(255,255,255,0.25)"); arcS(0, 0, 44, 0, TAU, "rgba(255,255,255,0.7)", 3);
+    drawFood(fd.id, 0, 0, d.color, d.inner);
+    text(d.name, 0, 62, 20, "#fff", "center", 6, FONT_B);
+    ctx.restore();
   }
   ctx.save(); ctx.globalCompositeOperation = "lighter";
-  for (const w of g.waves) { arcS(w.x, w.y, w.r, 0, TAU, alpha(w.c.startsWith("#") ? w.c : "#FFFFFF", Math.max(0, w.life) * 0.8), w.w * w.life + 1); }
+  for (const w of g.waves) { ctx.beginPath(); ctx.ellipse(w.x, w.y, w.r, w.r * 0.62, 0, 0, TAU); ctx.strokeStyle = alpha(w.c.startsWith("#") ? w.c : "#FFFFFF", Math.max(0, w.life) * 0.8); ctx.lineWidth = w.w * w.life + 1; ctx.stroke(); }
+  for (const a of g.arcs) drawCrescentFx(a);
   for (const p of g.parts) { if (p.k !== "drop" && p.k !== "suck") continue; ctx.globalAlpha = Math.min(1, p.life * 3); circ(p.x, p.y, p.r, p.c); }
   ctx.restore(); ctx.globalAlpha = 1;
   for (const p of g.parts) { if (p.k === "drop" || p.k === "suck") continue; if (p.k === "bubble") { ctx.globalAlpha = Math.min(1, p.life * 2); arcS(p.x, p.y, p.r, 0, TAU, "rgba(255,255,255,0.9)", 2); circ(p.x - p.r * 0.35, p.y - p.r * 0.35, p.r * 0.25, "#fff"); ctx.globalAlpha = 1; continue; } const a = Math.min(1, p.life * 2); if (p.k === "puff") circ(p.x, p.y, p.r * (1.6 - a * 0.6), p.c.replace("0.55)", (0.55 * a).toFixed(2) + ")")); else { ctx.globalAlpha = a; circ(p.x, p.y, p.r, p.c); ctx.globalAlpha = 1; } }
@@ -518,12 +547,14 @@ function drawArena(g) {
 
 // 소용돌이치는 물줄기 같은 방귀 빔: 바깥 빛 → 몸통(굵기 출렁) → 나선 줄기 → 퍼져 나가는 고리 → 하얀 심 → 속도선 → 분사구 폭발
 function drawBeam(g, s, f, from, cp) {
-  const t = g.t, cs = beamColors(g, s), d = cp.x >= from.x ? 1 : -1, ult = f.beamUlt;
-  const age = f.beamTotal - f.beamT, len = Math.max(2, Math.abs(cp.x - from.x) * Math.min(1, age / 0.09)), w = beamW(f);
+  const t = g.t, cs = beamColors(g, s), ult = f.beamUlt, full = Math.hypot(cp.x - from.x, cp.y - from.y), ang = Math.atan2(cp.y - from.y, cp.x - from.x);
+  const age = f.beamTotal - f.beamT, len = Math.max(2, full * Math.min(1, age / 0.09)), w0 = beamW(f);
+  const ps = x => persp(from.y + (cp.y - from.y) * Math.min(1, x / Math.max(1, full)));
+  const w = w0 * ps(0);
   const pts = []; for (let x = 0; x < len; x += 7) pts.push(x); pts.push(len);
   const wob = x => Math.sin(t * 34 + x * 0.05 + s * 2) * 3 * (1 - x / len * 0.5);
-  const half = x => w * (0.5 + 0.5 * Math.min(1, x / 60)) * (1 + 0.09 * Math.sin(t * 55 - x * 0.12));
-  ctx.save(); ctx.translate(from.x, from.y); ctx.scale(d, 1); ctx.lineCap = "round"; ctx.lineJoin = "round";
+  const half = x => w0 * ps(x) * (0.5 + 0.5 * Math.min(1, x / 60)) * (1 + 0.09 * Math.sin(t * 55 - x * 0.12)) * (1 + 0.35 * Math.pow(Math.min(1, x / Math.max(1, full)), 4));
+  ctx.save(); ctx.translate(from.x, from.y); ctx.rotate(ang); ctx.lineCap = "round"; ctx.lineJoin = "round";
   let gr = ctx.createLinearGradient(0, -w * 1.7, 0, w * 1.7);
   gr.addColorStop(0, alpha(cs[0], 0)); gr.addColorStop(0.5, alpha(cs[0], ult ? 0.55 : 0.4)); gr.addColorStop(1, alpha(cs[0], 0));
   ctx.fillStyle = gr; ctx.fillRect(0, -w * 1.7, len, w * 3.4);
@@ -548,6 +579,30 @@ function drawBeam(g, s, f, from, cp) {
   for (let i = 0; i < 7; i++) { const a = (i / 6 - 0.5) * 1.7 + Math.sin(t * 30 + i) * 0.12, L = w * (1.1 + 0.7 * Math.abs(Math.sin(t * 40 + i * 3))); line(0, 0, Math.cos(a) * L, Math.sin(a) * L, alpha(cs[0], 0.85), 4); }
   gr = ctx.createRadialGradient(len, wob(len), 0, len, wob(len), w * 1.1); gr.addColorStop(0, "rgba(255,255,255,0.8)"); gr.addColorStop(0.5, alpha(cs[1], 0.5)); gr.addColorStop(1, alpha(cs[1], 0));
   ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(len, wob(len), w * 1.3, 0, TAU); ctx.fill();
+  ctx.restore();
+}
+// 카메라: 평소엔 전체, 강한 방귀 땐 맞는 쪽으로 당겨 기울임, 필살은 쏘는 쪽 → 맞는 쪽으로 훑음, KO 는 진 쪽 클로즈업
+function camTarget(g) {
+  const sh = g.shot, cp = clashPos(g), l = g.logic, tilt = side => side === 0 ? -1 : 1;
+  if (!sh) { if (l.f[0].beamT > 0 && l.f[1].beamT > 0) return { x: 360 + (cp.x - 360) * 0.5, y: 360 + (cp.y - 360) * 0.5, z: 1.16, r: 0 }; return { x: 360, y: 360, z: 1, r: 0 }; }
+  if (sh.kind === "attack") { const b = buttPos(1 - sh.side); return { x: cp.x + (b.x - cp.x) * 0.3, y: cp.y + (b.y - cp.y) * 0.3, z: 1.7, r: 0.07 * tilt(sh.side) }; }
+  if (sh.kind === "ult") { if (sh.t < 0.32) { const b = buttPos(sh.side); return { x: b.x, y: b.y - 20, z: 1.9, r: -0.09 * tilt(sh.side) }; } return { x: cp.x, y: cp.y, z: 1.85, r: 0.1 * tilt(sh.side) }; }
+  const b = buttPos(1 - sh.side); return { x: b.x, y: b.y - 20, z: 1.55, r: 0.05 * tilt(sh.side) };
+}
+function arenaXform(g) { const L = layout(g), c = g.cam, z = (c.z + g.zoom) * L.s; return { ox: L.ax + 360 * L.s, oy: L.ay + 360 * L.s, z, r: c.r, cx: c.x, cy: c.y }; }
+function screenToArena(g, p) { const T = arenaXform(g), x = (p.x - T.ox) / T.z, y = (p.y - T.oy) / T.z, c = Math.cos(-T.r), s = Math.sin(-T.r); return { x: x * c - y * s + T.cx, y: x * s + y * c + T.cy }; }
+function arenaToScreen(g, a) { const T = arenaXform(g), x = a.x - T.cx, y = a.y - T.cy, c = Math.cos(T.r), s = Math.sin(T.r); return { x: (x * c - y * s) * T.z + T.ox, y: (x * s + y * c) * T.z + T.oy }; }
+function crescents(g, at, R, n, c) { for (let i = 0; i < n; i++) g.arcs.push({ x: at.x, y: at.y, R: R * (1 + i * 0.25), rot: -2.2 + i * 1.9 + Math.random() * 0.5, spin: 1.4 + i * 0.3, t: -i * 0.07, dur: 0.55 + i * 0.06, c }); }
+// 반달 모양 궤적 (가운데 두껍고 양끝 가늘게), 바닥 원근으로 살짝 눕힘
+function drawCrescentFx(a) {
+  if (a.t < 0) return;
+  const k = a.t / a.dur, R = a.R * (0.55 + 0.45 * (1 - Math.pow(1 - k, 3))), rot = a.rot + a.spin * k, al = Math.max(0, 1 - k), th = R * 0.22 * (1 - k * 0.5);
+  ctx.save(); ctx.translate(a.x, a.y); ctx.scale(1, 0.78); ctx.rotate(rot);
+  const draw = (thick, fill) => { ctx.beginPath(); ctx.arc(0, 0, R, -Math.PI / 2, Math.PI / 2); ctx.arc(-thick, 0, R, Math.PI / 2, -Math.PI / 2, true); ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); };
+  ctx.globalCompositeOperation = "lighter";
+  draw(th * 1.9, alpha(a.c.startsWith("#") ? a.c : "#9FE3FF", 0.35 * al));
+  ctx.globalCompositeOperation = "source-over";
+  draw(th, `rgba(255,255,255,${0.92 * al})`);
   ctx.restore();
 }
 // 빔이 부딪히는 곳: 섬광 + 렌즈 플레어 + 도는 충격 고리
@@ -648,8 +703,8 @@ function drawBattle(g) {
   ctx.fillStyle = "#2A2138"; ctx.fillRect(0, 0, 720, H);
   ctx.save();
   const sh = g.shake * 14;
-  ctx.translate(L.ax + (Math.random() * 2 - 1) * sh, L.ay + (Math.random() * 2 - 1) * sh); ctx.scale(L.s, L.s);
-  if (g.zoom > 0) { const cp = clashPos(g), z = 1 + g.zoom; ctx.translate(cp.x, cp.y); ctx.scale(z, z); ctx.translate(-cp.x, -cp.y); }
+  const T = arenaXform(g);
+  ctx.translate(T.ox + (Math.random() * 2 - 1) * sh, T.oy + (Math.random() * 2 - 1) * sh); ctx.scale(T.z, T.z); ctx.rotate(T.r); ctx.translate(-T.cx, -T.cy);
   drawArena(g);
   ctx.restore();
   if (g.demo) return;
@@ -667,7 +722,7 @@ function drawBattle(g) {
   const pb = pauseRect(g); rrect(pb.x, pb.y, pb.w, pb.h, 16, "#4A3D63"); text("멈춤", pb.x + pb.w / 2, pb.y + pb.h / 2, 22, "#FFF5E9", "center", 0, FONT_B);
   if (g.big && !g.cutin) text(g.big, 360, L.ay + 140 * L.s, 72, "#FFD25F", "center", 16);
 }
-function pauseRect(g) { return g.mode === "versus" ? { x: 620, y: H / 2 - 32, w: 88, h: 64 } : { x: 626, y: 38, w: 80, h: 64 }; }
+function pauseRect(g) { return g.mode === "versus" ? { x: 12, y: H / 2 - 32, w: 88, h: 64 } : { x: 626, y: 38, w: 80, h: 64 }; }
 
 // ───────── 입력 (멀티터치: Pointer Events) ─────────
 function toLogical(e) { return { x: (e.clientX - OFF.x) / SC, y: (e.clientY - OFF.y) / SC }; }
@@ -683,8 +738,8 @@ cv.addEventListener("pointerdown", e => {
     if (r === "fart") { if (g.logic.press(side)) g.touches[e.pointerId] = side; try { cv.setPointerCapture(e.pointerId); } catch (_) {} return; }
     if (r === "block") { g.logic.block(side); return; }
   }
-  const L = layout(g), ax = (p.x - L.ax) / L.s, ay = (p.y - L.ay) / L.s;
-  for (const fd of g.logic.foods) { const fp = foodPos(g, fd); if (Math.hypot(ax - fp.x, ay - fp.y) < 56) { const side = g.mode === "versus" && p.y < H / 2 ? 1 : 0; g.logic.eat(side, fd.uid); return; } }
+  const A = screenToArena(g, p);
+  for (const fd of g.logic.foods) { const fp = foodPos(g, fd); if (Math.hypot(A.x - fp.x, A.y - fp.y) < 60 * persp(fp.y)) { const side = g.mode === "versus" && p.y < H / 2 ? 1 : 0; g.logic.eat(side, fd.uid); return; } }
 });
 function pointerUp(e) { const g = G; if (!g || !(e.pointerId in g.touches)) return; const side = g.touches[e.pointerId]; delete g.touches[e.pointerId]; g.logic.release(side); }
 cv.addEventListener("pointerup", pointerUp); cv.addEventListener("pointercancel", pointerUp);
@@ -784,7 +839,7 @@ function frame(now) {
   if (G) { update(G, dt); drawBattle(G); }
   requestAnimationFrame(frame);
 }
-window.__game = { get G() { return G; }, startBattle, showSelect, showTitle, Save };
+window.__game = { get G() { return G; }, arenaToScreen, foodPos, startBattle, showSelect, showTitle, Save };
 showTitle();
 requestAnimationFrame(frame);
 </script>
