@@ -34,5 +34,17 @@
   "special_gain_hit": 8,
   "special_gain_parry": 25,
   "special_mult": 2.0,
-  "special_block_pierce": 0.5
+  "special_block_pierce": 0.5,
+  "clash_beats": 3,
+  "clash_beat_len": 0.85,
+  "clash_perfect": 0.08,
+  "clash_good": 0.17,
+  "clash_tap_gas": 6,
+  "clash_shift": 0.42,
+  "clash_win_push": 0.75,
+  "clash_cooldown": 2.5,
+  "clash_min_beam": 0.12,
+  "clash_min_power": 0.4,
+  "clash_draw": 0.12,
+  "clash_stun": 0.7
 }

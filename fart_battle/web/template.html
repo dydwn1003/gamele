@@ -78,23 +78,27 @@ loadSave();
 // ───────── 규칙 (Godot 버전 battle_logic.gd 와 같은 규칙) ─────────
 // side 0 = 왼쪽(1P), side 1 = 오른쪽(상대). cloud: 빔이 부딪히는 지점 -1(1P 엉덩이) ~ +1(상대 엉덩이)
 class Logic {
-  constructor(d0, d1) { this.f = [this.newF(d0), this.newF(d1)]; this.roundNo = 0; this.matchOver = false; this.matchWinner = -1; this.events = []; this.foods = []; this.uid = 1; this.cloud = 0; this.vel = 0; this.timeLeft = BAL.round_time; this.elapsed = 0; this.roundOver = false; }
-  newF(def) { const f = { def, wins: 0, stats: { farts: 0, perfect: 0, blunders: 0, parries: 0, foods: 0, ults: 0 } }; this.reset(f); f.special = 0; return f; }
+  constructor(d0, d1) { this.f = [this.newF(d0), this.newF(d1)]; this.roundNo = 0; this.matchOver = false; this.matchWinner = -1; this.events = []; this.foods = []; this.uid = 1; this.cloud = 0; this.vel = 0; this.timeLeft = BAL.round_time; this.elapsed = 0; this.roundOver = false; this.clash = null; this.clashCd = 0; }
+  newF(def) { const f = { def, wins: 0, stats: { farts: 0, perfect: 0, blunders: 0, parries: 0, foods: 0, ults: 0, clashWins: 0 } }; this.reset(f); f.special = 0; return f; }
   reset(f) { Object.assign(f, { gas: BAL.gas_start, pressure: 0, holding: false, overT: 0, stunT: 0, blockT: 0, blockCd: 0, blockStarted: -99, powerMult: 1, powerCount: 0, stinkNext: 0, stinkT: 0, fastT: 0, regenT: 0, boostNext: 1, beamT: 0, beamTotal: 0, beamForce: 0, beamPerfect: false, beamPower: 0, beamFire: false, beamBlocked: false, beamUlt: false, beamBubble: false, fireCount: 0, fireMult: 1 }); }
-  startRound() { this.roundNo++; this.f.forEach(f => this.reset(f)); this.cloud = 0; this.vel = 0; this.timeLeft = BAL.round_time; this.elapsed = 0; this.roundOver = false; this.roundWinner = -1; this.foods = []; this.foodTimer = 2.5 + Math.random() * 1.5; }
+  startRound() { this.roundNo++; this.f.forEach(f => this.reset(f)); this.cloud = 0; this.vel = 0; this.timeLeft = BAL.round_time; this.elapsed = 0; this.roundOver = false; this.roundWinner = -1; this.clash = null; this.clashCd = 0; this.foods = []; this.foodTimer = 2.5 + Math.random() * 1.5; }
   take() { const e = this.events; this.events = []; return e; }
   dir(s) { return s === 0 ? 1 : -1; }
   sweet(s) { const lo = BAL.sweet_min; return [lo, Math.min(1, lo + BAL.sweet_width * (this.f[s].def.control || 1))]; }
   canAct(s) { return !this.roundOver && this.f[s].stunT <= 0; }
   maxP(s) { return Math.max(0, Math.min(1, this.f[s].gas / BAL.gas_cost_full)); }
-  press(s) { if (!this.canAct(s)) return false; const f = this.f[s]; if (f.holding) return true; if (this.maxP(s) < BAL.min_release) { this.events.push({ type: "no_gas", side: s }); return false; } f.holding = true; f.pressure = 0; f.overT = 0; return true; }
+  press(s) { if (!this.canAct(s) || this.clash) return false; const f = this.f[s]; if (f.holding) return true; if (this.maxP(s) < BAL.min_release) { this.events.push({ type: "no_gas", side: s }); return false; } f.holding = true; f.pressure = 0; f.overT = 0; return true; }
   release(s) { const f = this.f[s]; if (!f.holding) return null; f.holding = false; const p = f.pressure; f.pressure = 0; f.overT = 0; if (this.roundOver) return null; return this.fart(s, p); }
-  block(s) { if (!this.canAct(s)) return false; const f = this.f[s]; if (f.blockCd > 0) return false; f.blockT = BAL.block_duration; f.blockCd = BAL.block_cooldown; f.blockStarted = this.elapsed; this.events.push({ type: "block", side: s }); return true; }
-  eat(s, uid) { if (this.roundOver) return false; const i = this.foods.findIndex(x => x.uid === uid); if (i < 0) return false; const fd = this.foods.splice(i, 1)[0]; this.applyFood(s, fd.id); return true; }
+  block(s) { if (!this.canAct(s) || this.clash) return false; const f = this.f[s]; if (f.blockCd > 0) return false; f.blockT = BAL.block_duration; f.blockCd = BAL.block_cooldown; f.blockStarted = this.elapsed; this.events.push({ type: "block", side: s }); return true; }
+  eat(s, uid) { if (this.roundOver || this.clash) return false; const i = this.foods.findIndex(x => x.uid === uid); if (i < 0) return false; const fd = this.foods.splice(i, 1)[0]; this.applyFood(s, fd.id); return true; }
   tick(dt) {
     if (this.roundOver) return;
+    if (this.clash) { this.tickClash(dt); return; }
+    this.clashCd = Math.max(0, this.clashCd - dt);
     this.elapsed += dt; this.timeLeft -= dt;
     for (let s = 0; s < 2; s++) this.tickF(s, dt);
+    const a = this.f[0], b = this.f[1];
+    if (this.clashCd <= 0 && a.beamT > BAL.clash_min_beam && b.beamT > BAL.clash_min_beam && !a.beamBlocked && !b.beamBlocked && a.beamPower >= BAL.clash_min_power && b.beamPower >= BAL.clash_min_power) { this.startClash(); return; }
     this.cloud += this.vel * dt; this.vel *= Math.exp(-BAL.cloud_friction * dt); this.vel = Math.max(-BAL.cloud_max_speed, Math.min(BAL.cloud_max_speed, this.vel));
     this.tickFoods(dt);
     if (this.cloud >= 1) this.endRound(0, "ko"); else if (this.cloud <= -1) this.endRound(1, "ko");
@@ -133,6 +137,48 @@ class Logic {
     f.stats.farts++; if (perfect) f.stats.perfect++;
     const size = power >= 1.4 ? "mega" : power >= 0.9 ? "big" : power >= 0.4 ? "medium" : "tiny";
     const ev = { type: "fart", side: s, p, power, perfect, size, result, fire, ult }; this.events.push(ev); return ev;
+  }
+  // ── 힘겨루기: 두 빔이 정면으로 부딪히면 시작. 에너지(빔 세기 × 남은 가스)로 시작 위치가 정해지고,
+  //    박자마다 원이 맞닿는 순간 탭(완벽 ×1.6 / 좋아 ×1.0 / 놓침 ×0.4, 가스 부족이면 절반)으로 밀어낸다.
+  energy(s) { const f = this.f[s]; return f.beamPower * (0.6 + 0.4 * f.gas / BAL.gas_max); }
+  clashTarget() { return BAL.clash_beat_len * 0.75; }
+  startClash() {
+    const E = [this.energy(0), this.energy(1)];
+    this.f.forEach(f => { f.holding = false; f.pressure = 0; f.overT = 0; });
+    this.vel = 0;
+    this.clash = { beat: 0, bt: 0, E, m: (E[0] - E[1]) / (E[0] + E[1]) * 0.5, taps: [null, null], log: [] };
+    this.events.push({ type: "clash_start", E, m: this.clash.m });
+  }
+  clashTap(s) {
+    const c = this.clash; if (!c || c.taps[s]) return null;
+    const off = c.bt - this.clashTarget(), a = Math.abs(off), f = this.f[s];
+    const grade = a <= BAL.clash_perfect ? "perfect" : a <= BAL.clash_good ? "good" : "miss";
+    const ok = f.gas >= BAL.clash_tap_gas; if (ok) f.gas -= BAL.clash_tap_gas;
+    c.taps[s] = { grade, ok, off };
+    this.events.push({ type: "clash_tap", side: s, grade, ok, off });
+    return grade;
+  }
+  tickClash(dt) {
+    const c = this.clash; c.bt += dt;
+    if (c.bt < BAL.clash_beat_len) return;
+    const mult = { perfect: 1.6, good: 1.0, miss: 0.4 }, push = [0, 1].map(s => { const t = c.taps[s] || { grade: "miss", ok: true }; return c.E[s] * mult[t.grade] * (t.ok ? 1 : 0.5); });
+    const delta = (push[0] - push[1]) / (push[0] + push[1] + 1e-6) * BAL.clash_shift;
+    c.m = Math.max(-1.2, Math.min(1.2, c.m + delta));
+    const grades = [0, 1].map(s => c.taps[s] ? c.taps[s].grade : "miss");
+    c.log.push(grades);
+    this.events.push({ type: "clash_beat", beat: c.beat, grades, delta, m: c.m });
+    c.beat++; c.bt = 0; c.taps = [null, null];
+    if (c.beat >= BAL.clash_beats || Math.abs(c.m) >= 1) this.endClash();
+  }
+  endClash() {
+    const m = this.clash.m; this.clash = null; this.clashCd = BAL.clash_cooldown;
+    if (Math.abs(m) < BAL.clash_draw) { this.f.forEach(f => { f.beamT = 0; }); this.vel = 0; this.events.push({ type: "clash_end", winner: -1, m }); return; }
+    const w = m > 0 ? 0 : 1, fw = this.f[w], fl = this.f[1 - w];
+    fl.beamT = 0; fl.stunT = Math.max(fl.stunT, BAL.clash_stun);
+    fw.beamT = Math.max(fw.beamT, 0.45); fw.beamTotal = Math.max(fw.beamTotal, fw.beamT);
+    this.vel += this.dir(w) * BAL.clash_win_push * (0.6 + 0.4 * Math.min(1, Math.abs(m)));
+    fw.stats.clashWins++;
+    this.events.push({ type: "clash_end", winner: w, m });
   }
   blunder(s) { const f = this.f[s]; Object.assign(f, { holding: false, pressure: 0, overT: 0, stunT: BAL.blunder_stun, beamT: 0, gas: f.gas * 0.5 }); f.stats.blunders++; this.vel -= this.dir(s) * BAL.blunder_backfire; this.events.push({ type: "blunder", side: s }); }
   applyFood(s, id) {
@@ -174,6 +220,12 @@ class AI {
   tick(dt) {
     const l = this.l, me = l.f[this.s], opp = l.f[1 - this.s], d = this.d;
     if (l.roundOver) return;
+    if (l.clash) {
+      const c = l.clash;
+      if (this.clashBeat !== c.beat || this.clashRef !== c) { this.clashRef = c; this.clashBeat = c.beat; this.tapAt = l.clashTarget() + (Math.random() * 2 - 1) * (0.04 + d.ai_accuracy * 0.6); }
+      if (!c.taps[this.s] && c.bt >= this.tapAt) l.clashTap(this.s);
+      return;
+    }
     for (const fd of l.foods) {
       if (!(fd.uid in this.plans)) this.plans[fd.uid] = Math.random() < d.ai_greed ? d.ai_reaction * (1.6 + Math.random() * 1.6) : -1;
       else if (this.plans[fd.uid] > 0) { this.plans[fd.uid] -= dt; if (this.plans[fd.uid] <= 0) { l.eat(this.s, fd.uid); break; } }
@@ -345,7 +397,7 @@ function layout(g) {
 }
 function buttPos(side) { const p = SPOT[side], d = side === 0 ? 1 : -1; return { x: p.x + d * BUTT.x * p.s, y: p.y + BUTT.y * p.s }; }
 function headPos(side) { const p = SPOT[side]; return { x: p.x - (side === 0 ? 1 : -1) * 30 * p.s, y: p.y - 150 * p.s }; }
-function clashPos(g) { const a = buttPos(0), b = buttPos(1), k = Math.max(0, Math.min(1, (g.logic.cloud + 1) / 2)); return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k }; }
+function clashPos(g) { const a = buttPos(0), b = buttPos(1), k = Math.max(0, Math.min(1, (g.logic.cloud + 1) / 2 + (g.clashVis || 0) * 0.12)); return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k }; }
 // 음식은 빔 선을 피해 왼쪽 위 / 오른쪽 아래 빈 땅에 나온다
 function foodPos(g, fd) { const v = (fd.y - 0.3) / 0.4, bob = Math.sin(g.t * 3 + fd.uid) * 6; return fd.x < 0.5 ? { x: 80 + fd.x * 2 * 250, y: 200 + v * 170 + bob } : { x: 460 + (fd.x - 0.5) * 2 * 200, y: 450 + v * 160 + bob }; }
 function popup(g, x, y, t, c, s) { g.pops.push({ x, y, t, c, s, age: 0 }); }
@@ -373,6 +425,30 @@ function handleEvent(g, ev) {
       else { g.flash = 1; wave(g, bp.x, bp.y, 320, "#FFFFFF", 12); g.shot = { kind: "ult", side: ev.side, t: 0, dur: 1.4 }; g.pendingArc = { side: ev.side, delay: 0.35, n: 3 }; }
     }
     if (!g.demo) { play(ev.size); if (ev.side === 0 || g.mode === "versus") buzz(ev.size === "tiny" || ev.size === "medium" ? 20 : 50); }
+  } else if (ev.type === "clash_start") {
+    const cp = clashPos(g);
+    g.shot = { kind: "clash", side: 0, t: 0, dur: 99 }; g.flash = 0.7; g.shake = 0.8; g.freeze = 0.1;
+    popup(g, cp.x, cp.y - 120, "힘겨루기!!", "#FFE15F", 46); wave(g, cp.x, cp.y, 260, "#FFFFFF", 12);
+    if (!g.demo) { play("mega", 0.7); buzz(60); }
+  } else if (ev.type === "clash_tap") {
+    const cp = clashPos(g), d = ev.side === 0 ? -1 : 1;
+    const txt = { perfect: "완벽!", good: "좋아!", miss: "놓침…" }[ev.grade] + (ev.ok ? "" : " (가스 부족)"), c = { perfect: "#7BE85F", good: "#FFE15F", miss: "#B9B5B0" }[ev.grade];
+    popup(g, cp.x + d * 70, cp.y + (ev.side === 0 ? 60 : -80), txt, c, ev.grade === "perfect" ? 34 : 28);
+    if (ev.grade === "perfect") { sparks(g, cp.x, cp.y, 16); wave(g, cp.x, cp.y, 140, "#B4FF96", 8); }
+    if (!g.demo && (ev.side === 0 || g.mode === "versus")) { play(ev.grade === "perfect" ? "ting" : ev.grade === "good" ? "click" : "bad"); buzz(ev.grade === "perfect" ? 40 : 15); }
+  } else if (ev.type === "clash_beat") {
+    const cp = clashPos(g), win = ev.delta >= 0 ? 0 : 1;
+    g.shake = Math.max(g.shake, 0.4 + Math.min(0.6, Math.abs(ev.delta))); wave(g, cp.x, cp.y, 200, beamColors(g, win)[0], 10); sparks(g, cp.x, cp.y, 20);
+    if (!g.demo) play(Math.abs(ev.delta) > 0.25 ? "big" : "medium", 0.9);
+  } else if (ev.type === "clash_end") {
+    const cp = clashPos(g);
+    g.flash = 1; g.freeze = 0.14; g.shake = 1.2; wave(g, cp.x, cp.y, 420, "#FFFFFF", 16);
+    if (ev.winner >= 0) {
+      crescents(g, cp, 150, 3, beamColors(g, ev.winner)[1]);
+      g.shot = { kind: "attack", side: ev.winner, t: 0, dur: 1.0 }; g.shotCd = 1.6;
+      popup(g, cp.x, cp.y - 130, g.mode === "versus" ? (ev.winner === 0 ? "1P" : "2P") + " 힘겨루기 승리!" : ev.winner === 0 ? "힘겨루기 승리!" : "힘겨루기 패배…", ev.winner === 0 || g.mode === "versus" ? "#FFE15F" : "#B9B5B0", 38);
+      if (!g.demo) { play("mega"); buzz(100); }
+    } else { g.shot = null; crescents(g, cp, 130, 2, "#FFFFFF"); popup(g, cp.x, cp.y - 130, "상쇄!", "#FFFFFF", 40); if (!g.demo) play("big"); }
   } else if (ev.type === "blunder") {
     popup(g, headPos(ev.side).x, headPos(ev.side).y, "삐끗!", "#FF5F5F", 44); g.shake = Math.max(g.shake, 0.5);
     if (!g.demo) { play("squeak"); buzz(80); }
@@ -438,14 +514,14 @@ function update(g, rdt) {
     // 빔: 물보라 / 거품
     if (f.beamT > 0) {
       const dx = cp.x - bp.x, dy = cp.y - bp.y, dl = Math.hypot(dx, dy) || 1, ux = dx / dl, uy = dy / dl;
-      const w = beamW(f), n = edt * (40 + 50 * f.beamPower) * (f.beamUlt ? 2 : 1);
+      const w = beamW(f), n = edt * (40 + 50 * f.beamPower) * (f.beamUlt ? 2 : 1) * (l.clash ? 0.4 : 1);
       for (let i = 0; i < n || (i === 0 && Math.random() < n); i++) {
         const u = Math.random(), off = (Math.random() - 0.5) * w * persp(bp.y + (cp.y - bp.y) * u), x = bp.x + dx * u - uy * off, y = bp.y + dy * u + ux * off, sp = 80 + Math.random() * 220;
         if (f.beamBubble) g.parts.push({ x, y, vx: ux * 60 + (Math.random() - 0.5) * 60, vy: uy * 60 - 30 - Math.random() * 60, life: 0.6 + Math.random() * 0.5, r: 4 + Math.random() * 6, c: "#FFFFFF", k: "bubble" });
         else g.parts.push({ x, y, vx: ux * sp + (Math.random() - 0.5) * 140, vy: uy * sp - (60 + Math.random() * 220) * (Math.random() < 0.3 ? -0.4 : 1), life: 0.35 + Math.random() * 0.4, r: 2 + Math.random() * 3.5, c: Math.random() < 0.5 ? "#FFFFFF" : alpha(cs[1], 1), k: "drop" });
       }
       // 부딪힘 지점 물보라
-      const m = edt * (both ? 90 : 35);
+      const m = edt * (both ? 90 : 35) * (l.clash ? 0.35 : 1);
       for (let i = 0; i < m; i++) { const a = both ? -Math.PI / 2 + (Math.random() - 0.5) * 2.6 : Math.atan2(-uy, -ux) + (Math.random() - 0.5) * 1.8, v = 120 + Math.random() * 320; g.parts.push({ x: cp.x, y: cp.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 80, life: 0.3 + Math.random() * 0.45, r: 2 + Math.random() * 4, c: Math.random() < 0.5 ? "#FFFFFF" : alpha(cs[0], 1), k: "drop" }); }
     }
   }
@@ -460,7 +536,8 @@ function update(g, rdt) {
   for (const a of g.arcs.slice()) { a.t += edt; if (a.t >= a.dur) g.arcs.splice(g.arcs.indexOf(a), 1); }
   if (g.pendingArc && !g.cutin) { g.pendingArc.delay -= edt; if (g.pendingArc.delay <= 0) { crescents(g, clashPos(g), g.pendingArc.n > 1 ? 150 : 115, g.pendingArc.n, beamColors(g, g.pendingArc.side)[1]); g.pendingArc = null; } }
   g.shotCd = Math.max(0, g.shotCd - rdt);
-  if (g.shot && !g.cutin) { g.shot.t += rdt; if (g.shot.t >= g.shot.dur) g.shot = null; }
+  if (g.shot && !g.cutin) { g.shot.t += rdt; if (g.shot.t >= g.shot.dur || (g.shot.kind === "clash" && !l.clash)) g.shot = null; }
+  g.clashVis = (g.clashVis || 0) + ((l.clash ? l.clash.m : 0) - (g.clashVis || 0)) * Math.min(1, rdt * 6);
   const ct = camTarget(g); if (g.demo) ct.z = 1 + (ct.z - 1) * 0.45;
   const cr = Math.min(1, rdt * (g.shot ? 9 : 3.5)), cam = g.cam;
   cam.x += (ct.x - cam.x) * cr; cam.y += (ct.y - cam.y) * cr; cam.z += (ct.z - cam.z) * cr; cam.r += (ct.r - cam.r) * cr;
@@ -584,6 +661,7 @@ function drawBeam(g, s, f, from, cp) {
 // 카메라: 평소엔 전체, 강한 방귀 땐 맞는 쪽으로 당겨 기울임, 필살은 쏘는 쪽 → 맞는 쪽으로 훑음, KO 는 진 쪽 클로즈업
 function camTarget(g) {
   const sh = g.shot, cp = clashPos(g), l = g.logic, tilt = side => side === 0 ? -1 : 1;
+  if (sh && sh.kind === "clash") return { x: cp.x, y: cp.y, z: 2.15 + 0.04 * Math.sin(g.t * 18), r: 0.05 * Math.sin(g.t * 2.5) };
   if (!sh) { if (l.f[0].beamT > 0 && l.f[1].beamT > 0) return { x: 360 + (cp.x - 360) * 0.5, y: 360 + (cp.y - 360) * 0.5, z: 1.16, r: 0 }; return { x: 360, y: 360, z: 1, r: 0 }; }
   if (sh.kind === "attack") { const b = buttPos(1 - sh.side); return { x: cp.x + (b.x - cp.x) * 0.3, y: cp.y + (b.y - cp.y) * 0.3, z: 1.7, r: 0.07 * tilt(sh.side) }; }
   if (sh.kind === "ult") { if (sh.t < 0.32) { const b = buttPos(sh.side); return { x: b.x, y: b.y - 20, z: 1.9, r: -0.09 * tilt(sh.side) }; } return { x: cp.x, y: cp.y, z: 1.85, r: 0.1 * tilt(sh.side) }; }
@@ -604,6 +682,16 @@ function drawCrescentFx(a) {
   ctx.globalCompositeOperation = "source-over";
   draw(th, `rgba(255,255,255,${0.92 * al})`);
   ctx.restore();
+}
+// 힘겨루기 타이밍 원: 바깥 원이 줄어들어 안쪽 원에 맞닿는 순간 탭
+function clashK(l) { const c = l.clash; return c ? c.bt / l.clashTarget() : 0; }
+function drawClashRing(g, cx, cy, c) {
+  const l = g.logic, k = clashK(l), R0 = 62, Rr = R0 + Math.max(0, 1 - k) * 190, near = Math.abs(c.bt - l.clashTarget()) <= BAL.clash_good;
+  circ(cx, cy, R0 + 10, "rgba(0,0,0,0.35)");
+  ctx.save(); ctx.setLineDash([10, 8]); arcS(cx, cy, R0, 0, TAU, "#FFFFFF", 5); ctx.setLineDash([]); ctx.restore();
+  if (k <= 1.25) { arcS(cx, cy, Rr, 0, TAU, "rgba(0,0,0,0.4)", 14); arcS(cx, cy, Rr, 0, TAU, near ? "#7BFF7B" : "#FFE98A", near ? 10 : 7); }
+  text(`${Math.min(c.beat + 1, BAL.clash_beats)}/${BAL.clash_beats}`, cx, cy, 30, "#FFFFFF", "center", 8);
+  for (let i = 0; i < BAL.clash_beats; i++) { const r = c.log[i]; circ(cx - 30 + i * 30, cy + R0 + 26, 10, !r ? (i === c.beat ? "#FFFFFF" : "rgba(255,255,255,0.3)") : { perfect: "#7BE85F", good: "#FFE15F", miss: "#8A8496" }[r[0]]); }
 }
 // 빔이 부딪히는 곳: 섬광 + 렌즈 플레어 + 도는 충격 고리
 function drawClash(g, cp, both, ult) {
@@ -685,8 +773,11 @@ function drawPad(g, side, y0, flipped) {
   circ(fb.x, fb.y + 8, r, shade(fc, -0.4)); circ(fb.x, fb.y, r, fc);
   if (p > 0) { circ(fb.x, fb.y, r * Math.min(1, p), "rgba(255,255,255,0.25)"); arcS(fb.x, fb.y, r + 6 + Math.sin(g.t * 50) * 3 * p, 0, TAU, "rgba(255,255,255,0.5)", 4); }
   circ(fb.x - r * 0.35, fb.y - r * 0.4, r * 0.22, "rgba(255,255,255,0.25)");
-  if (ready && !stun) { arcS(fb.x, fb.y, r + 10 + 3 * Math.sin(g.t * 12), 0, TAU, rb, 7); }
-  let tx = stun ? "기절…" : ready ? "필살 준비!" : "꾹~ 뿡!"; if (f.holding) tx = p >= sw[0] && p <= sw[1] ? "지금 떼기!" : p < sw[0] ? "참는 중…" : "위험!!";
+  if (ready && !stun && !l.clash) { arcS(fb.x, fb.y, r + 10 + 3 * Math.sin(g.t * 12), 0, TAU, rb, 7); }
+  const cl = l.clash, myTap = cl && cl.taps[side];
+  if (cl && !myTap) { const k = clashK(l), near = Math.abs(cl.bt - l.clashTarget()) <= BAL.clash_good; if (k <= 1.25) arcS(fb.x, fb.y, r + 6 + Math.max(0, 1 - k) * 70, 0, TAU, near ? "#7BFF7B" : "#FFF0A0", near ? 9 : 5); }
+  let tx = stun ? "기절…" : ready ? "필살 준비!" : "꾹~ 뿡!";
+  if (cl) tx = myTap ? { perfect: "완벽!", good: "좋아!", miss: "놓침…" }[myTap.grade] : Math.abs(cl.bt - l.clashTarget()) <= BAL.clash_good ? "탭!!" : "준비…"; if (f.holding) tx = p >= sw[0] && p <= sw[1] ? "지금 떼기!" : p < sw[0] ? "참는 중…" : "위험!!";
   text(tx, fb.x, fb.y, 40, "#fff", "center", 8);
   ctx.restore();
 }
@@ -717,10 +808,27 @@ function drawBattle(g) {
     const sub = g.state === "intro" ? `「${o.lines.intro}」` : `${l.roundNo}라운드 · 남은 시간 ${Math.max(0, Math.ceil(l.timeLeft))}초 · 나 ${l.f[0].wins} : ${l.f[1].wins} 상대 · 가스 ${Math.round(l.f[1].gas)} · 필살 ${Math.round(l.f[1].special)}%`;
     text(sub, 34, 92, 17, "#B9B5B0", "left", 0, FONT_B);
   }
+  if (l.clash) drawClashHud(g, L);
   if (g.cutin) drawCutin(g);
   // 멈춤 버튼
   const pb = pauseRect(g); rrect(pb.x, pb.y, pb.w, pb.h, 16, "#4A3D63"); text("멈춤", pb.x + pb.w / 2, pb.y + pb.h / 2, 22, "#FFF5E9", "center", 0, FONT_B);
   if (g.big && !g.cutin) text(g.big, 360, L.ay + 140 * L.s, 72, "#FFD25F", "center", 16);
+}
+function drawClashHud(g, L) {
+  const l = g.logic, c = l.clash, y0 = L.topH, y1 = H - L.padH;
+  const gr = ctx.createRadialGradient(360, (y0 + y1) / 2, 120, 360, (y0 + y1) / 2, 560); gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(10,0,20,0.7)");
+  ctx.fillStyle = gr; ctx.fillRect(0, y0, 720, y1 - y0);
+  for (let i = 0; i < 28; i++) { const a = i * TAU / 28 + Math.sin(g.t * 9 + i) * 0.05, r0 = 300 + ((g.t * 900 + i * 47) % 160), cx = 360, cy = (y0 + y1) / 2; line(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0 * 0.9, cx + Math.cos(a) * (r0 + 90), cy + Math.sin(a) * (r0 + 90) * 0.9, "rgba(255,255,255,0.25)", 3); }
+  const by = y0 + 26, bx = 80, bw = 560, mx = bx + bw / 2 + Math.max(-1, Math.min(1, g.clashVis)) * bw / 2;
+  const c0 = (g.defs[0].beam || ["#FF5FD2"])[0], c1 = (g.defs[1].beam || ["#FFD25F"])[0];
+  rrect(bx - 6, by - 6, bw + 12, 36, 18, "rgba(0,0,0,0.6)");
+  ctx.save(); ctx.beginPath(); ctx.roundRect(bx, by, bw, 24, 12); ctx.clip(); ctx.fillStyle = c0; ctx.fillRect(bx, by, mx - bx, 24); ctx.fillStyle = c1; ctx.fillRect(mx, by, bx + bw - mx, 24); ctx.restore();
+  circ(mx, by + 12, 18 + 3 * Math.sin(g.t * 20), "#FFFFFF"); star(mx, by + 12, 11, "#FFD25F");
+  const n0 = g.mode === "versus" ? "1P" : "나", n1 = g.mode === "versus" ? "2P" : "상대";
+  text(`${n0} 에너지 ${Math.round(c.E[0] * 100)}`, bx, by + 50, 18, c0, "left", 6, FONT_B);
+  text(`${n1} 에너지 ${Math.round(c.E[1] * 100)}`, bx + bw, by + 50, 18, c1, "right", 6, FONT_B);
+  drawClashRing(g, 360, y0 + (y1 - y0) * 0.36, c);
+  text("힘겨루기! 원이 맞닿을 때 뿡 버튼 탭!", 360, y1 - 34, 24, "#FFFFFF", "center", 8);
 }
 function pauseRect(g) { return g.mode === "versus" ? { x: 12, y: H / 2 - 32, w: 88, h: 64 } : { x: 626, y: 38, w: 80, h: 64 }; }
 
@@ -735,6 +843,7 @@ cv.addEventListener("pointerdown", e => {
   const pads = [[0, H - 300, false]]; if (g.mode === "versus") pads.push([1, 0, true]);
   for (const [side, y0, fl] of pads) {
     const r = padRegion(p.x, p.y, y0, fl);
+    if (r === "fart" && g.logic.clash) { g.logic.clashTap(side); return; }
     if (r === "fart") { if (g.logic.press(side)) g.touches[e.pointerId] = side; try { cv.setPointerCapture(e.pointerId); } catch (_) {} return; }
     if (r === "block") { g.logic.block(side); return; }
   }
@@ -743,7 +852,7 @@ cv.addEventListener("pointerdown", e => {
 });
 function pointerUp(e) { const g = G; if (!g || !(e.pointerId in g.touches)) return; const side = g.touches[e.pointerId]; delete g.touches[e.pointerId]; g.logic.release(side); }
 cv.addEventListener("pointerup", pointerUp); cv.addEventListener("pointercancel", pointerUp);
-addEventListener("keydown", e => { const g = G; if (!g || g.demo || g.state !== "fight" || e.repeat) return; audioInit(); if (e.code === "Space") { e.preventDefault(); g.logic.press(0); } if (e.code === "KeyB") g.logic.block(0); });
+addEventListener("keydown", e => { const g = G; if (!g || g.demo || g.state !== "fight" || e.repeat) return; audioInit(); if (e.code === "Space") { e.preventDefault(); if (g.logic.clash) g.logic.clashTap(0); else g.logic.press(0); } if (e.code === "KeyB") g.logic.block(0); });
 addEventListener("keyup", e => { const g = G; if (g && !g.demo && e.code === "Space") g.logic.release(0); });
 cv.addEventListener("contextmenu", e => e.preventDefault());
 
@@ -784,7 +893,7 @@ function drawWith(other, fn) { const saved = ctx; ctx = other; try { fn(); } fin
 function startBattle(mode, opp) {
   $("title").hidden = true; $("select").hidden = true; closeOverlay();
   G = newBattle(mode, opp, false);
-  if (mode === "league" && Save.tutorial !== 2) showTutorial();
+  if (mode === "league" && Save.tutorial !== 3) showTutorial();
 }
 function showTutorial() {
   openOverlay(`<h2>방귀 대결 방법</h2>
@@ -794,7 +903,8 @@ function showTutorial() {
     <p>④ 상대가 크게 모으면 「코 막기」. 뀌기 직전에 막으면 튕겨내기!</p>
     <p>⑤ 가운데 나오는 음식을 탭하면 특수 효과! (고추 = 불꽃 빔)</p>
     <p>⑥ 빔이 부딪히는 지점을 상대 엉덩이까지 밀면 승리!</p>
-    <p>⑦ 완벽한 뿡으로 <b>필살 게이지</b>를 채우면, 다음 완벽한 뿡이 필살기! (튕겨낼 수 없어요)</p>`, [["알겠어! 뿡!", "", () => { Save.tutorial = 2; writeSave(); closeOverlay(); }]]);
+    <p>⑦ 완벽한 뿡으로 <b>필살 게이지</b>를 채우면, 다음 완벽한 뿡이 필살기! (튕겨낼 수 없어요)</p>
+    <p>⑧ 두 방귀가 정면으로 부딪히면 <b>힘겨루기</b>! 바깥 원이 안쪽 원에 맞닿을 때 뿡 버튼을 탭. 3번 겨뤄요. 방귀가 셀수록·가스가 많을수록 유리!</p>`, [["알겠어! 뿡!", "", () => { Save.tutorial = 3; writeSave(); closeOverlay(); }]]);
 }
 function pauseGame() {
   const g = G; if (!g) return;
@@ -816,7 +926,7 @@ function showResult(g) {
     }
     if (won && g.oppIndex + 1 < OPPONENTS.length) btns.push(["다음 상대와 대결", "", () => startBattle("league", g.oppIndex + 1)]);
   }
-  html += `<p class="muted">방귀 ${st.farts}번 · 완벽 ${st.perfect}번 · 삐끗 ${st.blunders}번 · 튕겨내기 ${st.parries}번 · 필살 ${st.ults}번 · 음식 ${st.foods}개</p>`;
+  html += `<p class="muted">방귀 ${st.farts}번 · 완벽 ${st.perfect}번 · 삐끗 ${st.blunders}번 · 튕겨내기 ${st.parries}번 · 필살 ${st.ults}번 · 힘겨루기 승 ${st.clashWins}번 · 음식 ${st.foods}개</p>`;
   btns.push(["한 판 더", btns.length ? "alt" : "", () => startBattle(g.mode, g.oppIndex)]);
   btns.push(["메뉴로", "alt", () => g.mode === "versus" ? showTitle() : showSelect()]);
   play(won || g.mode === "versus" ? "win" : "lose");
