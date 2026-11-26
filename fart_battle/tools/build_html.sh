@@ -9,7 +9,7 @@ data = {'player': f['player'], 'opponents': f['opponents'],
         'foods': json.load(open('data/foods.json', encoding='utf-8'))['foods'],
         'balance': json.load(open('data/balance.json', encoding='utf-8'))}
 tpl = open('web/template.html', encoding='utf-8').read()
-out = tpl.replace('__DATA__', json.dumps(data, ensure_ascii=False))
+out = tpl.replace('__DATA__', json.dumps(data, ensure_ascii=False)).replace('__QRCODE__', open('web/vendor/qrcode.js', encoding='utf-8').read())
 open('web/fart_battle.html', 'w', encoding='utf-8').write(out)
 print('web/fart_battle.html', len(out.encode()), 'bytes')
 PY

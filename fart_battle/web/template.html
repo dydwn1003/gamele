@@ -34,6 +34,26 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; }
 .card h3 { margin: 0; font-family: "Jua", sans-serif; font-size: 24px; }
 .card p { margin: 0; color: var(--sub); font-size: 14px; }
 .card .btn { min-height: 52px; font-size: 20px; width: 100%; }
+#online { background: var(--bg); overflow-y: auto; }
+.on-box { width: min(640px, 100%); margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+.on-box .btn { width: 100%; }
+.on-row { display: flex; gap: 10px; align-items: center; }
+.on-row .btn { flex: 1; min-height: 58px; font-size: 19px; }
+.on-row label { color: var(--sub); font-size: 16px; flex: none; }
+.on-box input { flex: 1; min-width: 0; height: 54px; border-radius: 14px; border: 2px solid var(--panel2); background: var(--dark); color: var(--text); font: 700 20px "Noto Sans KR", sans-serif; padding: 0 14px; box-sizing: border-box; }
+.on-box input:focus-visible { outline: 3px solid var(--accent); }
+.on-fighters { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.on-fighters button { background: var(--panel); border: 3px solid transparent; border-radius: 14px; padding: 4px; cursor: pointer; }
+.on-fighters button[aria-pressed="true"] { border-color: var(--accent); background: var(--panel2); }
+.on-fighters canvas { width: 100%; height: auto; display: block; }
+.on-h { font-family: "Jua", sans-serif; color: var(--accent); margin: 6px 0 0; font-size: 22px; }
+#on-rooms { display: flex; flex-direction: column; gap: 8px; }
+.on-room { display: flex; align-items: center; gap: 10px; background: var(--panel2); border-radius: 14px; padding: 8px 12px; }
+.on-room canvas { width: 72px; height: 53px; flex: none; }
+.on-room b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 18px; }
+.on-room .btn { width: auto; min-height: 48px; padding: 0 18px; font-size: 18px; flex: none; }
+.qr { display: flex; justify-content: center; } .qr img { width: 180px; height: 180px; image-rendering: pixelated; border-radius: 12px; background: #fff; padding: 8px; }
+.code { font: 800 44px "Noto Sans KR", sans-serif; letter-spacing: 8px; text-align: center; color: var(--accent); }
 #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .panel { background: var(--panel); border-radius: 26px; padding: 24px; width: min(600px, 100%); box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; max-height: 90vh; overflow-y: auto; }
 .panel h2 { font-family: "Jua", sans-serif; color: var(--accent); font-size: 40px; margin: 0; text-align: center; }
@@ -49,6 +69,7 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; }
   <p class="title-sub">뿌앙 리그</p>
   <div class="grow"></div>
   <button class="btn" id="btn-league">혼자 하기 · 리그 도전</button>
+  <button class="btn" id="btn-online" style="background:#5FE8FF;box-shadow:0 6px 0 #2F9AB0">온라인 대전</button>
   <button class="btn alt" id="btn-versus">둘이서 대결 (폰 하나로)</button>
   <button class="btn ghost" id="btn-sound">소리 켜짐</button>
   <p class="small" id="record"></p>
@@ -59,8 +80,26 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; }
   <div id="cards" style="display:flex;flex-direction:column;gap:12px;width:100%"></div>
 </div>
 
+<div id="online" class="screen" hidden>
+  <div class="sel-head"><button class="btn alt" id="on-back">뒤로</button><h2>온라인 대전</h2></div>
+  <div class="on-box">
+    <p class="small" id="on-status">서버 연결 중…</p>
+    <div class="on-row"><label for="on-name">닉네임</label><input id="on-name" maxlength="12" autocomplete="off"></div>
+    <div class="on-fighters" id="on-fighters"></div>
+    <button class="btn" id="on-invite" style="background:#FF8FE0;box-shadow:0 6px 0 #B0508F">친구 초대하기</button>
+    <button class="btn" id="on-quick">빠른 매칭 (아무나와 바로)</button>
+    <div class="on-row"><button class="btn alt" id="on-create">공개방 만들기</button><button class="btn alt" id="on-private">비밀방 (코드)</button></div>
+    <div class="on-row"><input id="on-code" maxlength="4" placeholder="방 코드 4자리" autocomplete="off" autocapitalize="characters"><button class="btn alt" id="on-join">코드로 입장</button></div>
+    <h3 class="on-h">열린 방 <span id="on-count"></span></h3>
+    <div id="on-rooms"></div>
+  </div>
+</div>
+
 <div id="overlay" hidden><div class="panel" id="panel"></div></div>
 
+<script>/* qrcode-generator 1.4.4 (MIT, Kazuhiko Arase) — 친구 초대 QR 용, 빌드 시 web/vendor/qrcode.js 에서 주입 */
+__QRCODE__
+</script>
 <script>
 "use strict";
 // ───────── 데이터 (data/*.json 에서 빌드 시 주입) ─────────
@@ -149,9 +188,10 @@ class Logic {
     this.clash = { beat: 0, bt: 0, E, m: (E[0] - E[1]) / (E[0] + E[1]) * 0.5, taps: [null, null], log: [] };
     this.events.push({ type: "clash_start", E, m: this.clash.m });
   }
-  clashTap(s) {
+  clashTap(s, offIn, beat) {
     const c = this.clash; if (!c || c.taps[s]) return null;
-    const off = c.bt - this.clashTarget(), a = Math.abs(off), f = this.f[s];
+    if (beat !== undefined && beat !== c.beat) return null;
+    const off = offIn !== undefined ? offIn : c.bt - this.clashTarget(), a = Math.abs(off), f = this.f[s];
     const grade = a <= BAL.clash_perfect ? "perfect" : a <= BAL.clash_good ? "good" : "miss";
     const ok = f.gas >= BAL.clash_tap_gas; if (ok) f.gas -= BAL.clash_tap_gas;
     c.taps[s] = { grade, ok, off };
@@ -161,6 +201,8 @@ class Logic {
   tickClash(dt) {
     const c = this.clash; c.bt += dt;
     if (c.bt < BAL.clash_beat_len) return;
+    // 온라인: 상대 탭이 네트워크로 오는 중이면 조금 더 기다린다
+    if (this.netGrace) for (let s = 0; s < 2; s++) if (!c.taps[s] && c.bt < BAL.clash_beat_len + this.netGrace[s]) return;
     const mult = { perfect: 1.6, good: 1.0, miss: 0.4 }, push = [0, 1].map(s => { const t = c.taps[s] || { grade: "miss", ok: true }; return c.E[s] * mult[t.grade] * (t.ok ? 1 : 0.5); });
     const delta = (push[0] - push[1]) / (push[0] + push[1] + 1e-6) * BAL.clash_shift;
     c.m = Math.max(-1.2, Math.min(1.2, c.m + delta));
@@ -514,18 +556,20 @@ function update(g, rdt) {
   const dt = ldt;
   g.t += edt; g.shake = Math.max(0, g.shake - rdt * 2.5); g.flash = Math.max(0, g.flash - rdt * 3); g.zoom = Math.max(0, g.zoom - rdt * 0.2);
   const l = g.logic;
-  if (g.demo) {
+  if (g.net) netPump(g);
+  if (g.net && g.net.role === "guest") guestTick(g, dt);
+  else if (g.demo) {
     if (g.state === "intro") { l.startRound(); g.state = "fight"; }
     g.ai.tick(dt); g.ai0.tick(dt); l.tick(dt); l.take().forEach(e => handleEvent(g, e));
     if (l.roundOver) { if (l.matchOver) { g.logic = new Logic(g.defs[0], g.defs[1]); g.ai.l = g.logic; g.ai0.l = g.logic; } g.logic.startRound(); g.st.forEach(s => s.mood = "normal"); }
-  } else if (g.state === "intro") { if (!overlayOpen()) { g.stateT -= dt; if (g.stateT <= 0) startCountdown(g); } }
+  } else if (g.state === "intro") { if (!overlayOpen() || g.net) { g.stateT -= dt; if (g.stateT <= 0) startCountdown(g); } }
   else if (g.state === "countdown") {
     g.stateT -= dt;
     if (g.stateT <= 0) { if (g.count > 0) { g.big = String(g.count); play("click"); g.count--; g.stateT = 0.6; } else { g.big = "뿡!"; play("medium"); g.state = "fight"; g.stateT = 0.6; } }
   } else if (g.state === "fight") {
     if (g.stateT > 0) { g.stateT -= dt; if (g.stateT <= 0) g.big = ""; }
     if (g.ai) g.ai.tick(dt); if (g.ai0) g.ai0.tick(dt);
-    l.tick(dt); l.take().forEach(e => handleEvent(g, e));
+    l.tick(dt); l.take().forEach(e => { if (g.net) g.net.evq.push(JSON.parse(JSON.stringify(e))); handleEvent(g, e); });
   } else if (g.state === "round_end") {
     g.stateT -= dt; if (g.stateT <= 0) { if (l.matchOver) showResult(g); else { g.big = ""; startCountdown(g); } }
   }
@@ -834,14 +878,14 @@ function drawBattle(g) {
   if (g.mode !== "versus") {
     const o = g.defs[1];
     rrect(16, 16, 600, 108, 20, "rgba(34,26,46,0.92)");
-    text(`${o.name}  ·  ${o.title}`, 34, 48, 28, (o.beam || ["#FFD25F"])[0], "left", 0, FONT_D);
-    const sub = g.state === "intro" ? `「${o.lines.intro}」` : `${l.roundNo}라운드 · 남은 시간 ${Math.max(0, Math.ceil(l.timeLeft))}초 · 나 ${l.f[0].wins} : ${l.f[1].wins} 상대 · 가스 ${Math.round(l.f[1].gas)} · 필살 ${Math.round(l.f[1].special)}%`;
+    text(g.mode === "online" ? `VS ${o.name}` : `${o.name}  ·  ${o.title}`, 34, 48, 28, (o.beam || ["#FFD25F"])[0], "left", 0, FONT_D);
+    const sub = g.mode === "online" ? `온라인 · ${o.title} · ${l.roundNo || 1}라운드 · ${Math.max(0, Math.ceil(l.timeLeft))}초 · ${l.f[0].wins} : ${l.f[1].wins} · 핑 ${Net.ping}ms` : g.state === "intro" ? `「${o.lines.intro}」` : `${l.roundNo}라운드 · 남은 시간 ${Math.max(0, Math.ceil(l.timeLeft))}초 · 나 ${l.f[0].wins} : ${l.f[1].wins} 상대 · 가스 ${Math.round(l.f[1].gas)} · 필살 ${Math.round(l.f[1].special)}%`;
     text(sub, 34, 92, 17, "#B9B5B0", "left", 0, FONT_B);
   }
   if (l.clash) drawClashHud(g, L);
   if (g.cutin) drawCutin(g);
   // 멈춤 버튼
-  const pb = pauseRect(g); rrect(pb.x, pb.y, pb.w, pb.h, 16, "#4A3D63"); text("멈춤", pb.x + pb.w / 2, pb.y + pb.h / 2, 22, "#FFF5E9", "center", 0, FONT_B);
+  const pb = pauseRect(g); rrect(pb.x, pb.y, pb.w, pb.h, 16, "#4A3D63"); text(g.mode === "online" ? "나가기" : "멈춤", pb.x + pb.w / 2, pb.y + pb.h / 2, g.mode === "online" ? 18 : 22, "#FFF5E9", "center", 0, FONT_B);
   if (g.big && !g.cutin) text(g.big, 360, L.ay + 140 * L.s, 72, "#FFD25F", "center", 16);
 }
 function drawClashHud(g, L) {
@@ -873,17 +917,37 @@ cv.addEventListener("pointerdown", e => {
   const pads = [[0, H - 300, false]]; if (g.mode === "versus") pads.push([1, 0, true]);
   for (const [side, y0, fl] of pads) {
     const r = padRegion(p.x, p.y, y0, fl);
-    if (r === "fart" && g.logic.clash) { g.logic.clashTap(side); return; }
-    if (r === "fart") { if (g.logic.press(side)) g.touches[e.pointerId] = side; try { cv.setPointerCapture(e.pointerId); } catch (_) {} return; }
-    if (r === "block") { g.logic.block(side); return; }
+    if (r === "fart") { if (act(g, side, "press")) g.touches[e.pointerId] = side; try { cv.setPointerCapture(e.pointerId); } catch (_) {} return; }
+    if (r === "block") { act(g, side, "block"); return; }
   }
   const A = screenToArena(g, p);
-  for (const fd of g.logic.foods) { const fp = foodPos(g, fd); if (Math.hypot(A.x - fp.x, A.y - fp.y) < 60 * persp(fp.y)) { const side = g.mode === "versus" && p.y < H / 2 ? 1 : 0; g.logic.eat(side, fd.uid); return; } }
+  for (const fd of g.logic.foods) { const fp = foodPos(g, fd); if (Math.hypot(A.x - fp.x, A.y - fp.y) < 60 * persp(fp.y)) { const side = g.mode === "versus" && p.y < H / 2 ? 1 : 0; act(g, side, "eat", fd.uid); return; } }
 });
-function pointerUp(e) { const g = G; if (!g || !(e.pointerId in g.touches)) return; const side = g.touches[e.pointerId]; delete g.touches[e.pointerId]; g.logic.release(side); }
+function pointerUp(e) { const g = G; if (!g || !(e.pointerId in g.touches)) return; const side = g.touches[e.pointerId]; delete g.touches[e.pointerId]; act(g, side, "release"); }
 cv.addEventListener("pointerup", pointerUp); cv.addEventListener("pointercancel", pointerUp);
-addEventListener("keydown", e => { const g = G; if (!g || g.demo || g.state !== "fight" || e.repeat) return; audioInit(); if (e.code === "Space") { e.preventDefault(); if (g.logic.clash) g.logic.clashTap(0); else g.logic.press(0); } if (e.code === "KeyB") g.logic.block(0); });
-addEventListener("keyup", e => { const g = G; if (g && !g.demo && e.code === "Space") g.logic.release(0); });
+addEventListener("keydown", e => { const g = G; if (!g || g.demo || g.state !== "fight" || e.repeat) return; audioInit(); if (e.code === "Space") { e.preventDefault(); act(g, 0, "press"); } if (e.code === "KeyB") act(g, 0, "block"); });
+addEventListener("keyup", e => { const g = G; if (g && !g.demo && e.code === "Space") act(g, 0, "release"); });
+// 입력 한 곳으로: 로컬은 규칙에 바로, 온라인 손님은 방장에게 보냄
+function act(g, side, a, x) {
+  const l = g.logic;
+  if (!(g.net && g.net.role === "guest")) {
+    if (a === "press") { if (l.clash) { l.clashTap(side); return false; } return l.press(side); }
+    if (a === "release") return l.release(side);
+    if (a === "block") return l.block(side);
+    if (a === "eat") return l.eat(side, x);
+    return false;
+  }
+  const n = g.net;
+  if (a === "press") {
+    if (l.clash) { const c = l.clash; if (n.myTap && n.myTap.beat === c.beat) return false; const off = c.bt - l.clashTarget(), ab = Math.abs(off); n.myTap = { beat: c.beat, grade: ab <= BAL.clash_perfect ? "perfect" : ab <= BAL.clash_good ? "good" : "miss" }; netRelay({ k: "in", a: "tap", beat: c.beat, off }); return false; }
+    if (!l.canAct(0) || l.maxP(0) < BAL.min_release || n.hold) return false;
+    n.hold = { t0: performance.now() }; netRelay({ k: "in", a: "press" }); return true;
+  }
+  if (a === "release") { if (!n.hold) return false; const held = (performance.now() - n.hold.t0) / 1000; n.hold = null; netRelay({ k: "in", a: "release", held }); return true; }
+  if (a === "block") { netRelay({ k: "in", a: "block" }); return true; }
+  if (a === "eat") { netRelay({ k: "in", a: "eat", uid: x }); return true; }
+  return false;
+}
 cv.addEventListener("contextmenu", e => e.preventDefault());
 
 // ───────── 화면 (타이틀 / 상대 고르기 / 오버레이) ─────────
@@ -896,7 +960,7 @@ function openOverlay(html, buttons) {
   $("overlay").hidden = false;
 }
 function showTitle() {
-  $("title").hidden = false; $("select").hidden = true; closeOverlay();
+  $("title").hidden = false; $("select").hidden = true; $("online").hidden = true; closeOverlay();
   G = newBattle("league", Math.floor(Math.random() * OPPONENTS.length), true);
   $("btn-sound").textContent = Save.sound ? "소리 켜짐" : "소리 꺼짐";
   $("record").textContent = `전적 ${Save.stats.matchWins}승 ${Save.stats.matches - Save.stats.matchWins}패 · 완벽한 뿡 ${Save.stats.perfect}번`;
@@ -921,7 +985,7 @@ function showSelect() {
 // ctx 를 잠깐 다른 캔버스로 바꿔 그리기
 function drawWith(other, fn) { const saved = ctx; ctx = other; try { fn(); } finally { ctx = saved; } }
 function startBattle(mode, opp) {
-  $("title").hidden = true; $("select").hidden = true; closeOverlay();
+  $("title").hidden = true; $("select").hidden = true; $("online").hidden = true; closeOverlay();
   G = newBattle(mode, opp, false);
   if (mode === "league" && Save.tutorial !== 3) showTutorial();
 }
@@ -938,6 +1002,7 @@ function showTutorial() {
 }
 function pauseGame() {
   const g = G; if (!g) return;
+  if (g.mode === "online") { openOverlay("<h2>나갈까요?</h2><p>지금 나가면 상대가 이긴 걸로 끝나요.</p>", [["계속하기", "", () => closeOverlay()], ["나가기", "alt", () => { netSend({ t: "leave" }); showOnline(); }]]); return; }
   for (const id in g.touches) { g.logic.release(g.touches[id]); } g.touches = {};
   const prev = g.state; g.state = "paused";
   openOverlay("<h2>잠깐 멈춤</h2>", [["계속하기", "", () => { closeOverlay(); g.state = prev; }], ["그만하고 나가기", "alt", () => { g.mode === "versus" ? showTitle() : showSelect(); }]]);
@@ -947,6 +1012,7 @@ function showResult(g) {
   const l = g.logic, w = l.matchWinner, won = w === 0, st = l.f[0].stats;
   let html = `<h2>${g.mode === "versus" ? g.defs[w].name + " 승리!" : won ? "승리!" : "패배…"}</h2>`;
   const btns = [];
+  if (g.mode === "online") { onlineResult(g, html, won, st); return; }
   if (g.mode === "league") {
     html += `<p><b>「${PLAYER.lines[won ? "win" : "lose"]}」</b></p><p class="muted">${g.defs[1].name}: 「${g.defs[1].lines[won ? "lose" : "win"]}」</p>`;
     if (!g.saved) {
@@ -967,6 +1033,207 @@ $("btn-versus").onclick = () => { audioInit(); play("big"); startBattle("versus"
 $("btn-sound").onclick = () => { audioInit(); Save.sound = !Save.sound; writeSave(); $("btn-sound").textContent = Save.sound ? "소리 켜짐" : "소리 꺼짐"; };
 $("btn-back").onclick = () => { play("click"); showTitle(); };
 
+// ───────── 온라인 대전 ─────────
+// 서버(server/server.js)가 로비·매칭·중계를 맡고, 규칙 계산은 방장 브라우저가 한다.
+// 손님은 입력(누름/뗌+누른 시간, 코 막기, 힘겨루기 탭+어긋난 시간, 음식)만 보내고, 방장이 초당 25번 보내는 상태를 그린다.
+// 손님 화면에서는 좌우를 바꿔서 각자 자기 동물이 앞에 보인다.
+const Net = { ws: null, id: 0, status: "off", lobby: { online: 0, rooms: [], waiting: 0 }, ping: 0, waiting: null, retry: 0, wantJoin: null };
+const ALL_FIGHTERS = [PLAYER, ...OPPONENTS];
+const FKEYS = ["gas", "pressure", "holding", "stunT", "blockT", "blockCd", "powerCount", "fireCount", "stinkNext", "stinkT", "fastT", "regenT", "boostNext", "beamT", "beamTotal", "beamPower", "beamPerfect", "beamFire", "beamUlt", "beamBubble", "beamBlocked", "special", "wins", "stats"];
+function netUrl() {
+  const q = new URLSearchParams(location.search).get("server"); if (q) return q;
+  if (location.protocol === "http:" || location.protocol === "https:") return (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws";
+  return null;
+}
+function netSend(m) { if (Net.ws && Net.ws.readyState === 1) Net.ws.send(JSON.stringify(m)); }
+function netRelay(d) { netSend({ t: "relay", d }); }
+function netConnect() {
+  const url = netUrl(); if (!url) { Net.status = "nourl"; lobbyRender(); return; }
+  if (Net.ws && Net.ws.readyState <= 1) return;
+  Net.status = "connecting"; lobbyRender();
+  let ws; try { ws = new WebSocket(url); } catch (e) { Net.status = "error"; lobbyRender(); return; }
+  Net.ws = ws;
+  ws.onopen = () => { Net.status = "on"; Net.retry = 0; netSend({ t: "hello", name: Save.nick, fighter: Save.fighter }); lobbyRender(); };
+  ws.onclose = () => {
+    Net.status = "off"; Net.ws = null; lobbyRender();
+    if (G && G.net && !G.net.dead) netOppLeft("연결이 끊겼어요");
+    if (!$("online").hidden) { Net.retry++; setTimeout(netConnect, Math.min(8000, 800 * Net.retry)); }
+  };
+  ws.onmessage = ev => { let m; try { m = JSON.parse(ev.data); } catch (e) { return; } netOnMsg(m); };
+}
+setInterval(() => { if (Net.status === "on") netSend({ t: "ping", at: performance.now() }); }, 2000);
+function netOnMsg(m) {
+  switch (m.t) {
+    case "welcome": Net.id = m.id; if (Net.wantJoin) { netSend({ t: "join", code: Net.wantJoin }); Net.wantJoin = null; } break;
+    case "pong": Net.ping = Math.round(performance.now() - m.at); break;
+    case "lobby": Net.lobby = m; lobbyRender(); break;
+    case "room": showWaiting(m.code, m.public); break;
+    case "queued": showWaiting(null, false); break;
+    case "cancelled": Net.waiting = null; closeOverlay(); break;
+    case "error": Net.waiting = null; openOverlay(`<h2>앗!</h2><p>${m.msg}</p>`, [["확인", "", () => closeOverlay()]]); break;
+    case "start": Net.waiting = null; startOnline(m.role, m.opp); break;
+    case "opp_left": netOppLeft(m.why === "left" ? "상대가 나갔어요" : "상대 연결이 끊겼어요"); break;
+    case "relay": if (G && G.net) netOnRelay(G, m.d); break;
+  }
+}
+function netOnRelay(g, d) {
+  if (!d || typeof d.k !== "string") return;
+  if (d.k === "snap" || d.k === "in") { if (g.net.inbox.length < 200) g.net.inbox.push(d); }
+  else if (d.k === "rematch") { g.net.rematch.opp = true; checkRematch(g); refreshRematch(g); }
+  else if (d.k === "restart" && g.net.role === "guest") startOnline("guest", g.net.opp);
+}
+function onlineDef(fid, nick) {
+  const base = ALL_FIGHTERS.find(x => x.id === fid) || PLAYER, d = Object.assign({}, base);
+  for (const k of ["power", "control", "gas_regen", "stink"]) d[k] = PLAYER[k]; // 온라인은 능력치 동일, 모습만 다름
+  d.title = base.name; d.name = nick; return d;
+}
+function startOnline(role, opp) {
+  $("title").hidden = true; $("select").hidden = true; $("online").hidden = true; closeOverlay();
+  const g = newBattle("online", 0, false), me = onlineDef(Save.fighter, Save.nick), them = onlineDef(opp.fighter, opp.name);
+  g.defs = [me, them]; g.logic = new Logic(me, them); g.ai = null;
+  g.net = { role, opp, evq: [], acc: 0, inbox: [], hold: null, myTap: null, rematch: { me: false, opp: false }, dead: false };
+  if (role === "host") g.logic.netGrace = [0, 0.45];
+  G = g;
+}
+// 방장: 원격 입력 적용 / 손님: 상태 받기
+function netPump(g) {
+  if (g.net.role !== "host") return;
+  const l = g.logic;
+  for (const d of g.net.inbox.splice(0)) {
+    if (d.k !== "in") continue;
+    if (d.a === "release") { const f = l.f[1]; if (f.holding) { const rate = (1 / BAL.pressure_fill_time) * (f.fastT > 0 ? 2 : 1); f.pressure = Math.min(l.maxP(1), Math.max(0, +d.held || 0) * rate); l.release(1); } continue; }
+    if (g.state !== "fight") continue;
+    if (d.a === "press") l.press(1);
+    else if (d.a === "block") l.block(1);
+    else if (d.a === "eat") l.eat(1, d.uid);
+    else if (d.a === "tap") l.clashTap(1, Math.max(-1, Math.min(1, +d.off || 0)), d.beat);
+  }
+}
+function snapOf(g) {
+  const l = g.logic, c = l.clash;
+  return { st: g.state, big: g.big, c: l.cloud, v: l.vel, tl: l.timeLeft, rn: l.roundNo, ro: l.roundOver, mo: l.matchOver, mw: l.matchWinner,
+    fo: l.foods.map(x => [x.uid, x.id, x.x, x.y, x.life]), f: l.f.map(f => { const o = {}; for (const k of FKEYS) o[k] = f[k]; return o; }),
+    cl: c ? { b: c.beat, bt: c.bt, E: c.E, m: c.m, tp: c.taps.map(t => t ? t.grade : 0), lg: c.log } : null };
+}
+function netHostSend(g, dt) {
+  if (!g.net || g.net.role !== "host" || g.net.dead) return;
+  g.net.acc += dt; if (g.net.acc < 0.04) return; g.net.acc = 0;
+  netRelay({ k: "snap", s: snapOf(g), ev: g.net.evq.splice(0) });
+}
+function mirrorEv(e) {
+  if ("side" in e) e.side = 1 - e.side;
+  if ("winner" in e && e.winner >= 0) e.winner = 1 - e.winner;
+  if ("m" in e) e.m = -e.m; if ("delta" in e) e.delta = -e.delta;
+  if (e.E) e.E = [e.E[1], e.E[0]]; if (e.grades) e.grades = [e.grades[1], e.grades[0]];
+  return e;
+}
+function applySnap(g, s) {
+  const l = g.logic;
+  for (let i = 0; i < 2; i++) { const src = s.f[1 - i], f = l.f[i]; for (const k of FKEYS) if (k in src) f[k] = src[k]; }
+  l.cloud = -s.c; l.vel = -s.v; l.timeLeft = s.tl; l.roundNo = s.rn; l.roundOver = s.ro; l.matchOver = s.mo; l.matchWinner = s.mw >= 0 ? 1 - s.mw : s.mw;
+  l.foods = s.fo.map(a => ({ uid: a[0], id: a[1], x: a[2], y: a[3], life: a[4] }));
+  l.clash = s.cl ? { beat: s.cl.b, bt: s.cl.bt, E: [s.cl.E[1], s.cl.E[0]], m: -s.cl.m, taps: [s.cl.tp[1], s.cl.tp[0]].map(t => t ? { grade: t } : null), log: s.cl.lg.map(r => [r[1], r[0]]) } : null;
+  if (s.st !== "result" && g.state === "result") return; // 재경기 대기 중
+  if (s.st !== "round_end") { if (s.st !== "result") g.big = s.big; g.state = s.st; }
+  else if (g.state !== "round_end") g.state = "round_end";
+}
+function guestTick(g, dt) {
+  const l = g.logic, n = g.net;
+  for (const msg of n.inbox.splice(0)) { if (msg.k !== "snap") continue; applySnap(g, msg.s); for (const e of msg.ev || []) handleEvent(g, mirrorEv(e)); }
+  if (g.state === "fight" && !l.roundOver) { if (l.clash) l.clash.bt += dt; else { l.cloud += l.vel * dt; for (const f of l.f) f.beamT = Math.max(0, f.beamT - dt); } }
+  const f = l.f[0];
+  if (n.hold && (f.stunT > 0 || l.clash || l.roundOver || g.state !== "fight")) n.hold = null;
+  if (n.hold) { f.holding = true; f.pressure = Math.min(l.maxP(0), (performance.now() - n.hold.t0) / 1000 / BAL.pressure_fill_time * (f.fastT > 0 ? 2 : 1)); }
+  else { f.holding = false; f.pressure = 0; }
+  if (l.clash && n.myTap && n.myTap.beat === l.clash.beat && !l.clash.taps[0]) l.clash.taps[0] = { grade: n.myTap.grade };
+  if (l.matchOver && g.state === "result" && !g.resultShown) { g.resultShown = true; showResult(g); }
+}
+function onlineResult(g, head, won, st) {
+  const opp = g.net.opp.name;
+  let html = head + `<p><b>VS ${opp}</b></p>`;
+  if (!g.saved) { g.saved = true; Save.online = Save.online || { w: 0, l: 0 }; won ? Save.online.w++ : Save.online.l++; Save.stats.farts += st.farts; Save.stats.perfect += st.perfect; writeSave(); }
+  html += `<p class="muted">온라인 전적 ${Save.online.w}승 ${Save.online.l}패 · 방귀 ${st.farts}번 · 완벽 ${st.perfect}번 · 필살 ${st.ults}번 · 힘겨루기 승 ${st.clashWins}번</p><p class="muted" id="rematch-note"></p>`;
+  play(won ? "win" : "lose");
+  openOverlay(html, [["다시 붙기", "", () => { g.net.rematch.me = true; netRelay({ k: "rematch" }); checkRematch(g); refreshRematch(g); }], ["로비로", "alt", () => { netSend({ t: "leave" }); showOnline(); }]]);
+  refreshRematch(g);
+}
+function refreshRematch(g) { const el = document.getElementById("rematch-note"); if (!el) return; const r = g.net.rematch; el.textContent = r.me && r.opp ? "다시 시작!" : r.me ? "상대가 수락하길 기다리는 중…" : r.opp ? `${g.net.opp.name}이(가) 한 판 더 하재요!` : ""; }
+function checkRematch(g) { const r = g.net.rematch; if (r.me && r.opp && g.net.role === "host") { netRelay({ k: "restart" }); startOnline("host", g.net.opp); } }
+function netOppLeft(msg) {
+  const g = G; if (!g || !g.net || g.net.dead) return;
+  g.net.dead = true; g.state = "result"; g.touches = {};
+  openOverlay(`<h2>${msg}</h2><p>이번 판은 여기까지예요.</p>`, [["로비로", "", () => showOnline()]]);
+}
+// 로비 화면
+function showOnline() {
+  if (!netUrl()) { openOverlay(`<h2>온라인 대전</h2><p>온라인 대전은 게임 서버 주소로 열었을 때만 돼요.</p><p class="muted">fart_battle/server 에서 <b>npm start</b> 로 서버를 켜고 그 주소로 접속하세요.</p>`, [["확인", "", () => closeOverlay()]]); return; }
+  $("title").hidden = true; $("select").hidden = true; $("online").hidden = false; closeOverlay();
+  if (!Save.nick) { Save.nick = "뿡뿡이" + Math.floor(1000 + Math.random() * 9000); writeSave(); }
+  if (!Save.fighter) Save.fighter = "puang";
+  $("on-name").value = Save.nick;
+  G = newBattle("league", 0, true); // 뒤에 데모는 숨겨져도 상관없음
+  buildFighterPicker(); netConnect(); lobbyRender();
+  if (Net.status === "on") netSend({ t: "hello", name: Save.nick, fighter: Save.fighter });
+}
+function miniCritter(c, def, scale) { const cx = c.getContext("2d"); cx.clearRect(0, 0, c.width, c.height); cx.save(); cx.translate(c.width / 2 + 6, c.height - 12); cx.scale(-scale, scale); drawWith(cx, () => drawCritter(def, { mood: "normal" }, 0)); cx.restore(); }
+function buildFighterPicker() {
+  const box = $("on-fighters"); box.innerHTML = "";
+  for (const f of ALL_FIGHTERS) {
+    const b = document.createElement("button"); b.setAttribute("aria-pressed", String(f.id === Save.fighter)); b.title = f.name; b.setAttribute("aria-label", f.name);
+    const c = document.createElement("canvas"); c.width = 160; c.height = 120; b.appendChild(c); box.appendChild(b); miniCritter(c, f, 0.55);
+    b.onclick = () => { play("click"); Save.fighter = f.id; writeSave(); buildFighterPicker(); netSend({ t: "hello", name: Save.nick, fighter: Save.fighter }); };
+  }
+}
+function lobbyRender() {
+  if ($("online").hidden) return;
+  const st = { off: "서버와 연결이 끊겼어요. 다시 연결하는 중…", connecting: "서버 연결 중…", error: "서버에 연결할 수 없어요", nourl: "서버 주소가 없어요", on: `접속 중 ${Net.lobby.online}명 · 매칭 대기 ${Net.lobby.waiting}명` }[Net.status] || "";
+  $("on-status").textContent = st;
+  for (const id of ["on-quick", "on-create", "on-private", "on-join"]) $(id).disabled = Net.status !== "on";
+  const rooms = Net.lobby.rooms || [], box = $("on-rooms"); box.innerHTML = "";
+  $("on-count").textContent = rooms.length ? `(${rooms.length})` : "";
+  if (!rooms.length) { const p = document.createElement("p"); p.className = "small"; p.textContent = "열린 방이 없어요. 공개방을 만들면 여기 떠요!"; box.appendChild(p); }
+  for (const r of rooms) {
+    const row = document.createElement("div"); row.className = "on-room";
+    const c = document.createElement("canvas"); c.width = 144; c.height = 106; row.appendChild(c);
+    const b = document.createElement("b"); b.textContent = r.name + "의 방"; row.appendChild(b);
+    const btn = document.createElement("button"); btn.className = "btn"; btn.textContent = "입장"; btn.disabled = Net.status !== "on";
+    btn.onclick = () => { play("click"); netSend({ t: "join", code: r.code }); };
+    row.appendChild(btn); box.appendChild(row);
+    miniCritter(c, ALL_FIGHTERS.find(x => x.id === r.fighter) || PLAYER, 0.5);
+  }
+}
+function inviteLink(code) { return location.origin + location.pathname + "?room=" + code + "&from=" + encodeURIComponent(Save.nick || ""); }
+function showWaiting(code, pub) {
+  Net.waiting = code || "queue";
+  const link = code ? inviteLink(code) : "", invite = code && !pub;
+  const html = !code ? `<h2>상대 찾는 중…</h2><p>아무나 들어오면 바로 시작해요.</p>`
+    : invite ? `<h2>친구를 기다리는 중…</h2><p>링크를 보내거나, 옆에 있는 친구는 QR을 찍으면 바로 들어와요.</p><div class="qr" id="qr"></div><div class="code">${code}</div><p class="muted" style="word-break:break-all;text-align:center">${link}</p><p class="muted" id="copy-note" style="text-align:center"></p>`
+    : `<h2>상대를 기다리는 중…</h2><p>공개방이라 로비 목록과 빠른 매칭에도 보여요.</p><div class="code">${code}</div>`;
+  const btns = [];
+  if (invite && navigator.share) btns.push(["카톡·메시지로 초대 보내기", "", () => { navigator.share({ title: "방귀 대결", text: `${Save.nick}: 방귀 대결 한 판 붙자! 뿡! (방 코드 ${code})`, url: link }).catch(() => {}); }]);
+  if (code) btns.push(["초대 링크 복사", invite && navigator.share ? "alt" : "", () => { copyText(link); const n = document.getElementById("copy-note"); if (n) n.textContent = "복사했어요! 친구에게 붙여넣어 보내세요."; }]);
+  btns.push(["취소", "alt", () => { netSend({ t: "cancel" }); Net.waiting = null; closeOverlay(); }]);
+  openOverlay(html, btns);
+  if (invite) drawQR(link);
+}
+function copyText(t) {
+  try { navigator.clipboard.writeText(t); return; } catch (e) {}
+  try { const ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); } catch (e) {}
+}
+// QR 코드 (옆에 있는 친구가 폰 카메라로 찍으면 바로 입장)
+function drawQR(text) {
+  const el = document.getElementById("qr"); if (!el || typeof qrcode !== "function") return;
+  try { const q = qrcode(0, "M"); q.addData(text); q.make(); const img = new Image(); img.alt = "초대 QR 코드"; img.src = q.createDataURL(6, 2); el.innerHTML = ""; el.appendChild(img); } catch (e) {}
+}
+$("on-back").onclick = () => { play("click"); netSend({ t: "cancel" }); showTitle(); };
+$("on-name").onchange = () => { Save.nick = $("on-name").value.trim().slice(0, 12) || Save.nick; $("on-name").value = Save.nick; writeSave(); netSend({ t: "hello", name: Save.nick, fighter: Save.fighter }); };
+$("on-invite").onclick = () => { audioInit(); play("click"); netSend({ t: "create", public: false }); };
+$("on-quick").onclick = () => { audioInit(); play("click"); netSend({ t: "quick" }); };
+$("on-create").onclick = () => { audioInit(); play("click"); netSend({ t: "create", public: true }); };
+$("on-private").onclick = () => { audioInit(); play("click"); netSend({ t: "create", public: false }); };
+$("on-join").onclick = () => { audioInit(); const code = $("on-code").value.trim().toUpperCase(); if (code.length === 4) netSend({ t: "join", code }); };
+$("btn-online").onclick = () => { audioInit(); play("click"); showOnline(); };
+
 // ───────── 메인 루프 ─────────
 let last = performance.now();
 function frame(now) {
@@ -976,10 +1243,12 @@ function frame(now) {
   real.fillStyle = "#2A2138"; real.fillRect(0, 0, cv.width, cv.height);
   const dpr = cv.width / innerWidth;
   real.setTransform(dpr * SC, 0, 0, dpr * SC, dpr * OFF.x, dpr * OFF.y);
-  if (G) { update(G, dt); drawBattle(G); }
+  if (G) { update(G, dt); drawBattle(G); netHostSend(G, dt); }
   requestAnimationFrame(frame);
 }
-window.__game = { get G() { return G; }, arenaToScreen, foodPos, startBattle, showSelect, showTitle, Save };
+window.__game = { Net, get G() { return G; }, arenaToScreen, foodPos, startBattle, showSelect, showTitle, Save };
 showTitle();
+{ const q = new URLSearchParams(location.search), room = q.get("room"), from = (q.get("from") || "").replace(/[<>&"'`]/g, "").slice(0, 12);
+  if (room && netUrl()) { Net.wantJoin = room.toUpperCase().slice(0, 4); showOnline(); openOverlay(`<h2>초대 도착!</h2><p>${from ? `<b>${from}</b>님이 ` : ""}방귀 대결에 초대했어요. 들어가는 중…</p>`, [["취소", "alt", () => { Net.wantJoin = null; closeOverlay(); }]]); history.replaceState(null, "", location.pathname); } }
 requestAnimationFrame(frame);
 </script>

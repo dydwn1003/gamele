@@ -1,0 +1,10 @@
+# 방귀 대결 온라인 서버 (Render 무료 웹 서비스). Render 대시보드 → New → Blueprint → 이 저장소 선택.
+services:
+  - type: web
+    name: fart-battle
+    runtime: node
+    plan: free
+    rootDir: fart_battle/server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
