@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "note": "species: 동물 종류(그리기), beam: 빔 색 2개. power/control/gas_regen/stink, ai_* 는 컴퓨터 실력",
+  "player": {
+    "id": "puang",
+    "name": "두더지 뿌앙이",
+    "title": "땅속 방귀 신동",
+    "power": 1.0,
+    "control": 1.0,
+    "gas_regen": 9.0,
+    "stink": 0.0,
+    "body": "#6B5A70",
+    "lines": {
+      "win": "뿌앙~ 땅속까지 시원하다!",
+      "lose": "고추 두 개 먹고 다시 온다…"
+    },
+    "species": "mole",
+    "belly": "#C9A0B8",
+    "beam": [
+      "#FF5FD2",
+      "#5FE8FF"
+    ]
+  },
+  "opponents": [
+    {
+      "id": "kid",
+      "name": "꼬마 다람쥐",
+      "title": "도토리 방귀 초보",
+      "power": 0.75,
+      "control": 0.9,
+      "gas_regen": 7.5,
+      "stink": 0.0,
+      "ai_reaction": 0.7,
+      "ai_accuracy": 0.25,
+      "ai_aggression": 0.45,
+      "ai_block": 0.1,
+      "ai_greed": 0.3,
+      "body": "#C9824A",
+      "lines": {
+        "intro": "히히, 도토리 많이 먹었지롱!",
+        "win": "뽀옹! 이겼당!",
+        "lose": "으앙 냄새나…"
+      },
+      "species": "squirrel",
+      "belly": "#F2D2A8",
+      "beam": [
+        "#FFD25F",
+        "#FF9F43"
+      ]
+    },
+    {
+      "id": "grandma",
+      "name": "멧돼지 할매",
+      "title": "고구마 한 방의 전설",
+      "power": 1.35,
+      "control": 0.8,
+      "gas_regen": 6.0,
+      "stink": 0.0,
+      "ai_reaction": 0.55,
+      "ai_accuracy": 0.15,
+      "ai_aggression": 0.3,
+      "ai_block": 0.15,
+      "ai_greed": 0.7,
+      "body": "#8A5A44",
+      "lines": {
+        "intro": "고구마 삶아 먹고 왔제~",
+        "win": "아이고 시원하다~",
+        "lose": "고구마가 덜 익었나 보네"
+      },
+      "species": "boar",
+      "belly": "#C99A7A",
+      "beam": [
+        "#B57BFF",
+        "#FF7BD1"
+      ]
+    },
+    {
+      "id": "muscle",
+      "name": "헬스 고릴라",
+      "title": "연속 방귀 전문",
+      "power": 0.9,
+      "control": 1.1,
+      "gas_regen": 12.0,
+      "stink": 0.0,
+      "ai_reaction": 0.35,
+      "ai_accuracy": 0.12,
+      "ai_aggression": 0.85,
+      "ai_block": 0.3,
+      "ai_greed": 0.5,
+      "body": "#3A3A44",
+      "lines": {
+        "intro": "단백질 셰이크 세 잔 마셨다!",
+        "win": "근손실 없는 방귀!",
+        "lose": "프로틴이 부족했군…"
+      },
+      "species": "gorilla",
+      "belly": "#7A7A88",
+      "beam": [
+        "#FF5F5F",
+        "#FFB45F"
+      ]
+    },
+    {
+      "id": "doctor",
+      "name": "스컹크 박사",
+      "title": "냄새 연구 30년",
+      "power": 1.0,
+      "control": 1.2,
+      "gas_regen": 9.0,
+      "stink": 1.6,
+      "ai_reaction": 0.3,
+      "ai_accuracy": 0.08,
+      "ai_aggression": 0.55,
+      "ai_block": 0.65,
+      "ai_greed": 0.6,
+      "body": "#2A2A33",
+      "lines": {
+        "intro": "이론상 내 방귀는 3시간 간다네.",
+        "win": "실험 성공!",
+        "lose": "가설이 틀렸군…"
+      },
+      "species": "skunk",
+      "belly": "#FFFFFF",
+      "beam": [
+        "#7BFF5F",
+        "#D2FF5F"
+      ]
+    },
+    {
+      "id": "king",
+      "name": "하마 대왕",
+      "title": "뿌앙 리그 챔피언",
+      "power": 1.3,
+      "control": 1.25,
+      "gas_regen": 11.0,
+      "stink": 0.8,
+      "ai_reaction": 0.22,
+      "ai_accuracy": 0.05,
+      "ai_aggression": 0.7,
+      "ai_block": 0.7,
+      "ai_greed": 0.8,
+      "body": "#8E9AC9",
+      "lines": {
+        "intro": "왕관은 냄새로 지키는 것이다.",
+        "win": "짐의 방귀를 받아라!",
+        "lose": "새로운 왕의 탄생인가…"
+      },
+      "species": "hippo",
+      "belly": "#D9C2E0",
+      "beam": [
+        "#FFE15F",
+        "#FF5FD2"
+      ]
+    }
+  ]
+}

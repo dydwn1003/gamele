@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "foods": [
+    {
+      "id": "chili",
+      "name": "매운 고추",
+      "desc": "다음 방귀 2번 불꽃 빔! 파워 +70%",
+      "weight": 1.1,
+      "effect": "fire",
+      "value": 1.7,
+      "count": 2,
+      "color": "#E5302A",
+      "inner": "#5FA84A"
+    },
+    {
+      "id": "sweet_potato",
+      "name": "고구마",
+      "desc": "다음 방귀 3번 파워 +40%",
+      "weight": 1.2,
+      "effect": "power",
+      "value": 1.4,
+      "count": 3,
+      "color": "#B5577A",
+      "inner": "#F2B04A"
+    },
+    {
+      "id": "beans",
+      "name": "콩",
+      "desc": "가스 +50 즉시 충전",
+      "weight": 1.2,
+      "effect": "gas",
+      "value": 50,
+      "color": "#C9A36B",
+      "inner": "#E8D3A0"
+    },
+    {
+      "id": "egg",
+      "name": "삶은 계란",
+      "desc": "다음 방귀 냄새가 3초 동안 남음",
+      "weight": 1.0,
+      "effect": "stink",
+      "value": 3.0,
+      "color": "#FFF8E6",
+      "inner": "#F5C842"
+    },
+    {
+      "id": "soda",
+      "name": "탄산음료",
+      "desc": "6초 동안 압력 2배 빨리 참",
+      "weight": 0.9,
+      "effect": "fast",
+      "value": 6.0,
+      "color": "#E5483A",
+      "inner": "#FFF5E9"
+    },
+    {
+      "id": "cabbage",
+      "name": "양배추",
+      "desc": "8초 동안 가스 충전 2배",
+      "weight": 0.9,
+      "effect": "regen",
+      "value": 8.0,
+      "color": "#7FC66B",
+      "inner": "#C9EAA0"
+    },
+    {
+      "id": "milk",
+      "name": "우유",
+      "desc": "도박! 초강력 방귀 아니면 배탈",
+      "weight": 0.7,
+      "effect": "gamble",
+      "value": 2.2,
+      "color": "#FFFFFF",
+      "inner": "#7FB6E8"
+    }
+  ]
+}

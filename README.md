@@ -1,3 +1,5 @@
+> **방귀 대결! 뿌앙 리그** — [`fart_battle/`](fart_battle/README.md) (Godot 4 코믹 대전 게임)
+>
 > **새 프로젝트: 달빛장터 (MOONLIT MARKET)** — Godot 4 한국 야시장 경영 게임 프로토타입이
 > [`moonlit_market/`](moonlit_market/README.md) 폴더에 있습니다. 아래 내용은 기존 Expo RPG 프로젝트 설명입니다.
 
