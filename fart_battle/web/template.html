@@ -417,11 +417,12 @@ function play(id, pitch) {
 function buzz(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) {} }
 
 // ───────── 그리기 도구 ─────────
+const VQ = { q: 1, slow: 0, fast: 0, dprLow: false };
 const cv = document.getElementById("game");
 let ctx = cv.getContext("2d");
 let W = 720, H = 1280, SC = 1, OFF = { x: 0, y: 0 };
 function resize() {
-  const dpr = Math.min(2, window.devicePixelRatio || 1), vw = innerWidth, vh = innerHeight;
+  const dpr = Math.min(VQ.q <= 0.55 ? 1 : 1.5, window.devicePixelRatio || 1), vw = innerWidth, vh = innerHeight; VQ.dprLow = VQ.q <= 0.55;
   W = 720; H = Math.round(720 * vh / vw); H = Math.max(1080, Math.min(1700, H));
   SC = Math.min(vw / W, vh / H);
   cv.width = Math.round(vw * dpr); cv.height = Math.round(vh * dpr);
@@ -829,13 +830,15 @@ function update(g, rdt) {
       for (let i = 0; i < m; i++) { const a = both ? -Math.PI / 2 + (Math.random() - 0.5) * 2.6 : Math.atan2(-uy, -ux) + (Math.random() - 0.5) * 1.8, v = 120 + Math.random() * 320; g.parts.push({ x: cp.x, y: cp.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 80, life: 0.3 + Math.random() * 0.45, r: 2 + Math.random() * 4, c: Math.random() < 0.5 ? "#FFFFFF" : alpha(cs[0], 1), k: "drop" }); }
     }
   }
-  { const cap = Math.round(1100 * VQ.q); if (g.parts.length > cap) g.parts.splice(0, g.parts.length - cap); }
-  for (const p of g.parts.slice()) {
-    if (p.max) { vfxUpdate(g, p, edt); if (p.age >= p.max) g.parts.splice(g.parts.indexOf(p), 1); continue; }
-    p.life -= edt; p.x += p.vx * edt; p.y += p.vy * edt;
-    if (p.k === "drop") p.vy += 700 * edt; else if (p.k === "bubble") { p.vx *= 0.97; p.x += Math.sin(g.t * 9 + p.r) * 0.6; } else if (p.k !== "suck") { p.vx *= 0.96; p.vy *= 0.96; }
-    if (p.life <= 0) g.parts.splice(g.parts.indexOf(p), 1);
-  }
+  { const cap = Math.round(520 * VQ.q); if (g.parts.length > cap) g.parts.splice(0, g.parts.length - cap); }
+  { let j = 0; const ps = g.parts;
+    for (let i = 0; i < ps.length; i++) {
+      const p = ps[i]; let alive;
+      if (p.max) { vfxUpdate(g, p, edt); alive = p.age < p.max; }
+      else { p.life -= edt; p.x += p.vx * edt; p.y += p.vy * edt; if (p.k === "drop") p.vy += 700 * edt; else if (p.k === "bubble") { p.vx *= 0.97; p.x += Math.sin(g.t * 9 + p.r) * 0.6; } else if (p.k !== "suck") { p.vx *= 0.96; p.vy *= 0.96; } alive = p.life > 0; }
+      if (alive) ps[j++] = p;
+    }
+    ps.length = j; }
   for (const w of g.waves.slice()) { w.r += (w.max - w.r) * Math.min(1, edt * 7); w.life -= edt * 2.2; if (w.life <= 0) g.waves.splice(g.waves.indexOf(w), 1); }
   for (const p of g.pops.slice()) { p.age += edt; if (p.age > 1.1) g.pops.splice(g.pops.indexOf(p), 1); }
   for (const a of g.arcs.slice()) { a.t += edt; if (a.t >= a.dur) g.arcs.splice(g.arcs.indexOf(a), 1); }
@@ -881,9 +884,8 @@ function drawStageBack(g, T, HZ, t) {
   if (T.mountain) { ctx.fillStyle = "#B8CCE0"; ctx.beginPath(); ctx.moveTo(-200, HZ); ctx.lineTo(120, -160); ctx.lineTo(380, HZ); ctx.lineTo(300, HZ); ctx.lineTo(560, -240); ctx.lineTo(900, HZ); ctx.fill(); ctx.fillStyle = T.mountain; for (const [x, y, w] of [[120, -160, 70], [560, -240, 90]]) { ctx.beginPath(); ctx.moveTo(x - w, y + w * 1.2); ctx.lineTo(x, y); ctx.lineTo(x + w, y + w * 1.2); ctx.lineTo(x + w * 0.3, y + w * 0.9); ctx.lineTo(x - w * 0.2, y + w * 1.15); ctx.fill(); } }
   if (T.volcano) {
     ctx.fillStyle = "#1E0E0C"; ctx.beginPath(); ctx.moveTo(-100, HZ); ctx.lineTo(260, -220); ctx.lineTo(420, -220); ctx.lineTo(820, HZ); ctx.fill();
-    const glow = 0.6 + 0.3 * Math.sin(t * 3); grd = ctx.createRadialGradient(340, -230, 10, 340, -230, 220); grd.addColorStop(0, `rgba(255,150,60,${glow})`); grd.addColorStop(1, "rgba(255,80,20,0)"); ctx.fillStyle = grd; ctx.fillRect(100, -460, 480, 480);
+    // (화산 빛·연기는 움직이니 drawStageDyn 에서)
     ctx.strokeStyle = "#FF6A1F"; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(320, -220); ctx.quadraticCurveTo(300, -100, 250, 20); ctx.stroke(); ctx.beginPath(); ctx.moveTo(370, -220); ctx.quadraticCurveTo(400, -80, 460, 40); ctx.stroke();
-    for (let i = 0; i < 4; i++) circ(320 + i * 14 + Math.sin(t * 2 + i) * 10, -260 - ((t * 30 + i * 40) % 160), 18 + i * 4, `rgba(60,40,40,${0.5 - ((t * 30 + i * 40) % 160) / 400})`);
   }
   // 구름 (천천히 흐름)
   if (!T.volcano) for (let i = 0; i < 6; i++) { const cx = ((i * 260 + t * (6 + i * 2)) % 1300) - 300, cy = -380 + (i % 3) * 120 + (T.moon ? -100 : 0), a = T.moon ? 0.18 : 0.75; for (const [ox, oy, r] of [[0, 0, 46], [44, 10, 36], [-42, 12, 32], [18, -22, 34]]) circ(cx + ox, cy + oy, r, T.moon ? `rgba(120,130,190,${a})` : `rgba(255,255,255,${a})`); }
@@ -913,7 +915,34 @@ function drawStageBack(g, T, HZ, t) {
   for (let s = 0; s < 2; s++) { const p = SPOT[s]; ell(p.x + 10 * p.s, p.y + 8 * p.s, 150 * p.s, 44 * p.s, T.pad[0]); ell(p.x + 10 * p.s, p.y + 2 * p.s, 142 * p.s, 38 * p.s, T.pad[1]); ell(p.x + 10 * p.s, p.y, 110 * p.s, 26 * p.s, "rgba(255,255,255,0.12)"); }
   if (g.theme === "forest" || !THEMES[g.theme]) for (let i = 0; i < 10; i++) { const x = 40 + ((i * 173) % 640), y = HZ + 40 + ((i * 97) % 520), sc = persp(y); circ(x, y, 4 * sc, ["#FFD25F", "#FF8FB8", "#FFFFFF"][i % 3]); line(x - 8 * sc, y + 6 * sc, x - 6 * sc, y - 6 * sc, "#6FB255", 2.5 * sc); }
 }
-function drawStageFront(g, T, HZ, t) {
+// 배경 캐시: 테마마다 한 번 그려 두고 매 프레임 그림 한 장으로 붙임 (렉 방지)
+const BG = { key: "", back: null, front: null, X0: -80, Y0: -820, W: 880, H: 1660, baking: false };
+function stageCache(g, T, HZ) {
+  const key = g.theme + (ART.rough ? "r" : "s");
+  if (BG.key === key && BG.back) return BG;
+  const mk = () => { const c = document.createElement("canvas"); c.width = BG.W; c.height = BG.H; return c; };
+  if (!BG.back) { BG.back = mk(); BG.front = mk(); }
+  const saved = ctx, sb = ART.boil; BG.baking = true; ART.boil = 0;
+  try {
+    for (const [cvs, back] of [[BG.back, true], [BG.front, false]]) {
+      const x = cvs.getContext("2d"); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, BG.W, BG.H); x.translate(-BG.X0, -BG.Y0); ctx = x; CR.on = ART.rough;
+      if (back) {
+        drawStageBack(g, T, HZ, 0);
+        CR.on = false;
+        if (g.theme === "night") { ctx.fillStyle = "rgba(20,20,60,0.12)"; ctx.fillRect(BG.X0, BG.Y0, BG.W, BG.H); }
+        if (g.theme === "volcano") { ctx.fillStyle = "rgba(255,80,20,0.07)"; ctx.fillRect(BG.X0, BG.Y0, BG.W, BG.H); }
+        if (ART.rough && PAPER) { ctx.fillStyle = ctx.createPattern(PAPER, "repeat"); ctx.fillRect(BG.X0, BG.Y0, BG.W, BG.H); }
+      } else drawStageFrontStatic(g, T, HZ);
+    }
+  } finally { ctx = saved; CR.on = false; ART.boil = sb; BG.baking = false; }
+  BG.key = key; return BG;
+}
+function drawStageDyn(g, T, HZ, t) {
+  if (!T.volcano) return;
+  const glow = 0.6 + 0.3 * Math.sin(t * 3), grd = ctx.createRadialGradient(340, -230, 10, 340, -230, 220); grd.addColorStop(0, `rgba(255,150,60,${glow})`); grd.addColorStop(1, "rgba(255,80,20,0)"); ctx.fillStyle = grd; ctx.fillRect(100, -460, 480, 480);
+  for (let i = 0; i < 4; i++) circ(320 + i * 14 + Math.sin(t * 2 + i) * 10, -260 - ((t * 30 + i * 40) % 160), 18 + i * 4, `rgba(60,40,40,${0.5 - ((t * 30 + i * 40) % 160) / 400})`);
+}
+function drawStageFrontStatic(g, T, HZ) {
   for (const [x, d] of [[-30, 1], [750, -1]]) {
     if (T.volcano) { ctx.fillStyle = T.side[0]; ctx.beginPath(); ctx.moveTo(x - 90 * d, HZ + 80); ctx.lineTo(x + d * 40, -400); ctx.lineTo(x + d * 110, HZ + 80); ctx.fill(); continue; }
     if (T.pine) { ctx.fillStyle = T.sideTrunk; ctx.fillRect(x - 16, -1400, 32, 1400 + HZ + 60); for (let k = 0; k < 6; k++) { const y = HZ - 20 - k * 120; ctx.beginPath(); ctx.moveTo(x - 110, y + 40); ctx.lineTo(x, y - 90); ctx.lineTo(x + 110, y + 40); ctx.fillStyle = T.side[k % 2]; ctx.fill(); ctx.beginPath(); ctx.moveTo(x - 50, y - 30); ctx.lineTo(x, y - 90); ctx.lineTo(x + 50, y - 30); ctx.fillStyle = "#FFFFFF"; ctx.fill(); } continue; }
@@ -921,24 +950,26 @@ function drawStageFront(g, T, HZ, t) {
   }
   // 앞쪽 풀숲 (화면 아래 모서리)
   for (const [bx, by, d] of [[-10, 740, 1], [730, 735, -1]]) for (let k = 0; k < 4; k++) circ(bx + d * k * 34, by - (k % 2) * 16, 48 - k * 6, k % 2 ? T.side[0] : T.side[1]);
+}
+function drawStageFX(g, T, t) {
   for (const p of FX) {
     if (T.fx === "leaf") circ(p.x + Math.sin(t * 0.7 + p.ph) * 20, (p.y + t * 15 * p.s) % ARENA.h - 60, 3, "rgba(255,230,128,0.6)");
     else if (T.fx === "firefly") { const a = 0.4 + 0.6 * Math.max(0, Math.sin(t * 2.5 + p.ph)); circ(p.x + Math.sin(t * 0.6 + p.ph) * 30, (p.y % 640) + Math.cos(t * 0.8 + p.ph) * 20, 8, `rgba(200,255,120,${0.15 * a})`); circ(p.x + Math.sin(t * 0.6 + p.ph) * 30, (p.y % 640) + Math.cos(t * 0.8 + p.ph) * 20, 2.5, `rgba(230,255,150,${a})`); }
     else if (T.fx === "snow") circ(p.x + Math.sin(t + p.ph) * 18, (p.y + t * 40 * p.s) % 900 - 160, 2 + p.s * 2, "rgba(255,255,255,0.9)");
     else if (T.fx === "ember") { const y = 760 - ((p.y + t * 60 * p.s) % 900); circ(p.x + Math.sin(t * 2 + p.ph) * 14, y, 2 + p.s * 1.5, `rgba(255,${120 + 80 * p.s | 0},40,0.85)`); }
   }
-  if (g.theme === "night") { ctx.fillStyle = "rgba(20,20,60,0.12)"; ctx.fillRect(-500, -1400, 1720, 2800); }
-  if (g.theme === "volcano") { ctx.fillStyle = `rgba(255,80,20,${0.06 + 0.03 * Math.sin(t * 3)})`; ctx.fillRect(-500, -1400, 1720, 2800); }
 }
 function drawArena(g) {
   const t = g.t, l = g.logic;
   const HZ = ARENA.horizon, TH = THEMES[g.theme] || THEMES.forest;
-  CR.on = ART.rough; try { drawStageBack(g, TH, HZ, t); } finally { CR.on = false; }
+  { const C = stageCache(g, TH, HZ); ctx.drawImage(C.back, C.X0, C.Y0); }
+  drawStageDyn(g, TH, HZ, t);
   drawVfxSmoke(g); // 연기는 캐릭터 뒤 (캐릭터가 또렷하게)
   // 동물: 뒤(1) 먼저, 앞(0) 나중
   for (const s of [1, 0]) { const p = SPOT[s]; ctx.save(); ctx.translate(p.x, p.y); ctx.scale(s === 0 ? p.s : -p.s, p.s); drawCritter(g.defs[s], g.st[s], t + s * 1.3); ctx.restore(); }
   drawGimmick(g, t);
-  CR.on = ART.rough; try { drawStageFront(g, TH, HZ, t); } finally { CR.on = false; }
+  ctx.drawImage(BG.front, BG.X0, BG.Y0);
+  drawStageFX(g, TH, t);
   // 모으기 오라
   for (let s = 0; s < 2; s++) {
     const f = l.f[s], st = g.st[s], bp = buttPos(s), cs = beamColors(g, s);
@@ -1017,18 +1048,27 @@ const VFX = (() => {
     for (const [w, h, rot] of [[128, 4, 0], [128, 4, Math.PI / 2], [70, 2.5, Math.PI / 4], [70, 2.5, -Math.PI / 4]]) { x.save(); x.translate(128, 128); x.rotate(rot); x.scale(1, h / w); const gr = x.createRadialGradient(0, 0, 0, 0, 0, w); gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.3, "rgba(255,255,255,0.5)"); gr.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = gr; x.beginPath(); x.arc(0, 0, w, 0, TAU); x.fill(); x.restore(); }
     const gr = x.createRadialGradient(128, 128, 0, 128, 128, 44); gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = gr; x.fillRect(0, 0, 256, 256); }
   const cache = new Map();
-  const q = c => { const v = toRGB(c); return [v[0] >> 4 << 4, v[1] >> 4 << 4, v[2] >> 4 << 4].join(","); };
-  const keep = (k, s) => { if (cache.size > 300) cache.clear(); cache.set(k, s); return s; };
+  const q = c => { const v = toRGB(c); return [(v[0] >> 5 << 5) + 16, (v[1] >> 5 << 5) + 16, (v[2] >> 5 << 5) + 16].join(","); };
+  const keep = (k, s) => { if (cache.size > 700) cache.clear(); cache.set(k, s); return s; };
   const glow = c => { const v = q(c), k = "g" + v; let s = cache.get(k); if (s) return s; s = mk(128, 128); const x = s.getContext("2d"), gr = x.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.16, `rgba(${v},0.95)`); gr.addColorStop(0.45, `rgba(${v},0.32)`); gr.addColorStop(1, `rgba(${v},0)`); x.fillStyle = gr; x.fillRect(0, 0, 128, 128); return keep(k, s); };
   const smoke = (c, i) => { const v = q(c), k = "s" + i + v; let s = cache.get(k); if (s) return s; const b = smokeBase[i & 3]; s = mk(96, 96); const x = s.getContext("2d"); x.drawImage(b, 0, 0); x.globalCompositeOperation = "source-in"; x.fillStyle = `rgb(${v})`; x.fillRect(0, 0, 96, 96); x.globalCompositeOperation = "multiply"; x.drawImage(b, 0, 0); x.globalCompositeOperation = "destination-in"; x.drawImage(b, 0, 0); return keep(k, s); };
   return { glow, smoke, flare, strip, pat: null };
 })();
 function spr(img, x, y, size, a, rot) { if (a <= 0.003 || size <= 1) return; ctx.globalAlpha = Math.min(1, a); if (rot) { ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.drawImage(img, -size / 2, -size / 2, size, size); ctx.restore(); } else ctx.drawImage(img, x - size / 2, y - size / 2, size, size); }
 const GAS = ["#EEFF9A", "#C9F06A", "#B4E85A", "#F8FFC8"];
-function gasColor(cs, i) { return i % 4 === 3 ? mixC(cs[0], "#CFF07E", 0.55) : GAS[i % 3]; }
+function gasColor(cs, i) { return i % 4 === 3 && cs[0][0] === "#" ? mixC(cs[0], "#CFF07E", 0.55) : GAS[i % 3]; }
+// 이펙트 그림 미리 만들기 (대결 중에 처음 만들며 끊기지 않게): 시작 화면에서 조금씩
+function vfxPrewarm() {
+  const jobs = [];
+  for (const c of [...GAS, "#E8FAA8", "#FFFFFF", "#FFF4C0", "#FF6A1F", "#FF7A2F", "#FF5FD2", "#FFD25F", "#5FE8FF"]) { jobs.push(() => VFX.glow(c)); for (let i = 0; i < 4; i++) jobs.push(() => VFX.smoke(c, i)); }
+  for (const d of [PLAYER, ...OPPONENTS]) for (const c of d.beam || []) { jobs.push(() => VFX.glow(c)); jobs.push(() => VFX.smoke(mixC(c, "#CFF07E", 0.55), 0)); jobs.push(() => VFX.smoke(mixC(c, "#FFFFFF", 0.4), 1)); }
+  for (const sk of SKINS) for (const c of sk.c || []) jobs.push(() => VFX.glow(c));
+  for (let h = 0; h < 360; h += 8) { jobs.push(() => VFX.glow(`hsl(${h},100%,62%)`)); jobs.push(() => VFX.glow(`hsl(${h},100%,75%)`)); jobs.push(() => VFX.glow(`hsl(${h},100%,78%)`)); }
+  const step = () => { const t0 = performance.now(); while (jobs.length && performance.now() - t0 < 6) jobs.shift()(); if (jobs.length) setTimeout(step, 16); };
+  setTimeout(step, 300);
+}
 // 자동 품질: 프레임이 느리면 이펙트 양을 줄이고, 여유 있으면 다시 늘림 (0.35 ~ 1)
-const VQ = { q: 1, slow: 0, fast: 0 };
-function vfxQuality(dt) { if (VQ.lock) return; if (dt > 1 / 40) { VQ.slow += dt; VQ.fast = 0; if (VQ.slow > 0.8) { VQ.q = Math.max(0.35, VQ.q - 0.15); VQ.slow = 0; } } else { VQ.slow = Math.max(0, VQ.slow - dt * 0.5); if (dt < 1 / 55) { VQ.fast += dt; if (VQ.fast > 4) { VQ.q = Math.min(1, VQ.q + 0.1); VQ.fast = 0; } } } }
+function vfxQuality(dt) { if (VQ.lock) return; if ((VQ.q <= 0.55) !== !!VQ.dprLow) resize(); if (dt > 1 / 40) { VQ.slow += dt; VQ.fast = 0; if (VQ.slow > 0.8) { VQ.q = Math.max(0.35, VQ.q - 0.15); VQ.slow = 0; } } else { VQ.slow = Math.max(0, VQ.slow - dt * 0.5); if (dt < 1 / 55) { VQ.fast += dt; if (VQ.fast > 4) { VQ.q = Math.min(1, VQ.q + 0.1); VQ.fast = 0; } } } }
 function emitN(rate) { rate *= VQ.q; const n = Math.floor(rate); return n + (Math.random() < rate - n ? 1 : 0); }
 function smokeP(x, y, vx, vy, max, r, grow, c, a) { return { k: "smoke", x, y, vx, vy, age: 0, max, r, grow, rot: Math.random() * TAU, vr: (Math.random() - 0.5) * 2.5, c, si: (Math.random() * 4) | 0, a: a || 0.85, seed: Math.random() * 100 }; }
 // 방귀 한 방: 섬광 + 플레어 + 굴절 충격파 + 연기 폭발 + 모션블러 불꽃 (+ 작은 뽁은 연기 도넛)
@@ -1039,7 +1079,7 @@ function vfxFart(g, ev) {
   g.parts.push({ k: "glow", x: bp.x, y: bp.y, age: 0, max: 0.45, r: 200 * Math.min(P, 1.6) * sc, c: cs[0], a: 0.75 });
   g.parts.push({ k: "shock", x: bp.x, y: bp.y, age: 0, max: 0.5, R: (150 * P + 40) * sc, c: cs[1], w: 14 * P });
   if (P > 0.9) g.parts.push({ k: "shock", x: bp.x, y: bp.y, age: -0.08, max: 0.6, R: (240 * P + 40) * sc, c: "#FFFFFF", w: 8 * P });
-  const N = Math.round((8 + 30 * P) * VQ.q);
+  const N = Math.round((6 + 16 * P) * VQ.q);
   for (let i = 0; i < N; i++) {
     const back = i % 9 === 0, a = ang + (back ? Math.PI : 0) + (Math.random() - 0.5) * (back ? 1.8 : 1.15), v = (back ? 50 : 110) + Math.random() * 360 * P;
     g.parts.push(smokeP(bp.x + (Math.random() - 0.5) * 18, bp.y + (Math.random() - 0.5) * 18, Math.cos(a) * v, Math.sin(a) * v - 25, 0.6 + Math.random() * 0.8 * (0.6 + P * 0.5), (14 + Math.random() * 22) * sc * (0.75 + P * 0.45), (30 + Math.random() * 70) * P * sc, gasColor(cs, i), 0.9));
@@ -1052,17 +1092,17 @@ function vfxBurst(g, x, y, P, c) {
   g.parts.push({ k: "flare", x, y, age: 0, max: 0.45, r: 300 * Math.min(P, 1.2), c, rot: Math.random() });
   g.parts.push({ k: "glow", x, y, age: 0, max: 0.5, r: 240 * Math.min(P, 1.2), c, a: 0.6 });
   g.parts.push({ k: "shock", x, y, age: 0, max: 0.55, R: 260 * P, c: "#FFFFFF", w: 16 * P }); g.parts.push({ k: "shock", x, y, age: -0.1, max: 0.7, R: 380 * P, c, w: 10 * P });
-  for (let i = 0; i < 26 * P * VQ.q; i++) { const a = Math.random() * TAU, v = 80 + Math.random() * 320 * P; g.parts.push(smokeP(x, y, Math.cos(a) * v, Math.sin(a) * v * 0.6 - 40, 0.9 + Math.random() * 0.9, (20 + Math.random() * 26) * P, (50 + Math.random() * 90) * P, i % 2 ? GAS[i % 3] : mixC(c, "#FFFFFF", 0.3), 0.85)); }
+  for (let i = 0; i < 14 * P * VQ.q; i++) { const a = Math.random() * TAU, v = 80 + Math.random() * 320 * P; g.parts.push(smokeP(x, y, Math.cos(a) * v, Math.sin(a) * v * 0.6 - 40, 0.9 + Math.random() * 0.9, (20 + Math.random() * 26) * P, (50 + Math.random() * 90) * P, i % 2 ? GAS[i % 3] : mixC(c, "#FFFFFF", 0.3), 0.85)); }
   for (let i = 0; i < 40 * P * VQ.q; i++) { const a = Math.random() * TAU, v = 300 + Math.random() * 800 * P; g.parts.push({ k: "streak", x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, age: 0, max: 0.3 + Math.random() * 0.4, r: 2 + Math.random() * 2.5, c: Math.random() < 0.5 ? "#FFFFFF" : c }); }
 }
 // 빔이 나가는 동안: 빔 가장자리 연기 꼬리, 반짝이, 맞는 곳 연기, 충돌 지점 연기 기둥
 function vfxBeamTick(g, s, f, bp, cp, edt, both, clashing) {
   const dx = cp.x - bp.x, dy = cp.y - bp.y, dl = Math.hypot(dx, dy) || 1, ux = dx / dl, uy = dy / dl, cs = beamColors(g, s), w = beamW(f), P = Math.min(1.8, 0.5 + f.beamPower * 0.7) * (f.beamUlt ? 1.5 : 1);
-  for (let i = emitN(edt * 26 * P); i > 0; i--) { const u = Math.random() * 0.9, off = (Math.random() < 0.5 ? -1 : 1) * w * (0.5 + Math.random() * 0.4) * persp(bp.y + dy * u); g.parts.push(smokeP(bp.x + dx * u - uy * off, bp.y + dy * u + ux * off, ux * 60 + (Math.random() - 0.5) * 50, uy * 60 - 30 - Math.random() * 40, 0.5 + Math.random() * 0.6, (8 + Math.random() * 12) * persp(bp.y + dy * u), 40, gasColor(cs, i), 0.6)); }
-  for (let i = emitN(edt * 40); i > 0; i--) { const u = Math.random(); g.parts.push({ k: "glint", x: bp.x + dx * u + (Math.random() - 0.5) * w, y: bp.y + dy * u + (Math.random() - 0.5) * w, vx: ux * 200, vy: uy * 200, age: 0, max: 0.25 + Math.random() * 0.2, r: (10 + Math.random() * 16), c: cs[1] }); }
-  const rate = both ? (clashing ? 14 : 22) : 12;
+  for (let i = emitN(edt * 10 * P); i > 0; i--) { const u = Math.random() * 0.9, off = (Math.random() < 0.5 ? -1 : 1) * w * (0.5 + Math.random() * 0.4) * persp(bp.y + dy * u); g.parts.push(smokeP(bp.x + dx * u - uy * off, bp.y + dy * u + ux * off, ux * 60 + (Math.random() - 0.5) * 50, uy * 60 - 30 - Math.random() * 40, 0.5 + Math.random() * 0.6, (8 + Math.random() * 12) * persp(bp.y + dy * u), 40, gasColor(cs, i), 0.6)); }
+  for (let i = emitN(edt * 12); i > 0; i--) { const u = Math.random(); g.parts.push({ k: "glint", x: bp.x + dx * u + (Math.random() - 0.5) * w, y: bp.y + dy * u + (Math.random() - 0.5) * w, vx: ux * 200, vy: uy * 200, age: 0, max: 0.25 + Math.random() * 0.2, r: (10 + Math.random() * 16), c: cs[1] }); }
+  const rate = both ? (clashing ? 6 : 9) : 5;
   for (let i = emitN(edt * rate * P); i > 0; i--) { const a = both ? -Math.PI / 2 + (Math.random() - 0.5) * 2.4 : Math.atan2(-uy, -ux) + (Math.random() - 0.5) * 2, v = 60 + Math.random() * 220; g.parts.push(smokeP(cp.x, cp.y, Math.cos(a) * v, Math.sin(a) * v - 40, 0.7 + Math.random() * 0.7, (14 + Math.random() * 18) * (both ? 1.3 : 1), 70, i % 2 ? GAS[i % 3] : mixC(cs[0], "#FFFFFF", 0.4), 0.8)); }
-  for (let i = emitN(edt * (both ? 50 : 24)); i > 0; i--) { const a = Math.random() * TAU, v = 250 + Math.random() * 600; g.parts.push({ k: "streak", x: cp.x, y: cp.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, age: 0, max: 0.18 + Math.random() * 0.25, r: 1.5 + Math.random() * 2, c: Math.random() < 0.5 ? "#FFFFFF" : cs[1] }); }
+  for (let i = emitN(edt * (both ? 26 : 12)); i > 0; i--) { const a = Math.random() * TAU, v = 250 + Math.random() * 600; g.parts.push({ k: "streak", x: cp.x, y: cp.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, age: 0, max: 0.18 + Math.random() * 0.25, r: 1.5 + Math.random() * 2, c: Math.random() < 0.5 ? "#FFFFFF" : cs[1] }); }
 }
 function vfxUpdate(g, p, edt) {
   p.age += edt; if (p.age < 0) return;
@@ -1075,7 +1115,7 @@ function vfxUpdate(g, p, edt) {
 function drawVfxSmoke(g) {
   for (const p of g.parts) {
     if (!p.max || p.age < 0) continue; const k = p.age / p.max;
-    if (p.k === "smoke") { const a = p.a * Math.min(1, k * 9) * Math.pow(1 - k, 1.25), size = (p.r + p.grow * p.age) * 2; spr(VFX.smoke(p.c, p.si), p.x, p.y, size, a, p.rot); }
+    if (p.k === "smoke") { const a = p.a * Math.min(1, k * 9) * Math.pow(1 - k, 1.25), size = Math.min(170, (p.r + p.grow * p.age) * 2); spr(VFX.smoke(p.c, p.si), p.x, p.y, size, a, p.rot); }
     else if (p.k === "ring") { const a = 0.85 * Math.min(1, k * 6) * Math.pow(1 - k, 1.4), rr = p.r + p.grow * p.age; for (let i = 0; i < 12; i++) { const b = i / 12 * TAU, ox = Math.cos(b) * rr * 0.3, oy = Math.sin(b) * rr, c = Math.cos(p.rot), sn = Math.sin(p.rot); spr(VFX.smoke(p.c, i), p.x + ox * c - oy * sn, p.y + ox * sn + oy * c, rr * 0.75, a, b); } }
     else if (p.k === "shock") { const e = 1 - Math.pow(1 - k, 3), rr = 10 + p.R * e; ctx.globalAlpha = 0.22 * (1 - k); ctx.beginPath(); ctx.ellipse(p.x, p.y, rr * 0.88, rr * 0.62 * 0.88, 0, 0, TAU); ctx.strokeStyle = "rgba(20,10,40,1)"; ctx.lineWidth = p.w * 1.4 * (1 - k) + 1; ctx.stroke(); }
   }
@@ -1086,11 +1126,11 @@ function drawVfxAdd(g) {
   ctx.save(); ctx.globalCompositeOperation = "lighter";
   for (const p of g.parts) {
     if (!p.max || p.age < 0) continue; const k = p.age / p.max;
-    if (p.k === "glow") spr(VFX.glow(p.c), p.x, p.y, p.r * (0.7 + 0.5 * k), Math.pow(1 - k, 2) * (p.a || 0.85));
-    else if (p.k === "flare") { spr(VFX.glow(p.c), p.x, p.y, p.r * 0.6, Math.pow(1 - k, 1.5) * 0.8); spr(VFX.flare, p.x, p.y, p.r * (0.8 + 0.6 * k), Math.pow(1 - k, 1.3), p.rot + k * 0.6); }
+    if (p.k === "glow") spr(VFX.glow(p.c), p.x, p.y, Math.min(380, p.r * (0.7 + 0.5 * k)), Math.pow(1 - k, 2) * (p.a || 0.85));
+    else if (p.k === "flare") spr(VFX.flare, p.x, p.y, Math.min(420, p.r * (0.8 + 0.6 * k)), Math.pow(1 - k, 1.3), p.rot + k * 0.6);
     else if (p.k === "shock") { const e = 1 - Math.pow(1 - k, 3), rr = 10 + p.R * e; ctx.globalAlpha = 0.9 * (1 - k); ctx.beginPath(); ctx.ellipse(p.x, p.y, rr, rr * 0.62, 0, 0, TAU); ctx.strokeStyle = alpha(p.c[0] === "#" ? p.c : "#FFFFFF", 1); ctx.lineWidth = p.w * (1 - k) + 1.5; ctx.stroke(); ctx.lineWidth = Math.max(1, p.w * 0.35 * (1 - k)); ctx.strokeStyle = "#FFFFFF"; ctx.stroke(); }
-    else if (p.k === "streak") { const a = 1 - k; ctx.globalAlpha = a; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(p.x - p.vx * 0.04, p.y - p.vy * 0.04); ctx.lineTo(p.x, p.y); ctx.strokeStyle = p.c[0] === "#" ? p.c : "#FFFFFF"; ctx.lineWidth = p.r * 2; ctx.stroke(); ctx.strokeStyle = "#FFFFFF"; ctx.lineWidth = p.r * 0.8; ctx.stroke(); }
-    else if (p.k === "glint") { const a = Math.sin(Math.PI * k); spr(VFX.glow(p.c), p.x, p.y, p.r * 2, a * 0.7); spr(VFX.flare, p.x, p.y, p.r * 2.4, a * 0.8, k * 2); }
+    else if (p.k === "streak") { const a = 1 - k; ctx.globalAlpha = a; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(p.x - p.vx * 0.04, p.y - p.vy * 0.04); ctx.lineTo(p.x, p.y); ctx.strokeStyle = p.c[0] === "#" ? p.c : "#FFFFFF"; ctx.lineWidth = p.r * 2; ctx.stroke(); }
+    else if (p.k === "glint") { const a = Math.sin(Math.PI * k); spr(VFX.glow(p.c), p.x, p.y, p.r * 1.8, a * 0.8); }
   }
   ctx.restore(); ctx.globalAlpha = 1;
 }
@@ -1109,7 +1149,7 @@ function drawBeam(g, s, f, from, cp) {
   ctx.fillStyle = gr; ctx.fillRect(0, -w * 1.7, len, w * 3.4);
   // 블룸: 빔을 따라 빛 스프라이트를 찍어 번지게
   ctx.save(); ctx.globalCompositeOperation = "lighter";
-  if (VQ.q > 0.55) for (let x = 0; x < len; x += 34) spr(VFX.glow(cs[0]), x, wob(x), half(x) * (ult ? 3.2 : 4.2), (ult ? 0.13 : 0.2) * (0.8 + 0.2 * Math.sin(t * 30 + x * 0.1)));
+  if (VQ.q > 0.55) for (let x = 0; x < len; x += 60) spr(VFX.glow(cs[0]), x, wob(x), half(x) * (ult ? 3.2 : 4.2), (ult ? 0.18 : 0.28) * (0.8 + 0.2 * Math.sin(t * 30 + x * 0.1)));
   ctx.restore();
   ctx.beginPath(); for (const x of pts) ctx.lineTo(x, wob(x) - half(x)); for (let i = pts.length - 1; i >= 0; i--) ctx.lineTo(pts[i], wob(pts[i]) + half(pts[i])); ctx.closePath();
   gr = ctx.createLinearGradient(0, -w, 0, w);
@@ -1122,7 +1162,7 @@ function drawBeam(g, s, f, from, cp) {
   { ctx.save(); ctx.beginPath(); for (const x of pts) ctx.lineTo(x, wob(x) - half(x)); for (let i = pts.length - 1; i >= 0; i--) ctx.lineTo(pts[i], wob(pts[i]) + half(pts[i])); ctx.closePath(); ctx.clip();
     if (!VFX.pat) VFX.pat = ctx.createPattern(VFX.strip, "repeat");
     ctx.globalCompositeOperation = "lighter"; const hh = w * 1.15;
-    for (const [sp, al, sy] of [[1100, 0.6, 1], [650, 0.35, -0.6]]) { try { VFX.pat.setTransform(new DOMMatrix().translate(-((t * sp) % 256), -hh * sy).scale(1, hh * 2 / 64 * sy)); } catch (e) {} ctx.globalAlpha = al; ctx.fillStyle = VFX.pat; ctx.fillRect(0, -hh * 1.3, len, hh * 2.6); }
+    for (const [sp, al, sy] of (VQ.q > 0.8 ? [[1100, 0.6, 1]] : [])) { try { VFX.pat.setTransform(new DOMMatrix().translate(-((t * sp) % 256), -hh * sy).scale(1, hh * 2 / 64 * sy)); } catch (e) {} ctx.globalAlpha = al; ctx.fillStyle = VFX.pat; ctx.fillRect(0, -hh * 1.3, len, hh * 2.6); }
     ctx.globalAlpha = 1; ctx.restore(); }
   ctx.globalCompositeOperation = "lighter";
   const strands = ult ? 3 : 2;
@@ -1140,8 +1180,8 @@ function drawBeam(g, s, f, from, cp) {
   ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(0, 0, w * 1.15, 0, TAU); ctx.fill();
   for (let i = 0; i < 7; i++) { const a = (i / 6 - 0.5) * 1.7 + Math.sin(t * 30 + i) * 0.12, L = w * (1.1 + 0.7 * Math.abs(Math.sin(t * 40 + i * 3))); line(0, 0, Math.cos(a) * L, Math.sin(a) * L, alpha(cs[0], 0.85), 4); }
   { const ext = Math.max(0, 1 - age / 0.18), hs = half(len) * (3.2 + 3 * ext) * (ult ? 1.4 : 1);
-    spr(VFX.glow(cs[1]), len, wob(len), hs, 0.85); spr(VFX.flare, len, wob(len), hs * 1.3, 0.55 + 0.45 * ext, t * 3 - ang);
-    spr(VFX.glow(cs[0]), 0, 0, half(0) * 5, 0.6); spr(VFX.flare, 0, 0, half(0) * 4.5, 0.5, -ang + t * 2); }
+    spr(VFX.glow(cs[1]), len, wob(len), Math.min(260, hs), 0.85); if (ext > 0 || ult) spr(VFX.flare, len, wob(len), Math.min(300, hs * 1.3), 0.55 + 0.45 * ext, t * 3 - ang);
+    spr(VFX.glow(cs[0]), 0, 0, Math.min(220, half(0) * 5), 0.6); }
   ctx.restore();
 }
 // 카메라: 평소엔 전체, 강한 방귀 땐 맞는 쪽으로 당겨 기울임, 필살은 쏘는 쪽 → 맞는 쪽으로 훑음, KO 는 진 쪽 클로즈업
@@ -1153,7 +1193,8 @@ function camTarget(g) {
   if (sh.kind === "ult") { if (sh.t < 0.32) { const b = buttPos(sh.side); return { x: b.x, y: b.y - 20, z: 1.9, r: -0.09 * tilt(sh.side) }; } return { x: cp.x, y: cp.y, z: 1.85, r: 0.1 * tilt(sh.side) }; }
   const b = buttPos(1 - sh.side); return { x: b.x, y: b.y - 20, z: 1.55, r: 0.05 * tilt(sh.side) };
 }
-function arenaXform(g) { const L = layout(g), c = g.cam, z = (c.z + g.zoom) * L.s; return { ox: L.ax + 360 * L.s, oy: L.ay + 360 * L.s, z, r: c.r, cx: c.x, cy: c.y }; }
+// 카메라는 확대·이동·흔들림만 (회전은 큰 배경을 다시 그리게 만들어 렉이 생겨서 뺌)
+function arenaXform(g) { const L = layout(g), c = g.cam, z = (c.z + g.zoom) * L.s; return { ox: L.ax + 360 * L.s, oy: L.ay + 360 * L.s, z, r: 0, cx: c.x, cy: c.y }; }
 function screenToArena(g, p) { const T = arenaXform(g), x = (p.x - T.ox) / T.z, y = (p.y - T.oy) / T.z, c = Math.cos(-T.r), s = Math.sin(-T.r); return { x: x * c - y * s + T.cx, y: x * s + y * c + T.cy }; }
 function arenaToScreen(g, a) { const T = arenaXform(g), x = a.x - T.cx, y = a.y - T.cy, c = Math.cos(T.r), s = Math.sin(T.r); return { x: (x * c - y * s) * T.z + T.ox, y: (x * s + y * c) * T.z + T.oy }; }
 function crescents(g, at, R, n, c) { for (let i = 0; i < n; i++) g.arcs.push({ x: at.x, y: at.y, R: R * (1 + i * 0.25), rot: -2.2 + i * 1.9 + Math.random() * 0.5, spin: 1.4 + i * 0.3, t: -i * 0.07, dur: 0.55 + i * 0.06, c }); }
@@ -1183,14 +1224,12 @@ function drawClashRing(g, cx, cy, c) {
 function drawClash(g, cp, both, ult) {
   const t = g.t, R0 = (both ? 64 : 38) * (ult ? 1.5 : 1) * (1 + 0.15 * Math.sin(t * 28));
   ctx.save(); ctx.globalCompositeOperation = "lighter";
-  let gr = ctx.createRadialGradient(cp.x, cp.y, 0, cp.x, cp.y, R0); gr.addColorStop(0, "rgba(255,255,255,0.8)"); gr.addColorStop(0.35, "rgba(255,240,180,0.4)"); gr.addColorStop(1, "rgba(255,200,255,0)");
-  ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(cp.x, cp.y, R0, 0, TAU); ctx.fill();
+  let gr = null; spr(VFX.glow("#FFF4C0"), cp.x, cp.y, R0 * 2, 0.8);
   { const l = g.logic, c0 = beamColors(g, 0)[0], c1 = beamColors(g, 1)[0];
-    spr(VFX.glow(c0), cp.x - 14, cp.y, R0 * 4.2, 0.55); spr(VFX.glow(c1), cp.x + 14, cp.y, R0 * 4.2, 0.55);
-    spr(VFX.flare, cp.x, cp.y, R0 * (both ? 6 : 3.5) * (0.9 + 0.15 * Math.sin(t * 37)), both ? 0.95 : 0.6, t * 0.8);
+    spr(VFX.glow(c0), cp.x - 14, cp.y, R0 * 3, 0.55); spr(VFX.glow(c1), cp.x + 14, cp.y, R0 * 3, 0.55);
+    spr(VFX.flare, cp.x, cp.y, Math.min(320, R0 * (both ? 4.5 : 3) * (0.9 + 0.15 * Math.sin(t * 37))), both ? 0.95 : 0.6, t * 0.8);
     if (both) spr(VFX.flare, cp.x, cp.y, R0 * 4, 0.5, -t * 1.3 + 0.4); }
   if (both) {
-    for (const [wd, ht] of [[R0 * 4, 5], [6, R0 * 2.6]]) { gr = ctx.createRadialGradient(cp.x, cp.y, 0, cp.x, cp.y, Math.max(wd, ht) / 2); gr.addColorStop(0, "rgba(255,255,255,0.9)"); gr.addColorStop(1, "rgba(255,255,255,0)"); ctx.fillStyle = gr; ctx.fillRect(cp.x - wd / 2, cp.y - ht / 2, wd, ht); }
     for (let i = 0; i < 2; i++) { ctx.beginPath(); ctx.ellipse(cp.x, cp.y, R0 * (0.9 + 0.3 * i), R0 * 0.35, t * (4 + i * 3) * (i ? -1 : 1), 0, TAU); ctx.strokeStyle = "rgba(255,255,255,0.6)"; ctx.lineWidth = 3; ctx.stroke(); }
     for (let i = 0; i < 10; i++) { const a = t * 5 + i * TAU / 10, L = R0 + 24 + 18 * Math.sin(t * 33 + i); line(cp.x + Math.cos(a) * R0 * 0.5, cp.y + Math.sin(a) * R0 * 0.5, cp.x + Math.cos(a) * L, cp.y + Math.sin(a) * L, "rgba(255,255,204,0.7)", 4); }
   }
@@ -1288,10 +1327,10 @@ function drawBattle(g) {
   ctx.save();
   const sh = g.shake * 14;
   const T = arenaXform(g);
-  ctx.translate(T.ox + (Math.random() * 2 - 1) * sh, T.oy + (Math.random() * 2 - 1) * sh); ctx.scale(T.z, T.z); ctx.rotate(T.r); ctx.translate(-T.cx, -T.cy);
+  ctx.translate(Math.round(T.ox + (Math.random() * 2 - 1) * sh), Math.round(T.oy + (Math.random() * 2 - 1) * sh)); ctx.scale(T.z, T.z); ctx.translate(-T.cx, -T.cy);
   drawArena(g);
   ctx.restore();
-  { const vg = ctx.createRadialGradient(360, H * 0.45, H * 0.3, 360, H * 0.45, H * 0.75); vg.addColorStop(0, "rgba(10,5,25,0)"); vg.addColorStop(1, "rgba(10,5,25,0.35)"); ctx.fillStyle = vg; ctx.fillRect(0, 0, 720, H); }
+  { if (!VIG.c || VIG.h !== H) { VIG.h = H; VIG.c = document.createElement("canvas"); VIG.c.width = 360; VIG.c.height = Math.round(H / 2); const x = VIG.c.getContext("2d"), vg = x.createRadialGradient(180, H * 0.225, H * 0.15, 180, H * 0.225, H * 0.375); vg.addColorStop(0, "rgba(10,5,25,0)"); vg.addColorStop(1, "rgba(10,5,25,0.35)"); x.fillStyle = vg; x.fillRect(0, 0, 360, VIG.c.height); } ctx.drawImage(VIG.c, 0, 0, 720, H); }
   if (g.demo) return;
   drawPad(g, 0, H - 300, false);
   if (g.mode === "versus") drawPad(g, 1, 0, true);
@@ -1746,6 +1785,7 @@ $("btn-online").onclick = () => { audioInit(); play("click"); showOnline(); };
 
 // ───────── 메인 루프 ─────────
 let last = performance.now();
+const VIG = { c: null, h: 0 };
 // 종이 질감 (한 번 만들어 두고 깔기)
 const PAPER = (() => { try { const c = document.createElement("canvas"); c.width = c.height = 180; const x = c.getContext("2d"); for (let i = 0; i < 2600; i++) { const v = Math.random() < 0.5 ? 0 : 255; x.fillStyle = `rgba(${v},${v},${v},${0.025 + Math.random() * 0.05})`; x.fillRect(Math.random() * 180, Math.random() * 180, 1 + Math.random() * 2, 1 + Math.random() * 2); } for (let i = 0; i < 40; i++) { x.strokeStyle = "rgba(60,40,30,0.05)"; x.lineWidth = 1; x.beginPath(); const sx = Math.random() * 180, sy = Math.random() * 180; x.moveTo(sx, sy); x.lineTo(sx + 20 + Math.random() * 30, sy + (Math.random() - 0.5) * 8); x.stroke(); } return c; } catch (e) { return null; } })();
 let paperPat = null;
@@ -1757,11 +1797,12 @@ function frame(now) {
   real.fillStyle = "#2A2138"; real.fillRect(0, 0, cv.width, cv.height);
   const dpr = cv.width / innerWidth;
   real.setTransform(dpr * SC, 0, 0, dpr * SC, dpr * OFF.x, dpr * OFF.y);
-  if (G) { update(G, dt); drawBattle(G); drawPaper(); netHostSend(G, dt); }
+  if (G) { update(G, dt); drawBattle(G); netHostSend(G, dt); }
   requestAnimationFrame(frame);
 }
 window.__game = { VQ, Net, get G() { return G; }, arenaToScreen, foodPos, startBattle, showSelect, showTitle, Save };
 showTitle();
+vfxPrewarm();
 { const q = new URLSearchParams(location.search), room = q.get("room"), from = (q.get("from") || "").replace(/[<>&"'`]/g, "").slice(0, 12);
   if (room && netUrl()) { Net.wantJoin = room.toUpperCase().slice(0, 4); showOnline(); openOverlay(`<h2>초대 도착!</h2><p>${from ? `<b>${from}</b>님이 ` : ""}방귀 대결에 초대했어요. 들어가는 중…</p>`, [["취소", "alt", () => { Net.wantJoin = null; closeOverlay(); }]]); history.replaceState(null, "", location.pathname); } }
 requestAnimationFrame(frame);
