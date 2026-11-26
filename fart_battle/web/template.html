@@ -30,6 +30,18 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; }
 .card { display: flex; gap: 12px; align-items: center; background: var(--panel2); border-radius: 18px; padding: 12px; width: min(640px, 100%); margin: 0 auto; box-sizing: border-box; }
 .card.locked { background: var(--dark); }
 .card.boss { border: 3px solid #FF5F5F; }
+.stars { text-align: center; font-size: 44px; letter-spacing: 6px; color: rgba(255,255,255,0.18); line-height: 1; }
+.stars .on { color: #FFD25F; text-shadow: 0 0 12px rgba(255,210,95,0.7); }
+.small-stars { text-align: left; font-size: 20px; letter-spacing: 2px; }
+.coin { text-align: center; color: #FFD25F !important; font-weight: 800; }
+#shop { background: var(--bg); overflow-y: auto; align-items: stretch; }
+.shop-box { width: min(640px, 100%); margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+.shop-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.item { background: var(--panel2); border-radius: 16px; padding: 10px; display: flex; flex-direction: column; gap: 6px; align-items: stretch; border: 3px solid transparent; }
+.item.eq { border-color: var(--accent); }
+.item canvas { width: 100%; height: auto; border-radius: 10px; background: #8FC86A; }
+.item b { font-size: 16px; text-align: center; }
+.item .btn { width: 100%; min-height: 44px; font-size: 16px; }
 .badge { white-space: nowrap; display: inline-block; font: 800 13px "Noto Sans KR", sans-serif; background: #FF5F5F; color: #fff; border-radius: 8px; padding: 2px 8px; vertical-align: middle; }
 .chap { width: min(640px, 100%); margin: 10px auto 0; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .chap b { font-family: "Jua", sans-serif; font-size: 24px; color: var(--accent); font-weight: 400; }
@@ -88,7 +100,7 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; }
   <p class="title-sub">뿌앙 리그</p>
   <div class="grow"></div>
   <button class="btn" id="btn-league">혼자 하기 · 리그 도전</button>
-  <button class="btn ghost" id="btn-chars">내 캐릭터: 뿌앙이 (바꾸기)</button>
+  <div class="on-row" style="width:min(560px,100%)"><button class="btn ghost" id="btn-chars" style="flex:2">내 캐릭터: 뿌앙이</button><button class="btn ghost" id="btn-shop" style="flex:1">상점</button></div>
   <button class="btn" id="btn-online" style="background:#5FE8FF;box-shadow:0 6px 0 #2F9AB0">온라인 대전</button>
   <button class="btn alt" id="btn-versus">둘이서 대결 (폰 하나로)</button>
   <button class="btn ghost" id="btn-sound">소리 켜짐</button>
@@ -99,6 +111,15 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; }
   <div class="sel-head"><button class="btn alt" id="btn-back">뒤로</button><h2>뿌앙 리그 · 상대 고르기</h2></div>
   <div class="sel-head"><button class="btn ghost" id="sel-char" style="width:100%"></button></div>
   <div id="cards" style="display:flex;flex-direction:column;gap:12px;width:100%"></div>
+</div>
+
+<div id="shop" class="screen" hidden>
+  <div class="sel-head"><button class="btn alt" id="shop-back">뒤로</button><h2 id="shop-title">상점</h2></div>
+  <div class="shop-box">
+    <p class="small">리그 승리·별·온라인 대전으로 코인을 모아요. 꾸미기는 내 캐릭터에 적용되고 온라인 상대에게도 보여요.</p>
+    <h3 class="on-h">빔 색</h3><div class="shop-grid" id="shop-beams"></div>
+    <h3 class="on-h">모자·소품</h3><div class="shop-grid" id="shop-hats"></div>
+  </div>
 </div>
 
 <div id="chars" class="screen" hidden>
@@ -147,7 +168,29 @@ class Logic {
   constructor(d0, d1) { this.f = [this.newF(d0), this.newF(d1)]; this.roundNo = 0; this.matchOver = false; this.matchWinner = -1; this.events = []; this.foods = []; this.uid = 1; this.cloud = 0; this.vel = 0; this.timeLeft = BAL.round_time; this.elapsed = 0; this.roundOver = false; this.clash = null; this.clashCd = 0; }
   newF(def) { const f = { def, wins: 0, stats: { farts: 0, perfect: 0, blunders: 0, parries: 0, foods: 0, ults: 0, clashWins: 0 } }; this.reset(f); f.special = 0; return f; }
   reset(f) { Object.assign(f, { gas: BAL.gas_start, pressure: 0, holding: false, overT: 0, stunT: 0, blockT: 0, blockCd: 0, blockStarted: -99, powerMult: 1, powerCount: 0, stinkNext: 0, stinkT: 0, fastT: 0, regenT: 0, boostNext: 1, beamT: 0, beamTotal: 0, beamForce: 0, beamPerfect: false, beamPower: 0, beamFire: false, beamBlocked: false, beamUlt: false, beamBubble: false, fireCount: 0, fireMult: 1 }); }
-  startRound() { this.roundNo++; this.f.forEach(f => this.reset(f)); this.cloud = 0; this.vel = 0; this.timeLeft = BAL.round_time; this.elapsed = 0; this.roundOver = false; this.roundWinner = -1; this.clash = null; this.clashCd = 0; this.foods = []; this.foodTimer = 2.5 + Math.random() * 1.5; }
+  // 스테이지 기믹: forest 바람 / night 달빛 / snow 빙판 / volcano 용암 분출
+  resetGm() { this.gm = { t: 4 + Math.random() * 3, wind: 0, windT: 0, moon: -1, moonT: 0, erupt: -1, warnT: 0 }; }
+  tickGm(dt) {
+    const gm = this.gm, st = this.stage, next = () => BAL.gimmick_every_min + Math.random() * (BAL.gimmick_every_max - BAL.gimmick_every_min);
+    gm.t -= dt;
+    if (st === "forest") {
+      if (gm.windT > 0) { gm.windT -= dt; this.cloud += gm.wind * BAL.wind_push * dt; if (gm.windT <= 0) gm.wind = 0; }
+      else if (gm.t <= 0) { gm.wind = Math.random() < 0.5 ? -1 : 1; gm.windT = BAL.wind_time; gm.t = next(); this.events.push({ type: "gimmick", kind: "wind", dir: gm.wind }); }
+    } else if (st === "night") {
+      if (gm.moonT > 0) { gm.moonT -= dt; if (gm.moonT <= 0) gm.moon = -1; }
+      else if (gm.t <= 0) { gm.moon = Math.random() < 0.5 ? 0 : 1; gm.moonT = BAL.moon_time; gm.t = next(); this.events.push({ type: "gimmick", kind: "moon", side: gm.moon }); }
+    } else if (st === "volcano") {
+      if (gm.warnT > 0) {
+        gm.warnT -= dt; if (this.f[gm.erupt].blockT > 0) gm.safe = true; // 경고 중 한 번이라도 코를 막으면 무사
+        if (gm.warnT <= 0) {
+          const s = gm.erupt, f = this.f[s], blocked = !!gm.safe; gm.erupt = -1; gm.safe = false;
+          if (!blocked) { f.stunT = Math.max(f.stunT, BAL.erupt_stun); f.holding = false; f.pressure = 0; this.vel -= this.dir(s) * BAL.erupt_push; }
+          this.events.push({ type: "gimmick", kind: "erupt", side: s, blocked });
+        }
+      } else if (gm.t <= 0) { gm.erupt = Math.random() < 0.5 ? 0 : 1; gm.warnT = BAL.erupt_warn; gm.safe = false; gm.t = next(); this.events.push({ type: "gimmick", kind: "warn", side: gm.erupt }); }
+    }
+  }
+  startRound() { this.resetGm(); this.roundNo++; this.f.forEach(f => this.reset(f)); this.cloud = 0; this.vel = 0; this.timeLeft = BAL.round_time; this.elapsed = 0; this.roundOver = false; this.roundWinner = -1; this.clash = null; this.clashCd = 0; this.foods = []; this.foodTimer = 2.5 + Math.random() * 1.5; }
   take() { const e = this.events; this.events = []; return e; }
   dir(s) { return s === 0 ? 1 : -1; }
   sweet(s) { const lo = BAL.sweet_min; return [lo, Math.min(1, lo + BAL.sweet_width * (this.f[s].def.control || 1))]; }
@@ -171,7 +214,8 @@ class Logic {
     for (let s = 0; s < 2; s++) this.tickF(s, dt);
     const a = this.f[0], b = this.f[1];
     if (this.clashCd <= 0 && a.beamT > BAL.clash_min_beam && b.beamT > BAL.clash_min_beam && !a.beamBlocked && !b.beamBlocked && a.beamPower >= BAL.clash_min_power && b.beamPower >= BAL.clash_min_power) { this.startClash(); return; }
-    this.cloud += this.vel * dt; this.vel *= Math.exp(-BAL.cloud_friction * dt); this.vel = Math.max(-BAL.cloud_max_speed, Math.min(BAL.cloud_max_speed, this.vel));
+    this.tickGm(dt);
+    this.cloud += this.vel * dt; this.vel *= Math.exp(-BAL.cloud_friction * (this.stage === "snow" ? BAL.ice_friction : 1) * dt); this.vel = Math.max(-BAL.cloud_max_speed, Math.min(BAL.cloud_max_speed, this.vel));
     this.tickFoods(dt);
     if (this.cloud >= 1) this.endRound(0, "ko"); else if (this.cloud <= -1) this.endRound(1, "ko");
     else if (this.timeLeft <= 0) this.endRound(Math.abs(this.cloud) < 0.02 ? -1 : (this.cloud > 0 ? 0 : 1), "time");
@@ -198,6 +242,7 @@ class Logic {
     if (f.powerCount > 0) { power *= f.powerMult; f.powerCount--; }
     power *= f.boostNext; f.boostNext = 1;
     let fire = false; if (f.fireCount > 0) { power *= f.fireMult; f.fireCount--; fire = true; }
+    if (this.gm && this.gm.moon === s) { power *= BAL.moon_bonus; tfx = "달빛 +25%"; }
     if (this.tr(s) === "heavy" && p >= 0.8) { power *= 1.2; tfx = "한 방!"; }
     if (this.tr(s) === "magma" && !fire && f.stats.farts % 4 === 3) { power *= 1.4; fire = true; tfx = "마그마!"; }
     // 필살: 게이지가 꽉 찬 상태에서 완벽한 뿡 → 파워 2배, 튕겨내기 불가, 막아도 절반만 줄어듦
@@ -312,6 +357,8 @@ class AI {
       else if (this.plans[fd.uid] > 0) { this.plans[fd.uid] -= dt; if (this.plans[fd.uid] <= 0) { l.eat(this.s, fd.uid); break; } }
     }
     if (me.stunT > 0) return;
+    const gm = l.gm;
+    if (gm && gm.erupt === this.s && gm.warnT > 0 && gm.warnT < BAL.erupt_warn - d.ai_reaction) { if (!this.dodged) { this.dodged = true; if (Math.random() < d.ai_block + 0.3) l.block(this.s); } } else if (!gm || gm.warnT <= 0) this.dodged = false;
     if (!opp.holding) this.blockDecided = false;
     else if (!this.blockDecided && opp.pressure >= l.sweet(1 - this.s)[0] - 0.15) {
       this.blockDecided = true; const danger = Math.max(0, Math.min(1, -l.cloud * l.dir(this.s)));
@@ -437,6 +484,15 @@ function star(x, y, r, c) { ctx.beginPath(); for (let i = 0; i < 10; i++) { cons
 
 // ───────── 동물 그리기 (옆모습, 머리 = 왼쪽, 엉덩이 = 오른쪽) ─────────
 const BUTT = { x: 88, y: -60 };
+function drawHat(h, hx, hy, r, ex, ey, t) {
+  if (!h) return;
+  if (h === "party") { ctx.save(); ctx.translate(hx + r * 0.15, hy - r * 0.75); ctx.rotate(0.25); ctx.beginPath(); ctx.moveTo(-r * 0.45, 0); ctx.lineTo(0, -r * 1.3); ctx.lineTo(r * 0.45, 0); ctx.closePath(); ctx.fillStyle = "#5F8FE8"; ctx.fill(); ctx.strokeStyle = CR.line; ctx.lineWidth = CR.w; ctx.stroke(); ctx.clip(); for (let i = 0; i < 4; i++) { ctx.fillStyle = i % 2 ? "#FFD25F" : "#FF5FD2"; ctx.fillRect(-r, -r * 0.25 - i * r * 0.32, r * 2, r * 0.14); } ctx.restore(); circ(hx + r * 0.15 + Math.sin(0.25) * r * 1.3, hy - r * 0.75 - Math.cos(0.25) * r * 1.3, 7, "#FFFFFF"); }
+  else if (h === "shades") { for (const ox of [-6, 12]) { ctx.beginPath(); ctx.roundRect(ex + ox - 9, ey - 6, 16, 11, 4); ctx.fillStyle = "#14141E"; ctx.fill(); ctx.strokeStyle = "#3A3A4A"; ctx.lineWidth = 2; ctx.stroke(); line(ex + ox - 5, ey - 3, ex + ox - 1, ey - 3, "rgba(255,255,255,0.6)", 2); } line(ex + 1, ey - 2, ex + 4, ey - 2, "#14141E", 3); line(ex + 20, ey - 2, hx + r * 0.6, ey - 6, "#14141E", 3); }
+  else if (h === "flower") { const cx = hx + r * 0.45, cy = hy - r * 0.8; for (let i = 0; i < 5; i++) { const a = i * TAU / 5 + 0.3; circ(cx + Math.cos(a) * 8, cy + Math.sin(a) * 8, 7.5, "#FF8FC8"); } circ(cx, cy, 5, "#FFE15F"); }
+  else if (h === "chef") { rrect(hx - r * 0.45, hy - r * 1.15, r * 0.9, r * 0.45, 4, "#FFFFFF"); for (const [ox, oy, rr] of [[-0.3, -1.35, 0.32], [0.05, -1.5, 0.38], [0.35, -1.3, 0.3]]) circ(hx + r * ox, hy + r * oy, r * rr, "#FFFFFF"); }
+  else if (h === "horns") { for (const sgn of [-1, 1]) { const bx = hx + sgn * r * 0.35 + r * 0.1, by = hy - r * 0.78; ctx.beginPath(); ctx.moveTo(bx - 7, by); ctx.quadraticCurveTo(bx + sgn * 4, by - 26, bx + sgn * 14, by - 30); ctx.quadraticCurveTo(bx + sgn * 2, by - 12, bx + 7, by); ctx.closePath(); ctx.fillStyle = "#E5302A"; ctx.fill(); ctx.strokeStyle = CR.line; ctx.lineWidth = 2.5; ctx.stroke(); } }
+  else if (h === "tiara") { const cx = hx + 4, cy = hy - r * 0.88; ctx.beginPath(); ctx.moveTo(cx - 20, cy + 4); ctx.lineTo(cx - 14, cy - 8); ctx.lineTo(cx - 6, cy - 2); ctx.lineTo(cx, cy - 16); ctx.lineTo(cx + 6, cy - 2); ctx.lineTo(cx + 14, cy - 8); ctx.lineTo(cx + 20, cy + 4); ctx.closePath(); ctx.fillStyle = "#D9E4F2"; ctx.fill(); ctx.strokeStyle = "#8A9AB0"; ctx.lineWidth = 2; ctx.stroke(); circ(cx, cy - 7, 4.5, `hsl(${(t * 120) % 360},90%,65%)`); circ(cx - 12, cy - 2, 3, "#5FE8FF"); circ(cx + 12, cy - 2, 3, "#FF5FD2"); }
+}
 function drawCritter(def, st, t) { CR.on = true; try { drawCritterInner(def, st, t); } finally { CR.on = false; } }
 function drawCritterInner(def, st, t) {
   const sp = def.species, body = def.body, belly = def.belly, p = st.pressure || 0, dark = shade(body, -0.25);
@@ -506,6 +562,7 @@ function drawCritterInner(def, st, t) {
   if (def.prop === "band") { ctx.fillStyle = "#2A2440"; ctx.fillRect(hx - r * 0.75, hy - r * 0.5, r * 1.5, 8); line(hx + r * 0.7, hy - r * 0.45, hx + r * 1.3, hy - r * 0.2 + Math.sin(t * 8) * 5, "#2A2440", 5); }
   if (def.prop === "helmet") { ctx.beginPath(); ctx.arc(hx, hy - r * 0.3, r * 0.82, Math.PI * 1.05, Math.PI * 1.95); ctx.closePath(); ctx.fillStyle = "#8A9AB0"; ctx.fill(); line(hx, hy - r * 1.1, hx, hy - r * 1.45, "#E5302A", 6); }
   if (def.prop === "crown") { const cx = hx + 4, cy = hy - r - 8; ctx.beginPath(); [[-18, 8], [-18, -12], [-9, -2], [0, -18], [9, -2], [18, -12], [18, 8]].forEach(q => ctx.lineTo(cx + q[0], cy + q[1])); ctx.fillStyle = "#FFD25F"; ctx.fill(); circ(cx, cy - 4, 4, "#FF5FD2"); }
+  drawHat(def.hat, hx, hy, r, ex, ey, t);
   if (st.blocking) {
     // 코에 커다란 빨래집게
     const nx = hx - r * 0.98, ny = hy + 4, bp = 1 + 0.25 * (st.blockPop || 0);
@@ -533,18 +590,45 @@ function persp(y) { return Math.max(0.55, Math.min(1.45, 0.74 + (1.3 - 0.74) * (
 const WORDS = { tiny: ["뽁", "뿡", "뽀옹"], medium: ["뿌웅!", "뿡뿡!", "뿌르륵!"], big: ["뿌아앙!", "뿌우우웅!", "뿌르르릉!"], mega: ["뿌아아아앙!!", "부와아아앙!!", "뿌르르르릉!!"] };
 let G = null; // 현재 대결 상태
 
+// ───── 꾸미기 (상점) ─────
+const SKINS = [
+  { id: "", name: "기본 색", price: 0 },
+  { id: "choco", name: "초코 빔", price: 100, c: ["#7A4A2A", "#E0B080"] },
+  { id: "gold", name: "황금 빔", price: 150, c: ["#E5A82F", "#FFF1A0"] },
+  { id: "ice", name: "얼음 빔", price: 150, c: ["#3FA9FF", "#E8FBFF"] },
+  { id: "ghost", name: "유령 빔", price: 200, c: ["#9F7BFF", "#F2EEFF"] },
+  { id: "neon", name: "네온 빔", price: 220, c: ["#39FF14", "#FF00E5"] },
+  { id: "rainbow", name: "무지개 빔", price: 350, c: ["#FF5F5F", "#5FE8FF"] },
+];
+const HATS = [
+  { id: "", name: "없음", price: 0 },
+  { id: "flower", name: "꽃 핀", price: 80 },
+  { id: "party", name: "파티 모자", price: 100 },
+  { id: "shades", name: "선글라스", price: 120 },
+  { id: "chef", name: "요리사 모자", price: 150 },
+  { id: "horns", name: "악마 뿔", price: 200 },
+  { id: "tiara", name: "보석 티아라", price: 300 },
+];
+function applyCos(d, cos) {
+  if (!cos) return d;
+  const sk = SKINS.find(x => x.id === cos.beam && x.id); if (sk) { d.beam = sk.c.slice(); d.beamSkin = sk.id; }
+  if (HATS.some(x => x.id === cos.hat && x.id)) d.hat = cos.hat;
+  return d;
+}
+function myCos() { return Save.equip || { beam: "", hat: "" }; }
 // 플레이어가 고르는 캐릭터: 모습·특성은 그대로, 능력치는 균형 잡힌 play 값
 function playDef(id) { const base = [PLAYER, ...OPPONENTS].find(x => x.id === id) || PLAYER; return Object.assign({}, base, base.play || {}); }
 function charUnlocked(id) { return id === PLAYER.id || (Save.wins[id] || 0) > 0; }
 const VS = { p1: "puang", p2: "kid" };
 function newBattle(mode, oppIndex, demo) {
   const opp = OPPONENTS[oppIndex];
-  let p1 = demo ? Object.assign({}, PLAYER) : playDef(Save.char || PLAYER.id), p2 = Object.assign({}, opp);
-  if (mode === "versus") { p1 = playDef(VS.p1); p2 = playDef(VS.p2); p1.name = "1P " + p1.name; p2.name = "2P " + p2.name; }
+  let p1 = demo ? Object.assign({}, PLAYER) : applyCos(playDef(Save.char || PLAYER.id), myCos()), p2 = Object.assign({}, opp);
+  if (mode === "versus") { p1 = applyCos(playDef(VS.p1), myCos()); p2 = playDef(VS.p2); p1.name = "1P " + p1.name; p2.name = "2P " + p2.name; }
   const logic = new Logic(p1, p2);
   const g = { mode, oppIndex, demo: !!demo, logic, defs: [p1, p2], ai: null, ai0: null, st: [{ mood: "normal" }, { mood: "normal" }], parts: [], pops: [], waves: [], arcs: [], cam: { x: 360, y: 360, z: 1, r: 0 }, shot: null, shotCd: 0, freeze: 0, slowT: 0, cutin: null, zoom: 0, shake: 0, flash: 0, state: "intro", stateT: demo ? 0.1 : 1.6, count: 3, big: "", touches: {}, saved: false, t: 0 };
   const themeIds = Object.keys(THEMES);
   g.theme = mode === "league" && !demo ? (opp.stage || "forest") : themeIds[Math.floor(Math.random() * themeIds.length)];
+  logic.stage = g.theme;
   if (mode === "league" || demo) g.ai = new AI(logic, 1, demo ? { ai_reaction: 0.3, ai_accuracy: 0.1, ai_aggression: 0.9, ai_block: 0.3, ai_greed: 0.8 } : null);
   if (demo) g.ai0 = new AI(logic, 0, { ai_reaction: 0.3, ai_accuracy: 0.1, ai_aggression: 0.9, ai_block: 0.3, ai_greed: 0.8 });
   return g;
@@ -562,7 +646,7 @@ function headPos(side) { const p = SPOT[side]; return { x: p.x - (side === 0 ? 1
 function clashPos(g) { const a = buttPos(0), b = buttPos(1), k = Math.max(0, Math.min(1, (g.logic.cloud + 1) / 2 + (g.clashVis || 0) * 0.12)); return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k }; }
 // 음식은 빔 선을 피해 왼쪽 위 / 오른쪽 아래 빈 땅에 나온다
 function foodPos(g, fd) { const v = (fd.y - 0.3) / 0.4, bob = Math.sin(g.t * 3 + fd.uid) * 6; return fd.x < 0.5 ? { x: 80 + fd.x * 2 * 250, y: 200 + v * 170 + bob } : { x: 460 + (fd.x - 0.5) * 2 * 200, y: 450 + v * 160 + bob }; }
-function popup(g, x, y, t, c, s) { g.pops.push({ x, y, t, c, s, age: 0 }); }
+function popup(g, x, y, t, c, s) { const half = Math.min(300, String(t).length * s * 0.45); g.pops.push({ x: Math.max(half + 10, Math.min(710 - half, x)), y, t, c, s, age: 0 }); }
 function sparks(g, x, y, n) { for (let i = 0; i < n; i++) { const a = Math.random() * TAU, v = 80 + Math.random() * 240; g.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.2 + Math.random() * 0.3, r: 3 + Math.random() * 4, c: `hsl(${Math.random() * 360},90%,70%)`, k: "spark" }); } }
 
 function handleEvent(g, ev) {
@@ -619,6 +703,17 @@ function handleEvent(g, ev) {
       popup(g, cp.x, cp.y - 130, g.mode === "versus" ? (ev.winner === 0 ? "1P" : "2P") + " 힘겨루기 승리!" : ev.winner === 0 ? "힘겨루기 승리!" : "힘겨루기 패배…", ev.winner === 0 || g.mode === "versus" ? "#FFE15F" : "#B9B5B0", 38);
       if (!g.demo) { play("mega"); buzz(100); }
     } else { g.shot = null; crescents(g, cp, 130, 2, "#FFFFFF"); popup(g, cp.x, cp.y - 130, "상쇄!", "#FFFFFF", 40); if (!g.demo) play("big"); }
+  } else if (ev.type === "gimmick") {
+    if (ev.kind === "wind") { g.banner = { text: ev.dir > 0 ? (g.mode === "versus" ? "바람 → 2P 쪽으로!" : "바람이 상대 쪽으로 불어요 →") : (g.mode === "versus" ? "← 1P 쪽으로 바람!" : "← 바람이 내 쪽으로 불어요"), t: 2.2 }; if (!g.demo) play("medium", 0.6); }
+    else if (ev.kind === "moon") { const hp = headPos(ev.side); popup(g, hp.x, hp.y - 40, "달빛 축복! 방귀 +25%", "#FFF6C0", 28); if (!g.demo) play("ting"); }
+    else if (ev.kind === "warn") { const hp = headPos(ev.side); popup(g, hp.x, hp.y - 40, "분출 경고! 코 막기!", "#FF6A3F", 30); if (!g.demo && (ev.side === 0 || g.mode === "versus")) { play("bad"); buzz(40); } }
+    else if (ev.kind === "erupt") {
+      const p = SPOT[ev.side], sc = p.s;
+      for (let i = 0; i < 40; i++) { const a = -Math.PI / 2 + (Math.random() - 0.5) * 0.9, v = 300 + Math.random() * 500; g.parts.push({ x: p.x + (Math.random() - 0.5) * 80 * sc, y: p.y, vx: Math.cos(a) * v * 0.5, vy: Math.sin(a) * v * sc, life: 0.6 + Math.random() * 0.5, r: (4 + Math.random() * 6) * sc, c: Math.random() < 0.5 ? "#FF6A1F" : "#FFD25F", k: "drop" }); }
+      wave(g, p.x, p.y, 200 * sc, "#FF6A1F", 10); g.shake = Math.max(g.shake, 0.8); g.flash = 0.4;
+      const hp = headPos(ev.side); popup(g, hp.x, hp.y - 30, ev.blocked ? "코 막고 버텼다!" : "앗 뜨거!", ev.blocked ? "#5FE8FF" : "#FF6A3F", 34);
+      if (!g.demo) { play(ev.blocked ? "block" : "big", 0.7); buzz(ev.blocked ? 20 : 90); }
+    }
   } else if (ev.type === "blunder") {
     popup(g, headPos(ev.side).x, headPos(ev.side).y, "삐끗!", "#FF5F5F", 44); g.shake = Math.max(g.shake, 0.5);
     if (!g.demo) { play("squeak"); buzz(80); }
@@ -646,7 +741,8 @@ function handleEvent(g, ev) {
   }
 }
 
-function startCountdown(g) { g.logic.startRound(); g.logic.take(); g.st.forEach(s => s.mood = "normal"); g.state = "countdown"; g.count = 3; g.stateT = 0.7; g.big = g.logic.roundNo + "라운드"; }
+const GM_HINT = { forest: "햇살 숲 · 가끔 바람이 불어 구름을 밀어요", night: "달밤 늪 · 달빛 받은 쪽 방귀 +25%", snow: "눈꽃 산 · 빙판이라 한 번 밀리면 쭉 미끄러져요", volcano: "불꽃 화산 · 분출 경고가 뜨면 코 막기로 피하세요!" };
+function startCountdown(g) { if (g.logic.roundNo === 0 && GM_HINT[g.theme]) g.banner = { text: GM_HINT[g.theme], t: 3.5 }; g.logic.startRound(); g.logic.take(); g.st.forEach(s => s.mood = "normal"); g.state = "countdown"; g.count = 3; g.stateT = 0.7; g.big = g.logic.roundNo + "라운드"; }
 
 function wave(g, x, y, max, c, w) { g.waves.push({ x, y, r: 12, max, c, w, life: 1 }); }
 function beamW(f) { const k = Math.min(1, f.beamT / Math.max(0.01, f.beamTotal)); return (18 + 30 * Math.min(1.8, f.beamPower)) * (0.35 + 0.65 * Math.min(1, k * 1.4)) * (f.beamUlt ? 1.35 : 1); }
@@ -666,7 +762,7 @@ function update(g, rdt) {
   else if (g.demo) {
     if (g.state === "intro") { l.startRound(); g.state = "fight"; }
     g.ai.tick(dt); g.ai0.tick(dt); l.tick(dt); l.take().forEach(e => handleEvent(g, e));
-    if (l.roundOver) { if (l.matchOver) { g.logic = new Logic(g.defs[0], g.defs[1]); g.ai.l = g.logic; g.ai0.l = g.logic; } g.logic.startRound(); g.st.forEach(s => s.mood = "normal"); }
+    if (l.roundOver) { if (l.matchOver) { g.logic = new Logic(g.defs[0], g.defs[1]); g.logic.stage = g.theme; g.ai.l = g.logic; g.ai0.l = g.logic; } g.logic.startRound(); g.st.forEach(s => s.mood = "normal"); }
   } else if (g.state === "intro") { if (!overlayOpen() || g.net) { g.stateT -= dt; if (g.stateT <= 0) startCountdown(g); } }
   else if (g.state === "countdown") {
     g.stateT -= dt;
@@ -725,12 +821,20 @@ function beamColors(g, side) {
   const f = g.logic.f[side];
   if (f.beamUlt) return [`hsl(${(g.t * 700) % 360},100%,62%)`, `hsl(${(g.t * 700 + 140) % 360},100%,75%)`, "#FFFFFF"];
   if (f.beamFire) return ["#FF3B1F", "#FFB43B", "#FFF1A0"];
+  if (g.defs[side].beamSkin === "rainbow" && !f.beamBubble) return [`hsl(${(g.t * 240 + side * 90) % 360},100%,62%)`, `hsl(${(g.t * 240 + side * 90 + 120) % 360},100%,78%)`, "#FFFFFF"];
   if (f.beamBubble && !f.beamPerfect) return ["#2F8FFF", "#9FE3FF", "#FFFFFF"];
   if (f.beamPerfect) return [`hsl(${(g.t * 300) % 360},100%,65%)`, `hsl(${(g.t * 300 + 120) % 360},100%,75%)`, "#FFFFFF"];
   const b = g.defs[side].beam || ["#FF5FD2", "#5FE8FF"]; return [b[0], b[1] || b[0], "#FFFFFF"];
 }
 function alpha(c, a) { if (c.startsWith("#")) return col(c, a); if (c.startsWith("hsl(")) return c.replace("hsl(", "hsla(").replace(")", `,${a})`); return c; }
 
+function drawGimmick(g, t) {
+  const gm = g.logic.gm; if (!gm) return;
+  if (gm.windT > 0) { const k = Math.min(1, gm.windT / 0.4); for (let i = 0; i < 18; i++) { const y = 140 + ((i * 53) % 520), x = ((t * 900 * gm.wind + i * 211) % 900 + 900) % 900 - 90, L = 60 + (i % 3) * 30; line(x, y, x + L * gm.wind, y + 4, `rgba(255,255,255,${0.45 * k})`, 3); } }
+  if (gm.moon >= 0) { const p = SPOT[gm.moon], gr = ctx.createLinearGradient(0, -400, 0, p.y); gr.addColorStop(0, "rgba(255,250,210,0)"); gr.addColorStop(1, "rgba(255,250,210,0.35)"); ctx.beginPath(); ctx.moveTo(p.x - 30, -400); ctx.lineTo(p.x + 30, -400); ctx.lineTo(p.x + 170 * p.s, p.y); ctx.lineTo(p.x - 150 * p.s, p.y); ctx.fillStyle = gr; ctx.fill(); ell(p.x + 10 * p.s, p.y, 150 * p.s, 40 * p.s, `rgba(255,250,200,${0.25 + 0.1 * Math.sin(t * 6)})`); }
+  if (gm.erupt >= 0 && gm.warnT > 0) { const p = SPOT[gm.erupt], k = 1 - gm.warnT / BAL.erupt_warn, pulse = 0.5 + 0.5 * Math.sin(t * (10 + 20 * k)); ctx.beginPath(); ctx.ellipse(p.x + 10 * p.s, p.y, 150 * p.s, 42 * p.s, 0, 0, TAU); ctx.fillStyle = `rgba(255,70,20,${0.2 + 0.35 * pulse})`; ctx.fill(); ctx.strokeStyle = "#FF6A1F"; ctx.lineWidth = 5; ctx.stroke(); for (let i = 0; i < 6; i++) { const a = i * TAU / 6 + t; line(p.x + Math.cos(a) * 60 * p.s, p.y + Math.sin(a) * 16 * p.s, p.x + Math.cos(a) * 60 * p.s, p.y + Math.sin(a) * 16 * p.s - (20 + 40 * k) * p.s, `rgba(255,${120 + 100 * pulse | 0},40,0.8)`, 4 * p.s); } text("!", p.x + 10 * p.s, p.y - 190 * p.s, 64 * p.s, "#FF3B1F", "center", 10); }
+  if (g.theme === "snow") { ctx.save(); ctx.translate(372, 455); ctx.rotate(-0.12); for (let i = 0; i < 4; i++) line(-260 + i * 140, -40 + i * 20, -200 + i * 140, -60 + i * 20, "rgba(255,255,255,0.6)", 3); ctx.restore(); }
+}
 // ───── 리그 스테이지 배경: 햇살 숲 / 달밤 늪 / 눈꽃 산 / 불꽃 화산 ─────
 const THEMES = {
   forest: { sky: ["#FBE6A6", "#D8EBA8"], back: ["#86BC62", "#76AE58", "#689F50"], trunk: "#6E6142", ground: ["#9BD06E", "#4E9A44"], pad: ["#3E7F37", "#8FD06A"], side: ["#4E8A47", "#5E9A4F"], sideTrunk: "#5C5236", ray: "255,244,190", line: "255,255,255", fx: "leaf" },
@@ -799,6 +903,7 @@ function drawArena(g) {
   drawStageBack(g, TH, HZ, t);
   // 동물: 뒤(1) 먼저, 앞(0) 나중
   for (const s of [1, 0]) { const p = SPOT[s]; ctx.save(); ctx.translate(p.x, p.y); ctx.scale(s === 0 ? p.s : -p.s, p.s); drawCritter(g.defs[s], g.st[s], t + s * 1.3); ctx.restore(); }
+  drawGimmick(g, t);
   drawStageFront(g, TH, HZ, t);
   // 모으기 오라
   for (let s = 0; s < 2; s++) {
@@ -1034,6 +1139,7 @@ function drawBattle(g) {
     const sub = g.mode === "online" ? `온라인 · ${o.title} · ${l.roundNo || 1}라운드 · ${Math.max(0, Math.ceil(l.timeLeft))}초 · ${l.f[0].wins} : ${l.f[1].wins} · 핑 ${Net.ping}ms` : g.state === "intro" ? `「${o.lines.intro}」` : `${l.roundNo}라운드 · 남은 시간 ${Math.max(0, Math.ceil(l.timeLeft))}초 · 나 ${l.f[0].wins} : ${l.f[1].wins} 상대 · 가스 ${Math.round(l.f[1].gas)} · 필살 ${Math.round(l.f[1].special)}%`;
     text(sub, 34, 92, 17, "#B9B5B0", "left", 0, FONT_B);
   }
+  if (g.banner && g.banner.t > 0 && !l.clash) { g.banner.t -= 1 / 60; const a = Math.min(1, g.banner.t * 2), y = L.topH + 30; ctx.globalAlpha = a; rrect(40, y - 26, 640, 52, 26, "rgba(20,12,30,0.78)"); text(g.banner.text, 360, y, 22, "#FFE98A", "center", 0, FONT_B); ctx.globalAlpha = 1; }
   if (l.clash) drawClashHud(g, L);
   if (g.cutin) drawCutin(g);
   // 멈춤 버튼
@@ -1112,15 +1218,16 @@ function openOverlay(html, buttons) {
   $("overlay").hidden = false;
 }
 function showTitle() {
-  $("title").hidden = false; $("select").hidden = true; $("online").hidden = true; $("chars").hidden = true; closeOverlay();
+  $("title").hidden = false; $("select").hidden = true; $("online").hidden = true; $("chars").hidden = true; $("shop").hidden = true; closeOverlay();
   if (!charUnlocked(Save.char || PLAYER.id)) Save.char = PLAYER.id;
-  $("btn-chars").textContent = `내 캐릭터: ${playDef(Save.char || PLAYER.id).name} (바꾸기)`;
+  $("btn-chars").textContent = `내 캐릭터: ${playDef(Save.char || PLAYER.id).name}`;
+  $("btn-shop").textContent = `상점 · ${Save.coins || 0}코인`; $("shop").hidden = true;
   G = newBattle("league", Math.floor(Math.random() * OPPONENTS.length), true);
   $("btn-sound").textContent = Save.sound ? "소리 켜짐" : "소리 꺼짐";
   $("record").textContent = `전적 ${Save.stats.matchWins}승 ${Save.stats.matches - Save.stats.matchWins}패 · 완벽한 뿡 ${Save.stats.perfect}번`;
 }
 function showSelect() {
-  $("title").hidden = true; $("select").hidden = false; $("chars").hidden = true;
+  $("title").hidden = true; $("select").hidden = false; $("chars").hidden = true; $("online").hidden = true; closeOverlay(); G = null;
   { const me = playDef(Save.char || PLAYER.id); $("sel-char").textContent = `내 캐릭터: ${me.name} · 특성 「${me.trait.name}」 (바꾸기)`; }
   const box = $("cards"); box.innerHTML = "";
   let lastStage = null, focus = null;
@@ -1137,7 +1244,7 @@ function showSelect() {
     if (open) focus = card;
     const c = document.createElement("canvas"); c.width = 300; c.height = 220; card.appendChild(c);
     const info = document.createElement("div"); info.className = "info";
-    info.innerHTML = `<h3 style="color:${open ? o.beam[0] : "#B9B5B0"}">${i + 1}. ${open ? o.name : "???"}${o.boss ? ' <span class="badge">보스</span>' : ""}</h3><p>${open ? o.title : "앞 상대를 이기면 열려요"}</p>${open && o.trait ? `<p style="color:#FFB43B">특성 · ${o.trait.name}: ${o.trait.desc}</p>` : ""}${open ? `<p>「${o.lines.intro}」</p>` : ""}`;
+    info.innerHTML = `<h3 style="color:${open ? o.beam[0] : "#B9B5B0"}">${i + 1}. ${open ? o.name : "???"}${o.boss ? ' <span class="badge">보스</span>' : ""}</h3>${open ? `<div class="stars small-stars">${[0, 1, 2].map(k => `<span class="${k < ((Save.stars || {})[o.id] || 0) ? "on" : ""}">★</span>`).join("")}</div>` : ""}<p>${open ? o.title : "앞 상대를 이기면 열려요"}</p>${open && o.trait ? `<p style="color:#FFB43B">특성 · ${o.trait.name}: ${o.trait.desc}</p>` : ""}${open ? `<p>「${o.lines.intro}」</p>` : ""}`;
     const b = document.createElement("button"); b.className = "btn"; b.textContent = wins ? `도전! (승리 ${wins})` : "도전!"; b.disabled = !open;
     b.onclick = () => { audioInit(); play("medium"); startBattle("league", i); };
     info.appendChild(b); card.appendChild(info); box.appendChild(card);
@@ -1152,7 +1259,7 @@ function drawWith(other, fn) { const saved = ctx; ctx = other; try { fn(); } fin
 let charMode = "me";
 function showChars(mode) {
   charMode = mode || "me";
-  for (const id of ["title", "select", "online"]) $(id).hidden = true; $("chars").hidden = false; closeOverlay();
+  for (const id of ["title", "select", "online", "shop"]) $(id).hidden = true; $("chars").hidden = false; closeOverlay(); if (G && !G.demo) G = null;
   $("ch-title").textContent = charMode === "vs1" ? "1P 캐릭터 고르기" : charMode === "vs2" ? "2P 캐릭터 고르기" : "내 캐릭터 고르기";
   $("ch-sub").textContent = charMode === "vs2" ? "2P가 고르세요. 같은 캐릭터도 돼요." : "리그에서 이긴 상대는 내 캐릭터로 쓸 수 있어요.";
   const box = $("ch-list"); box.innerHTML = "";
@@ -1183,8 +1290,40 @@ $("ch-back").onclick = () => { play("click"); if (charMode === "vs2") showChars(
 let charFrom = "title";
 $("btn-chars").onclick = () => { audioInit(); play("click"); charFrom = "title"; showChars("me"); };
 $("sel-char").onclick = () => { play("click"); charFrom = "select"; showChars("me"); };
+function showShop() {
+  for (const id of ["title", "select", "online", "chars"]) $(id).hidden = true; $("shop").hidden = false; closeOverlay();
+  Save.owned = Save.owned || []; Save.equip = Save.equip || { beam: "", hat: "" };
+  $("shop-title").textContent = `상점 · 코인 ${Save.coins || 0}`;
+  const me = playDef(Save.char || PLAYER.id);
+  const build = (boxId, list, slot) => {
+    const box = $(boxId); box.innerHTML = "";
+    for (const it of list) {
+      const own = !it.id || Save.owned.includes(slot + ":" + it.id), eq = Save.equip[slot] === it.id;
+      const el = document.createElement("div"); el.className = "item" + (eq ? " eq" : "");
+      const c = document.createElement("canvas"); c.width = 260; c.height = 150; el.appendChild(c);
+      const b = document.createElement("b"); b.textContent = it.name; el.appendChild(b);
+      const btn = document.createElement("button"); btn.className = "btn" + (own ? " alt" : "");
+      btn.textContent = eq ? "장착 중" : own ? "장착" : `${it.price} 코인`; btn.disabled = eq || (!own && (Save.coins || 0) < it.price);
+      btn.onclick = () => {
+        if (!own) { if ((Save.coins || 0) < it.price) return; Save.coins -= it.price; Save.owned.push(slot + ":" + it.id); play("win"); }
+        else play("click");
+        Save.equip[slot] = it.id; writeSave(); showShop();
+      };
+      el.appendChild(btn); box.appendChild(el);
+      const cx = c.getContext("2d");
+      if (slot === "beam") {
+        const d = applyCos(Object.assign({}, me), { beam: it.id, hat: "" }), cs = it.id === "rainbow" ? null : (d.beam || ["#FF5FD2", "#5FE8FF"]);
+        const gr = cx.createLinearGradient(0, 0, 260, 0); if (cs) { gr.addColorStop(0, cs[0]); gr.addColorStop(1, cs[1]); } else ["#FF5F5F", "#FFD25F", "#7BE85F", "#5FE8FF", "#B57BFF"].forEach((k, i) => gr.addColorStop(i / 4, k));
+        cx.fillStyle = "#2A2138"; cx.fillRect(0, 0, 260, 150); cx.fillStyle = gr; cx.beginPath(); cx.roundRect(20, 55, 220, 40, 20); cx.fill(); cx.fillStyle = "rgba(255,255,255,0.85)"; cx.beginPath(); cx.roundRect(30, 70, 200, 10, 5); cx.fill();
+      } else { cx.save(); cx.translate(140, 140); cx.scale(-1.15, 1.15); drawWith(cx, () => drawCritter(applyCos(Object.assign({}, me), { beam: "", hat: it.id }), { mood: "happy" }, 0)); cx.restore(); }
+    }
+  };
+  build("shop-beams", SKINS, "beam"); build("shop-hats", HATS, "hat");
+}
+$("shop-back").onclick = () => { play("click"); showTitle(); };
+$("btn-shop").onclick = () => { audioInit(); play("click"); showShop(); };
 function startBattle(mode, opp) {
-  $("title").hidden = true; $("select").hidden = true; $("online").hidden = true; $("chars").hidden = true; closeOverlay();
+  $("title").hidden = true; $("shop").hidden = true; $("select").hidden = true; $("online").hidden = true; $("chars").hidden = true; closeOverlay();
   G = newBattle(mode, opp, false);
   if (mode === "league" && Save.tutorial !== 3) showTutorial();
 }
@@ -1219,6 +1358,13 @@ function showResult(g) {
       if (won) { Save.stats.matchWins++; if (!Save.wins[g.defs[1].id]) html += `<p class="good">새 캐릭터 해금: ${g.defs[1].name} (특성 「${g.defs[1].trait.name}」)</p>`; Save.wins[g.defs[1].id] = (Save.wins[g.defs[1].id] || 0) + 1; if (g.oppIndex + 1 >= Save.unlocked && g.oppIndex + 1 < OPPONENTS.length) { Save.unlocked = g.oppIndex + 2; const nx = OPPONENTS[g.oppIndex + 1], ns = STAGES.find(x => x.id === nx.stage); html += nx.stage !== g.defs[1].stage && ns ? `<p class="good">새 챕터 열림: ${ns.name}! 첫 상대 ${nx.name}</p>` : `<p class="good">새 상대 등장: ${nx.name}!</p>`; } else if (g.oppIndex + 1 >= OPPONENTS.length) html += `<p class="good">뿌앙 리그 챔피언 달성!</p>`; }
       writeSave();
     }
+    if (!g.rewarded) {
+      g.rewarded = true; const stars = [won, won && st.perfect >= 3, won && l.f[1].wins === 0], n = stars.filter(Boolean).length, first = won && !(Save.stars || {})[g.defs[1].id];
+      const coins = won ? 30 + 10 * n + (first ? 50 : 0) : 5;
+      Save.stars = Save.stars || {}; Save.stars[g.defs[1].id] = Math.max(Save.stars[g.defs[1].id] || 0, n); Save.coins = (Save.coins || 0) + coins; writeSave();
+      g.rewardHtml = `<div class="stars">${stars.map(x => `<span class="${x ? "on" : ""}">★</span>`).join("")}</div><p class="muted" style="text-align:center">승리 · 완벽한 뿡 3번 이상 · 한 라운드도 안 지기</p><p class="coin">+${coins} 코인${first ? " (첫 승리 보너스 +50)" : ""} · 보유 ${Save.coins}</p>`;
+    }
+    html += g.rewardHtml || "";
     if (won && g.oppIndex + 1 < OPPONENTS.length) btns.push(["다음 상대와 대결", "", () => startBattle("league", g.oppIndex + 1)]);
   }
   html += `<p class="muted">방귀 ${st.farts}번 · 완벽 ${st.perfect}번 · 삐끗 ${st.blunders}번 · 튕겨내기 ${st.parries}번 · 필살 ${st.ults}번 · 힘겨루기 승 ${st.clashWins}번 · 음식 ${st.foods}개</p>`;
@@ -1253,7 +1399,7 @@ function netConnect() {
   Net.status = "connecting"; lobbyRender();
   let ws; try { ws = new WebSocket(url); } catch (e) { Net.status = "error"; lobbyRender(); return; }
   Net.ws = ws;
-  ws.onopen = () => { Net.status = "on"; Net.retry = 0; netSend({ t: "hello", name: Save.nick, fighter: Save.char }); lobbyRender(); };
+  ws.onopen = () => { Net.status = "on"; Net.retry = 0; netSend({ t: "hello", name: Save.nick, fighter: Save.char, beam: myCos().beam, hat: myCos().hat }); lobbyRender(); };
   ws.onclose = () => {
     Net.status = "off"; Net.ws = null; lobbyRender();
     if (G && G.net && !G.net.dead) netOppLeft("연결이 끊겼어요");
@@ -1282,11 +1428,11 @@ function netOnRelay(g, d) {
   else if (d.k === "rematch") { g.net.rematch.opp = true; checkRematch(g); refreshRematch(g); }
   else if (d.k === "restart" && g.net.role === "guest") startOnline("guest", g.net.opp);
 }
-function onlineDef(fid, nick) { const d = playDef(fid); d.title = d.name; d.name = nick; return d; }
+function onlineDef(fid, nick, cos) { const d = applyCos(playDef(fid), cos); d.title = d.name; d.name = nick; return d; }
 function startOnline(role, opp) {
   $("title").hidden = true; $("select").hidden = true; $("online").hidden = true; closeOverlay();
-  const g = newBattle("online", 0, false), me = onlineDef(Save.char, Save.nick), them = onlineDef(opp.fighter, opp.name);
-  g.defs = [me, them]; g.logic = new Logic(me, them); g.ai = null;
+  const g = newBattle("online", 0, false), me = onlineDef(Save.char, Save.nick, myCos()), them = onlineDef(opp.fighter, opp.name, { beam: opp.beam || "", hat: opp.hat || "" });
+  g.defs = [me, them]; g.logic = new Logic(me, them); g.logic.stage = g.theme; g.ai = null;
   g.net = { role, opp, evq: [], acc: 0, inbox: [], hold: null, myTap: null, rematch: { me: false, opp: false }, dead: false };
   if (role === "host") g.logic.netGrace = [0, 0.45];
   G = g;
@@ -1309,7 +1455,8 @@ function snapOf(g) {
   const l = g.logic, c = l.clash;
   return { th: g.theme, st: g.state, big: g.big, c: l.cloud, v: l.vel, tl: l.timeLeft, rn: l.roundNo, ro: l.roundOver, mo: l.matchOver, mw: l.matchWinner,
     fo: l.foods.map(x => [x.uid, x.id, x.x, x.y, x.life]), f: l.f.map(f => { const o = {}; for (const k of FKEYS) o[k] = f[k]; return o; }),
-    cl: c ? { b: c.beat, bt: c.bt, E: c.E, m: c.m, tp: c.taps.map(t => t ? t.grade : 0), lg: c.log } : null };
+    cl: c ? { b: c.beat, bt: c.bt, E: c.E, m: c.m, tp: c.taps.map(t => t ? t.grade : 0), lg: c.log } : null,
+    gm: l.gm ? { w: l.gm.wind, wt: l.gm.windT, mo: l.gm.moon, mt: l.gm.moonT, er: l.gm.erupt, wa: l.gm.warnT } : null };
 }
 function netHostSend(g, dt) {
   if (!g.net || g.net.role !== "host" || g.net.dead) return;
@@ -1319,12 +1466,13 @@ function netHostSend(g, dt) {
 function mirrorEv(e) {
   if ("side" in e) e.side = 1 - e.side;
   if ("winner" in e && e.winner >= 0) e.winner = 1 - e.winner;
-  if ("m" in e) e.m = -e.m; if ("delta" in e) e.delta = -e.delta;
+  if ("dir" in e) e.dir = -e.dir; if ("m" in e) e.m = -e.m; if ("delta" in e) e.delta = -e.delta;
   if (e.E) e.E = [e.E[1], e.E[0]]; if (e.grades) e.grades = [e.grades[1], e.grades[0]]; if (Array.isArray(e.tfx)) e.tfx = [e.tfx[1], e.tfx[0]];
   return e;
 }
 function applySnap(g, s) {
-  const l = g.logic; if (s.th) g.theme = s.th;
+  const l = g.logic; if (s.th) { g.theme = s.th; l.stage = s.th; }
+  if (s.gm) { const m = s.gm; l.gm = { t: 0, wind: -m.w, windT: m.wt, moon: m.mo >= 0 ? 1 - m.mo : -1, moonT: m.mt, erupt: m.er >= 0 ? 1 - m.er : -1, warnT: m.wa }; }
   for (let i = 0; i < 2; i++) { const src = s.f[1 - i], f = l.f[i]; for (const k of FKEYS) if (k in src) f[k] = src[k]; }
   l.cloud = -s.c; l.vel = -s.v; l.timeLeft = s.tl; l.roundNo = s.rn; l.roundOver = s.ro; l.matchOver = s.mo; l.matchWinner = s.mw >= 0 ? 1 - s.mw : s.mw;
   l.foods = s.fo.map(a => ({ uid: a[0], id: a[1], x: a[2], y: a[3], life: a[4] }));
@@ -1347,8 +1495,8 @@ function guestTick(g, dt) {
 function onlineResult(g, head, won, st) {
   const opp = g.net.opp.name;
   let html = head + `<p><b>VS ${opp}</b></p>`;
-  if (!g.saved) { g.saved = true; Save.online = Save.online || { w: 0, l: 0 }; won ? Save.online.w++ : Save.online.l++; Save.stats.farts += st.farts; Save.stats.perfect += st.perfect; writeSave(); }
-  html += `<p class="muted">온라인 전적 ${Save.online.w}승 ${Save.online.l}패 · 방귀 ${st.farts}번 · 완벽 ${st.perfect}번 · 필살 ${st.ults}번 · 힘겨루기 승 ${st.clashWins}번</p><p class="muted" id="rematch-note"></p>`;
+  if (!g.saved) { g.saved = true; Save.coins = (Save.coins || 0) + (won ? 20 : 5); Save.online = Save.online || { w: 0, l: 0 }; won ? Save.online.w++ : Save.online.l++; Save.stats.farts += st.farts; Save.stats.perfect += st.perfect; writeSave(); }
+  html += `<p class="coin">+${won ? 20 : 5} 코인 · 보유 ${Save.coins}</p><p class="muted">온라인 전적 ${Save.online.w}승 ${Save.online.l}패 · 방귀 ${st.farts}번 · 완벽 ${st.perfect}번 · 필살 ${st.ults}번 · 힘겨루기 승 ${st.clashWins}번</p><p class="muted" id="rematch-note"></p>`;
   play(won ? "win" : "lose");
   openOverlay(html, [["다시 붙기", "", () => { g.net.rematch.me = true; netRelay({ k: "rematch" }); checkRematch(g); refreshRematch(g); }], ["로비로", "alt", () => { netSend({ t: "leave" }); showOnline(); }]]);
   refreshRematch(g);
@@ -1369,7 +1517,7 @@ function showOnline() {
   $("on-name").value = Save.nick;
   G = newBattle("league", 0, true); // 뒤에 데모는 숨겨져도 상관없음
   buildFighterPicker(); netConnect(); lobbyRender();
-  if (Net.status === "on") netSend({ t: "hello", name: Save.nick, fighter: Save.char });
+  if (Net.status === "on") netSend({ t: "hello", name: Save.nick, fighter: Save.char, beam: myCos().beam, hat: myCos().hat });
 }
 function miniCritter(c, def, scale) { const cx = c.getContext("2d"); cx.clearRect(0, 0, c.width, c.height); cx.save(); cx.translate(c.width / 2 + 6, c.height - 12); cx.scale(-scale, scale); drawWith(cx, () => drawCritter(def, { mood: "normal" }, 0)); cx.restore(); }
 function buildFighterPicker() {
@@ -1377,7 +1525,7 @@ function buildFighterPicker() {
   for (const f of ALL_FIGHTERS.filter(x => charUnlocked(x.id))) {
     const b = document.createElement("button"); b.setAttribute("aria-pressed", String(f.id === Save.char)); b.title = f.name; b.setAttribute("aria-label", f.name);
     const c = document.createElement("canvas"); c.width = 160; c.height = 120; b.appendChild(c); box.appendChild(b); miniCritter(c, f, 0.55);
-    b.onclick = () => { play("click"); Save.char = f.id; writeSave(); buildFighterPicker(); netSend({ t: "hello", name: Save.nick, fighter: Save.char }); };
+    b.onclick = () => { play("click"); Save.char = f.id; writeSave(); buildFighterPicker(); netSend({ t: "hello", name: Save.nick, fighter: Save.char, beam: myCos().beam, hat: myCos().hat }); };
   }
 }
 function lobbyRender() {
@@ -1422,7 +1570,7 @@ function drawQR(text) {
   try { const q = qrcode(0, "M"); q.addData(text); q.make(); const img = new Image(); img.alt = "초대 QR 코드"; img.src = q.createDataURL(6, 2); el.innerHTML = ""; el.appendChild(img); } catch (e) {}
 }
 $("on-back").onclick = () => { play("click"); netSend({ t: "cancel" }); showTitle(); };
-$("on-name").onchange = () => { Save.nick = $("on-name").value.trim().slice(0, 12) || Save.nick; $("on-name").value = Save.nick; writeSave(); netSend({ t: "hello", name: Save.nick, fighter: Save.char }); };
+$("on-name").onchange = () => { Save.nick = $("on-name").value.trim().slice(0, 12) || Save.nick; $("on-name").value = Save.nick; writeSave(); netSend({ t: "hello", name: Save.nick, fighter: Save.char, beam: myCos().beam, hat: myCos().hat }); };
 $("on-invite").onclick = () => { audioInit(); play("click"); netSend({ t: "create", public: false }); };
 $("on-quick").onclick = () => { audioInit(); play("click"); netSend({ t: "quick" }); };
 $("on-create").onclick = () => { audioInit(); play("click"); netSend({ t: "create", public: true }); };

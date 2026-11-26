@@ -46,6 +46,7 @@ let nextId = 1;
 
 function send(c, msg) { if (c && c.ws.readyState === 1) c.ws.send(JSON.stringify(msg)); }
 function cleanName(s) { s = String(s || "").replace(/[\u0000-\u001f<>&"'`]/g, "").trim().slice(0, 12); return s || "뿡뿡이"; }
+function cosId(v) { v = String(v || ""); return /^[a-z_]{0,12}$/.test(v) ? v : ""; }
 function newCode() { const A = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; for (;;) { let c = ""; for (let i = 0; i < 4; i++) c += A[Math.floor(Math.random() * A.length)]; if (!rooms.has(c)) return c; } }
 function roomList() {
   return [...rooms.values()].filter(r => r.public).sort((a, b) => a.created - b.created).slice(0, 30)
@@ -67,8 +68,8 @@ function startMatch(host, guest) {
   leaveWaiting(host); leaveWaiting(guest);
   host.match = guest.id; guest.match = host.id;
   const seed = Math.floor(Math.random() * 1e9);
-  send(host, { t: "start", role: "host", opp: { name: guest.name, fighter: guest.fighter }, seed });
-  send(guest, { t: "start", role: "guest", opp: { name: host.name, fighter: host.fighter }, seed });
+  send(host, { t: "start", role: "host", opp: { name: guest.name, fighter: guest.fighter, beam: guest.beam || "", hat: guest.hat || "" }, seed });
+  send(guest, { t: "start", role: "guest", opp: { name: host.name, fighter: host.fighter, beam: host.beam || "", hat: host.hat || "" }, seed });
   markLobby();
 }
 function endMatch(c, why) {
@@ -89,6 +90,7 @@ wss.on("connection", ws => {
     switch (m.t) {
       case "hello":
         c.name = cleanName(m.name); c.fighter = FIGHTERS.includes(m.fighter) ? m.fighter : "puang";
+        c.beam = cosId(m.beam); c.hat = cosId(m.hat); // 꾸미기 (빔 색·모자): 짧은 영문 id 만
         send(c, { t: "welcome", id: c.id }); markLobby(); break;
       case "ping": send(c, { t: "pong", at: m.at }); break;
       case "create": { // 방 만들기: public=true 면 목록에 공개, false 면 코드로만 입장

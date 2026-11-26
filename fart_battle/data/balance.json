@@ -46,5 +46,15 @@
   "clash_min_beam": 0.12,
   "clash_min_power": 0.4,
   "clash_draw": 0.12,
-  "clash_stun": 0.7
+  "clash_stun": 0.7,
+  "wind_push": 0.07,
+  "wind_time": 2.5,
+  "moon_bonus": 1.25,
+  "moon_time": 4.0,
+  "ice_friction": 0.6,
+  "erupt_warn": 1.4,
+  "erupt_stun": 0.6,
+  "erupt_push": 0.35,
+  "gimmick_every_min": 7.0,
+  "gimmick_every_max": 11.0
 }
