@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "note": "species: 동물 종류(그리기), beam: 빔 색 2개. power/control/gas_regen/stink, ai_* 는 컴퓨터 실력",
+  "note": "species: 동물 종류(그리기), beam: 빔 색 2개, stage: 리그 챕터(배경), boss: 챕터 보스, prop: 소품(scarf/band/helmet/crown). power/control/gas_regen/stink, ai_* 는 컴퓨터 실력",
   "player": {
     "id": "puang",
     "name": "두더지 뿌앙이",
@@ -27,15 +27,15 @@
       "id": "kid",
       "name": "꼬마 다람쥐",
       "title": "도토리 방귀 초보",
-      "power": 0.75,
+      "power": 0.8,
       "control": 0.9,
       "gas_regen": 7.5,
-      "stink": 0.0,
-      "ai_reaction": 0.7,
-      "ai_accuracy": 0.25,
-      "ai_aggression": 0.45,
-      "ai_block": 0.1,
-      "ai_greed": 0.3,
+      "stink": 0,
+      "ai_reaction": 0.65,
+      "ai_accuracy": 0.22,
+      "ai_aggression": 0.5,
+      "ai_block": 0.12,
+      "ai_greed": 0.35,
       "body": "#C9824A",
       "lines": {
         "intro": "히히, 도토리 많이 먹었지롱!",
@@ -48,21 +48,22 @@
         "#FFD25F",
         "#FF9F43"
       ],
-      "special": "도토리 소나기 뿡"
+      "special": "도토리 소나기 뿡",
+      "stage": "forest"
     },
     {
       "id": "grandma",
       "name": "멧돼지 할매",
       "title": "고구마 한 방의 전설",
-      "power": 1.35,
-      "control": 0.8,
-      "gas_regen": 6.0,
-      "stink": 0.0,
-      "ai_reaction": 0.55,
+      "power": 1.2,
+      "control": 0.85,
+      "gas_regen": 6.5,
+      "stink": 0,
+      "ai_reaction": 0.5,
       "ai_accuracy": 0.15,
-      "ai_aggression": 0.3,
+      "ai_aggression": 0.35,
       "ai_block": 0.15,
-      "ai_greed": 0.7,
+      "ai_greed": 0.6,
       "body": "#8A5A44",
       "lines": {
         "intro": "고구마 삶아 먹고 왔제~",
@@ -75,20 +76,21 @@
         "#B57BFF",
         "#FF7BD1"
       ],
-      "special": "할매 꽃향기 대폭풍"
+      "special": "할매 꽃향기 대폭풍",
+      "stage": "forest"
     },
     {
       "id": "muscle",
       "name": "헬스 고릴라",
-      "title": "연속 방귀 전문",
-      "power": 0.9,
-      "control": 1.1,
-      "gas_regen": 12.0,
-      "stink": 0.0,
-      "ai_reaction": 0.35,
+      "title": "숲의 보스 · 연속 방귀 전문",
+      "power": 0.95,
+      "control": 1.0,
+      "gas_regen": 10.5,
+      "stink": 0,
+      "ai_reaction": 0.38,
       "ai_accuracy": 0.12,
-      "ai_aggression": 0.85,
-      "ai_block": 0.3,
+      "ai_aggression": 0.8,
+      "ai_block": 0.25,
       "ai_greed": 0.5,
       "body": "#3A3A44",
       "lines": {
@@ -102,20 +104,50 @@
         "#FF5F5F",
         "#FFB45F"
       ],
-      "special": "근육 터보 뿌앙"
+      "special": "근육 터보 뿌앙",
+      "stage": "forest",
+      "boss": true
+    },
+    {
+      "id": "pig",
+      "name": "꿀꿀 돼지",
+      "title": "배부른 방귀 먹방러",
+      "stage": "night",
+      "species": "pig",
+      "body": "#F2A2B8",
+      "belly": "#FFD6E0",
+      "beam": [
+        "#FF8FB8",
+        "#FFE15F"
+      ],
+      "special": "꿀꿀 먹방 폭풍",
+      "lines": {
+        "intro": "음식은 다 내 거야! 꿀꿀!",
+        "win": "배불러서 이겼다 꿀!",
+        "lose": "배고파서 진 거야…"
+      },
+      "power": 1.0,
+      "control": 1.0,
+      "gas_regen": 9.5,
+      "stink": 0,
+      "ai_reaction": 0.38,
+      "ai_accuracy": 0.11,
+      "ai_aggression": 0.6,
+      "ai_block": 0.25,
+      "ai_greed": 0.95
     },
     {
       "id": "doctor",
       "name": "스컹크 박사",
       "title": "냄새 연구 30년",
-      "power": 1.0,
-      "control": 1.2,
-      "gas_regen": 9.0,
-      "stink": 1.6,
-      "ai_reaction": 0.3,
-      "ai_accuracy": 0.08,
+      "power": 0.95,
+      "control": 1.05,
+      "gas_regen": 9,
+      "stink": 0.8,
+      "ai_reaction": 0.36,
+      "ai_accuracy": 0.1,
       "ai_aggression": 0.55,
-      "ai_block": 0.65,
+      "ai_block": 0.4,
       "ai_greed": 0.6,
       "body": "#2A2A33",
       "lines": {
@@ -129,21 +161,22 @@
         "#7BFF5F",
         "#D2FF5F"
       ],
-      "special": "실험실 독가스 레이저"
+      "special": "실험실 독가스 레이저",
+      "stage": "night"
     },
     {
       "id": "king",
       "name": "하마 대왕",
-      "title": "뿌앙 리그 챔피언",
-      "power": 1.3,
-      "control": 1.25,
-      "gas_regen": 11.0,
-      "stink": 0.8,
-      "ai_reaction": 0.22,
-      "ai_accuracy": 0.05,
-      "ai_aggression": 0.7,
-      "ai_block": 0.7,
-      "ai_greed": 0.8,
+      "title": "늪의 보스 · 뿌앙 리그 챔피언",
+      "power": 1.05,
+      "control": 1.05,
+      "gas_regen": 9.5,
+      "stink": 0.5,
+      "ai_reaction": 0.32,
+      "ai_accuracy": 0.09,
+      "ai_aggression": 0.65,
+      "ai_block": 0.45,
+      "ai_greed": 0.7,
       "body": "#8E9AC9",
       "lines": {
         "intro": "왕관은 냄새로 지키는 것이다.",
@@ -156,7 +189,205 @@
         "#FFE15F",
         "#FF5FD2"
       ],
-      "special": "대왕 황금 해일 뿡"
+      "special": "대왕 황금 해일 뿡",
+      "stage": "night",
+      "boss": true
+    },
+    {
+      "id": "penguin",
+      "name": "펭귄 형제",
+      "title": "미끄럼 연발 방귀",
+      "stage": "snow",
+      "species": "penguin",
+      "body": "#2A3040",
+      "belly": "#FFFFFF",
+      "beam": [
+        "#7FD8FF",
+        "#FFFFFF"
+      ],
+      "special": "얼음 미끄럼 연발 뿡",
+      "lines": {
+        "intro": "뿡뿡뿡! 우린 쉬지 않아!",
+        "win": "미끄러지듯 이겼다!",
+        "lose": "배가 꽁꽁 얼었어…"
+      },
+      "power": 0.95,
+      "control": 1.0,
+      "gas_regen": 11.5,
+      "stink": 0,
+      "ai_reaction": 0.3,
+      "ai_accuracy": 0.08,
+      "ai_aggression": 0.9,
+      "ai_block": 0.32,
+      "ai_greed": 0.6,
+      "prop": "scarf"
+    },
+    {
+      "id": "ninja",
+      "name": "눈다람쥐 닌자",
+      "title": "보이지 않는 코 막기",
+      "stage": "snow",
+      "species": "squirrel",
+      "body": "#E8EEF6",
+      "belly": "#FFFFFF",
+      "beam": [
+        "#B4A0FF",
+        "#E0F0FF"
+      ],
+      "special": "설화 그림자 뿡",
+      "lines": {
+        "intro": "네 방귀는 이미 읽었다.",
+        "win": "닌자는 냄새를 남기지 않는다.",
+        "lose": "코… 코를 못 막았다…"
+      },
+      "power": 0.9,
+      "control": 1.15,
+      "gas_regen": 9.5,
+      "stink": 0,
+      "ai_reaction": 0.3,
+      "ai_accuracy": 0.08,
+      "ai_aggression": 0.7,
+      "ai_block": 0.55,
+      "ai_greed": 0.65,
+      "prop": "band"
+    },
+    {
+      "id": "polar",
+      "name": "북극곰 장군",
+      "title": "설산의 보스",
+      "stage": "snow",
+      "species": "bear",
+      "body": "#F4F6FA",
+      "belly": "#DCE4EE",
+      "beam": [
+        "#9FE3FF",
+        "#3FA9FF"
+      ],
+      "special": "북극 눈사태 대방귀",
+      "lines": {
+        "intro": "이 산을 넘으려면 내 방귀를 넘어라!",
+        "win": "눈사태처럼 밀어버렸다!",
+        "lose": "장군의 체면이… 뿡…"
+      },
+      "power": 1.1,
+      "control": 1.05,
+      "gas_regen": 10,
+      "stink": 0.3,
+      "ai_reaction": 0.28,
+      "ai_accuracy": 0.075,
+      "ai_aggression": 0.72,
+      "ai_block": 0.45,
+      "ai_greed": 0.7,
+      "boss": true,
+      "prop": "helmet"
+    },
+    {
+      "id": "lava_boar",
+      "name": "화산 멧돼지",
+      "title": "용암 고구마 마니아",
+      "stage": "volcano",
+      "species": "boar",
+      "body": "#5A2A26",
+      "belly": "#A0584A",
+      "beam": [
+        "#FF5F1F",
+        "#FFD25F"
+      ],
+      "special": "마그마 돌진 뿡",
+      "lines": {
+        "intro": "용암에 구운 고구마 맛 좀 봐라!",
+        "win": "화산처럼 터졌다!",
+        "lose": "불이… 꺼졌어…"
+      },
+      "power": 1.1,
+      "control": 1.0,
+      "gas_regen": 10.5,
+      "stink": 0.2,
+      "ai_reaction": 0.27,
+      "ai_accuracy": 0.07,
+      "ai_aggression": 0.75,
+      "ai_block": 0.4,
+      "ai_greed": 0.75
+    },
+    {
+      "id": "fire_bear",
+      "name": "용암 불곰",
+      "title": "불꽃 방귀 수호자",
+      "stage": "volcano",
+      "species": "bear",
+      "body": "#8A3A22",
+      "belly": "#D98A5A",
+      "beam": [
+        "#FF3B1F",
+        "#FFB43B"
+      ],
+      "special": "불곰 화산 분화",
+      "lines": {
+        "intro": "뜨거운 방귀 버틸 수 있겠어?",
+        "win": "활활 이겼다!",
+        "lose": "내 불꽃보다 뜨겁다니…"
+      },
+      "power": 1.05,
+      "control": 1.1,
+      "gas_regen": 10.5,
+      "stink": 0.3,
+      "ai_reaction": 0.26,
+      "ai_accuracy": 0.067,
+      "ai_aggression": 0.78,
+      "ai_block": 0.45,
+      "ai_greed": 0.75
+    },
+    {
+      "id": "legend",
+      "name": "전설의 방귀왕",
+      "title": "최종 보스 · 모든 방귀의 왕",
+      "stage": "volcano",
+      "species": "gorilla",
+      "body": "#2A2230",
+      "belly": "#C9A040",
+      "beam": [
+        "#FFE15F",
+        "#FF5FD2"
+      ],
+      "special": "전설의 천지개벽 뿡",
+      "lines": {
+        "intro": "여기까지 온 걸 칭찬하마. 하지만 끝이다.",
+        "win": "왕의 방귀는 꺾이지 않는다.",
+        "lose": "새로운 방귀왕의 탄생이로구나…"
+      },
+      "power": 1.12,
+      "control": 1.15,
+      "gas_regen": 11,
+      "stink": 0.4,
+      "ai_reaction": 0.24,
+      "ai_accuracy": 0.062,
+      "ai_aggression": 0.8,
+      "ai_block": 0.5,
+      "ai_greed": 0.8,
+      "boss": true,
+      "prop": "crown"
+    }
+  ],
+  "stages": [
+    {
+      "id": "forest",
+      "name": "햇살 숲",
+      "desc": "방귀 수련의 시작"
+    },
+    {
+      "id": "night",
+      "name": "달밤 늪",
+      "desc": "반딧불 아래 냄새 대결"
+    },
+    {
+      "id": "snow",
+      "name": "눈꽃 산",
+      "desc": "얼어붙은 방귀도 터진다"
+    },
+    {
+      "id": "volcano",
+      "name": "불꽃 화산",
+      "desc": "전설의 방귀왕이 기다린다"
     }
   ]
 }

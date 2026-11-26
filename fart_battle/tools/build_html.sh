@@ -5,7 +5,7 @@ cd "$(dirname "$0")/.."
 python3 - <<'PY'
 import json
 f = json.load(open('data/fighters.json', encoding='utf-8'))
-data = {'player': f['player'], 'opponents': f['opponents'],
+data = {'player': f['player'], 'opponents': f['opponents'], 'stages': f.get('stages', []),
         'foods': json.load(open('data/foods.json', encoding='utf-8'))['foods'],
         'balance': json.load(open('data/balance.json', encoding='utf-8'))}
 tpl = open('web/template.html', encoding='utf-8').read()

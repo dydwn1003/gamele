@@ -29,6 +29,12 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; }
 .sel-head h2 { font-family: "Jua", sans-serif; color: var(--accent); font-size: 28px; margin: 0; text-wrap: balance; }
 .card { display: flex; gap: 12px; align-items: center; background: var(--panel2); border-radius: 18px; padding: 12px; width: min(640px, 100%); margin: 0 auto; box-sizing: border-box; }
 .card.locked { background: var(--dark); }
+.card.boss { border: 3px solid #FF5F5F; }
+.badge { white-space: nowrap; display: inline-block; font: 800 13px "Noto Sans KR", sans-serif; background: #FF5F5F; color: #fff; border-radius: 8px; padding: 2px 8px; vertical-align: middle; }
+.chap { width: min(640px, 100%); margin: 10px auto 0; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.chap b { font-family: "Jua", sans-serif; font-size: 24px; color: var(--accent); font-weight: 400; }
+.chap span { color: var(--sub); font-size: 14px; }
+.chap.locked b { color: var(--sub); }
 .card canvas { width: 150px; height: 110px; flex: none; }
 .card .info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .card h3 { margin: 0; font-family: "Jua", sans-serif; font-size: 24px; }
@@ -2400,8 +2406,8 @@ var qrcode = function() {
 <script>
 "use strict";
 // ───────── 데이터 (data/*.json 에서 빌드 시 주입) ─────────
-const DATA = {"player": {"id": "puang", "name": "두더지 뿌앙이", "title": "땅속 방귀 신동", "power": 1.0, "control": 1.0, "gas_regen": 9.0, "stink": 0.0, "body": "#6B5A70", "lines": {"win": "뿌앙~ 땅속까지 시원하다!", "lose": "고추 두 개 먹고 다시 온다…"}, "species": "mole", "belly": "#C9A0B8", "beam": ["#FF5FD2", "#5FE8FF"], "special": "땅굴 무지개 펌프"}, "opponents": [{"id": "kid", "name": "꼬마 다람쥐", "title": "도토리 방귀 초보", "power": 0.75, "control": 0.9, "gas_regen": 7.5, "stink": 0.0, "ai_reaction": 0.7, "ai_accuracy": 0.25, "ai_aggression": 0.45, "ai_block": 0.1, "ai_greed": 0.3, "body": "#C9824A", "lines": {"intro": "히히, 도토리 많이 먹었지롱!", "win": "뽀옹! 이겼당!", "lose": "으앙 냄새나…"}, "species": "squirrel", "belly": "#F2D2A8", "beam": ["#FFD25F", "#FF9F43"], "special": "도토리 소나기 뿡"}, {"id": "grandma", "name": "멧돼지 할매", "title": "고구마 한 방의 전설", "power": 1.35, "control": 0.8, "gas_regen": 6.0, "stink": 0.0, "ai_reaction": 0.55, "ai_accuracy": 0.15, "ai_aggression": 0.3, "ai_block": 0.15, "ai_greed": 0.7, "body": "#8A5A44", "lines": {"intro": "고구마 삶아 먹고 왔제~", "win": "아이고 시원하다~", "lose": "고구마가 덜 익었나 보네"}, "species": "boar", "belly": "#C99A7A", "beam": ["#B57BFF", "#FF7BD1"], "special": "할매 꽃향기 대폭풍"}, {"id": "muscle", "name": "헬스 고릴라", "title": "연속 방귀 전문", "power": 0.9, "control": 1.1, "gas_regen": 12.0, "stink": 0.0, "ai_reaction": 0.35, "ai_accuracy": 0.12, "ai_aggression": 0.85, "ai_block": 0.3, "ai_greed": 0.5, "body": "#3A3A44", "lines": {"intro": "단백질 셰이크 세 잔 마셨다!", "win": "근손실 없는 방귀!", "lose": "프로틴이 부족했군…"}, "species": "gorilla", "belly": "#7A7A88", "beam": ["#FF5F5F", "#FFB45F"], "special": "근육 터보 뿌앙"}, {"id": "doctor", "name": "스컹크 박사", "title": "냄새 연구 30년", "power": 1.0, "control": 1.2, "gas_regen": 9.0, "stink": 1.6, "ai_reaction": 0.3, "ai_accuracy": 0.08, "ai_aggression": 0.55, "ai_block": 0.65, "ai_greed": 0.6, "body": "#2A2A33", "lines": {"intro": "이론상 내 방귀는 3시간 간다네.", "win": "실험 성공!", "lose": "가설이 틀렸군…"}, "species": "skunk", "belly": "#FFFFFF", "beam": ["#7BFF5F", "#D2FF5F"], "special": "실험실 독가스 레이저"}, {"id": "king", "name": "하마 대왕", "title": "뿌앙 리그 챔피언", "power": 1.3, "control": 1.25, "gas_regen": 11.0, "stink": 0.8, "ai_reaction": 0.22, "ai_accuracy": 0.05, "ai_aggression": 0.7, "ai_block": 0.7, "ai_greed": 0.8, "body": "#8E9AC9", "lines": {"intro": "왕관은 냄새로 지키는 것이다.", "win": "짐의 방귀를 받아라!", "lose": "새로운 왕의 탄생인가…"}, "species": "hippo", "belly": "#D9C2E0", "beam": ["#FFE15F", "#FF5FD2"], "special": "대왕 황금 해일 뿡"}], "foods": [{"id": "chili", "name": "매운 고추", "desc": "다음 방귀 2번 불꽃 빔! 파워 +70%", "weight": 1.1, "effect": "fire", "value": 1.7, "count": 2, "color": "#E5302A", "inner": "#5FA84A"}, {"id": "sweet_potato", "name": "고구마", "desc": "다음 방귀 3번 파워 +40%", "weight": 1.2, "effect": "power", "value": 1.4, "count": 3, "color": "#B5577A", "inner": "#F2B04A"}, {"id": "beans", "name": "콩", "desc": "가스 +50 즉시 충전", "weight": 1.2, "effect": "gas", "value": 50, "color": "#C9A36B", "inner": "#E8D3A0"}, {"id": "egg", "name": "삶은 계란", "desc": "다음 방귀 냄새가 3초 동안 남음", "weight": 1.0, "effect": "stink", "value": 3.0, "color": "#FFF8E6", "inner": "#F5C842"}, {"id": "soda", "name": "탄산음료", "desc": "6초 동안 압력 2배 빨리 참", "weight": 0.9, "effect": "fast", "value": 6.0, "color": "#E5483A", "inner": "#FFF5E9"}, {"id": "cabbage", "name": "양배추", "desc": "8초 동안 가스 충전 2배", "weight": 0.9, "effect": "regen", "value": 8.0, "color": "#7FC66B", "inner": "#C9EAA0"}, {"id": "milk", "name": "우유", "desc": "도박! 초강력 방귀 아니면 배탈", "weight": 0.7, "effect": "gamble", "value": 2.2, "color": "#FFFFFF", "inner": "#7FB6E8"}], "balance": {"version": 1, "round_time": 40.0, "rounds_to_win": 2, "gas_max": 100.0, "gas_start": 70.0, "gas_cost_full": 45.0, "min_release": 0.12, "pressure_fill_time": 1.25, "sweet_min": 0.72, "sweet_width": 0.16, "overcharge_grace": 0.35, "perfect_mult": 1.6, "push_strength": 0.85, "cloud_friction": 2.4, "cloud_max_speed": 1.6, "blunder_stun": 1.5, "blunder_backfire": 0.28, "block_duration": 0.8, "block_cooldown": 3.0, "block_reduce": 0.75, "parry_window": 0.3, "parry_reflect": 0.45, "stink_push": 0.09, "food_interval_min": 4.0, "food_interval_max": 6.5, "food_lifetime": 4.0, "milk_bad_chance": 0.5, "milk_stun": 1.0, "knockout_stun": 1.8, "beam_min_time": 0.35, "beam_extra_time": 0.7, "special_gain_perfect": 34, "special_gain_hit": 8, "special_gain_parry": 25, "special_mult": 2.0, "special_block_pierce": 0.5, "clash_beats": 3, "clash_beat_len": 0.85, "clash_perfect": 0.08, "clash_good": 0.17, "clash_tap_gas": 6, "clash_shift": 0.42, "clash_win_push": 0.75, "clash_cooldown": 2.5, "clash_min_beam": 0.12, "clash_min_power": 0.4, "clash_draw": 0.12, "clash_stun": 0.7}};
-const BAL = DATA.balance, PLAYER = DATA.player, OPPONENTS = DATA.opponents, FOODS = DATA.foods;
+const DATA = {"player": {"id": "puang", "name": "두더지 뿌앙이", "title": "땅속 방귀 신동", "power": 1.0, "control": 1.0, "gas_regen": 9.0, "stink": 0.0, "body": "#6B5A70", "lines": {"win": "뿌앙~ 땅속까지 시원하다!", "lose": "고추 두 개 먹고 다시 온다…"}, "species": "mole", "belly": "#C9A0B8", "beam": ["#FF5FD2", "#5FE8FF"], "special": "땅굴 무지개 펌프"}, "opponents": [{"id": "kid", "name": "꼬마 다람쥐", "title": "도토리 방귀 초보", "power": 0.8, "control": 0.9, "gas_regen": 7.5, "stink": 0, "ai_reaction": 0.65, "ai_accuracy": 0.22, "ai_aggression": 0.5, "ai_block": 0.12, "ai_greed": 0.35, "body": "#C9824A", "lines": {"intro": "히히, 도토리 많이 먹었지롱!", "win": "뽀옹! 이겼당!", "lose": "으앙 냄새나…"}, "species": "squirrel", "belly": "#F2D2A8", "beam": ["#FFD25F", "#FF9F43"], "special": "도토리 소나기 뿡", "stage": "forest"}, {"id": "grandma", "name": "멧돼지 할매", "title": "고구마 한 방의 전설", "power": 1.2, "control": 0.85, "gas_regen": 6.5, "stink": 0, "ai_reaction": 0.5, "ai_accuracy": 0.15, "ai_aggression": 0.35, "ai_block": 0.15, "ai_greed": 0.6, "body": "#8A5A44", "lines": {"intro": "고구마 삶아 먹고 왔제~", "win": "아이고 시원하다~", "lose": "고구마가 덜 익었나 보네"}, "species": "boar", "belly": "#C99A7A", "beam": ["#B57BFF", "#FF7BD1"], "special": "할매 꽃향기 대폭풍", "stage": "forest"}, {"id": "muscle", "name": "헬스 고릴라", "title": "숲의 보스 · 연속 방귀 전문", "power": 0.95, "control": 1.0, "gas_regen": 10.5, "stink": 0, "ai_reaction": 0.38, "ai_accuracy": 0.12, "ai_aggression": 0.8, "ai_block": 0.25, "ai_greed": 0.5, "body": "#3A3A44", "lines": {"intro": "단백질 셰이크 세 잔 마셨다!", "win": "근손실 없는 방귀!", "lose": "프로틴이 부족했군…"}, "species": "gorilla", "belly": "#7A7A88", "beam": ["#FF5F5F", "#FFB45F"], "special": "근육 터보 뿌앙", "stage": "forest", "boss": true}, {"id": "pig", "name": "꿀꿀 돼지", "title": "배부른 방귀 먹방러", "stage": "night", "species": "pig", "body": "#F2A2B8", "belly": "#FFD6E0", "beam": ["#FF8FB8", "#FFE15F"], "special": "꿀꿀 먹방 폭풍", "lines": {"intro": "음식은 다 내 거야! 꿀꿀!", "win": "배불러서 이겼다 꿀!", "lose": "배고파서 진 거야…"}, "power": 1.0, "control": 1.0, "gas_regen": 9.5, "stink": 0, "ai_reaction": 0.38, "ai_accuracy": 0.11, "ai_aggression": 0.6, "ai_block": 0.25, "ai_greed": 0.95}, {"id": "doctor", "name": "스컹크 박사", "title": "냄새 연구 30년", "power": 0.95, "control": 1.05, "gas_regen": 9, "stink": 0.8, "ai_reaction": 0.36, "ai_accuracy": 0.1, "ai_aggression": 0.55, "ai_block": 0.4, "ai_greed": 0.6, "body": "#2A2A33", "lines": {"intro": "이론상 내 방귀는 3시간 간다네.", "win": "실험 성공!", "lose": "가설이 틀렸군…"}, "species": "skunk", "belly": "#FFFFFF", "beam": ["#7BFF5F", "#D2FF5F"], "special": "실험실 독가스 레이저", "stage": "night"}, {"id": "king", "name": "하마 대왕", "title": "늪의 보스 · 뿌앙 리그 챔피언", "power": 1.05, "control": 1.05, "gas_regen": 9.5, "stink": 0.5, "ai_reaction": 0.32, "ai_accuracy": 0.09, "ai_aggression": 0.65, "ai_block": 0.45, "ai_greed": 0.7, "body": "#8E9AC9", "lines": {"intro": "왕관은 냄새로 지키는 것이다.", "win": "짐의 방귀를 받아라!", "lose": "새로운 왕의 탄생인가…"}, "species": "hippo", "belly": "#D9C2E0", "beam": ["#FFE15F", "#FF5FD2"], "special": "대왕 황금 해일 뿡", "stage": "night", "boss": true}, {"id": "penguin", "name": "펭귄 형제", "title": "미끄럼 연발 방귀", "stage": "snow", "species": "penguin", "body": "#2A3040", "belly": "#FFFFFF", "beam": ["#7FD8FF", "#FFFFFF"], "special": "얼음 미끄럼 연발 뿡", "lines": {"intro": "뿡뿡뿡! 우린 쉬지 않아!", "win": "미끄러지듯 이겼다!", "lose": "배가 꽁꽁 얼었어…"}, "power": 0.95, "control": 1.0, "gas_regen": 11.5, "stink": 0, "ai_reaction": 0.3, "ai_accuracy": 0.08, "ai_aggression": 0.9, "ai_block": 0.32, "ai_greed": 0.6, "prop": "scarf"}, {"id": "ninja", "name": "눈다람쥐 닌자", "title": "보이지 않는 코 막기", "stage": "snow", "species": "squirrel", "body": "#E8EEF6", "belly": "#FFFFFF", "beam": ["#B4A0FF", "#E0F0FF"], "special": "설화 그림자 뿡", "lines": {"intro": "네 방귀는 이미 읽었다.", "win": "닌자는 냄새를 남기지 않는다.", "lose": "코… 코를 못 막았다…"}, "power": 0.9, "control": 1.15, "gas_regen": 9.5, "stink": 0, "ai_reaction": 0.3, "ai_accuracy": 0.08, "ai_aggression": 0.7, "ai_block": 0.55, "ai_greed": 0.65, "prop": "band"}, {"id": "polar", "name": "북극곰 장군", "title": "설산의 보스", "stage": "snow", "species": "bear", "body": "#F4F6FA", "belly": "#DCE4EE", "beam": ["#9FE3FF", "#3FA9FF"], "special": "북극 눈사태 대방귀", "lines": {"intro": "이 산을 넘으려면 내 방귀를 넘어라!", "win": "눈사태처럼 밀어버렸다!", "lose": "장군의 체면이… 뿡…"}, "power": 1.1, "control": 1.05, "gas_regen": 10, "stink": 0.3, "ai_reaction": 0.28, "ai_accuracy": 0.075, "ai_aggression": 0.72, "ai_block": 0.45, "ai_greed": 0.7, "boss": true, "prop": "helmet"}, {"id": "lava_boar", "name": "화산 멧돼지", "title": "용암 고구마 마니아", "stage": "volcano", "species": "boar", "body": "#5A2A26", "belly": "#A0584A", "beam": ["#FF5F1F", "#FFD25F"], "special": "마그마 돌진 뿡", "lines": {"intro": "용암에 구운 고구마 맛 좀 봐라!", "win": "화산처럼 터졌다!", "lose": "불이… 꺼졌어…"}, "power": 1.1, "control": 1.0, "gas_regen": 10.5, "stink": 0.2, "ai_reaction": 0.27, "ai_accuracy": 0.07, "ai_aggression": 0.75, "ai_block": 0.4, "ai_greed": 0.75}, {"id": "fire_bear", "name": "용암 불곰", "title": "불꽃 방귀 수호자", "stage": "volcano", "species": "bear", "body": "#8A3A22", "belly": "#D98A5A", "beam": ["#FF3B1F", "#FFB43B"], "special": "불곰 화산 분화", "lines": {"intro": "뜨거운 방귀 버틸 수 있겠어?", "win": "활활 이겼다!", "lose": "내 불꽃보다 뜨겁다니…"}, "power": 1.05, "control": 1.1, "gas_regen": 10.5, "stink": 0.3, "ai_reaction": 0.26, "ai_accuracy": 0.067, "ai_aggression": 0.78, "ai_block": 0.45, "ai_greed": 0.75}, {"id": "legend", "name": "전설의 방귀왕", "title": "최종 보스 · 모든 방귀의 왕", "stage": "volcano", "species": "gorilla", "body": "#2A2230", "belly": "#C9A040", "beam": ["#FFE15F", "#FF5FD2"], "special": "전설의 천지개벽 뿡", "lines": {"intro": "여기까지 온 걸 칭찬하마. 하지만 끝이다.", "win": "왕의 방귀는 꺾이지 않는다.", "lose": "새로운 방귀왕의 탄생이로구나…"}, "power": 1.12, "control": 1.15, "gas_regen": 11, "stink": 0.4, "ai_reaction": 0.24, "ai_accuracy": 0.062, "ai_aggression": 0.8, "ai_block": 0.5, "ai_greed": 0.8, "boss": true, "prop": "crown"}], "stages": [{"id": "forest", "name": "햇살 숲", "desc": "방귀 수련의 시작"}, {"id": "night", "name": "달밤 늪", "desc": "반딧불 아래 냄새 대결"}, {"id": "snow", "name": "눈꽃 산", "desc": "얼어붙은 방귀도 터진다"}, {"id": "volcano", "name": "불꽃 화산", "desc": "전설의 방귀왕이 기다린다"}], "foods": [{"id": "chili", "name": "매운 고추", "desc": "다음 방귀 2번 불꽃 빔! 파워 +70%", "weight": 1.1, "effect": "fire", "value": 1.7, "count": 2, "color": "#E5302A", "inner": "#5FA84A"}, {"id": "sweet_potato", "name": "고구마", "desc": "다음 방귀 3번 파워 +40%", "weight": 1.2, "effect": "power", "value": 1.4, "count": 3, "color": "#B5577A", "inner": "#F2B04A"}, {"id": "beans", "name": "콩", "desc": "가스 +50 즉시 충전", "weight": 1.2, "effect": "gas", "value": 50, "color": "#C9A36B", "inner": "#E8D3A0"}, {"id": "egg", "name": "삶은 계란", "desc": "다음 방귀 냄새가 3초 동안 남음", "weight": 1.0, "effect": "stink", "value": 3.0, "color": "#FFF8E6", "inner": "#F5C842"}, {"id": "soda", "name": "탄산음료", "desc": "6초 동안 압력 2배 빨리 참", "weight": 0.9, "effect": "fast", "value": 6.0, "color": "#E5483A", "inner": "#FFF5E9"}, {"id": "cabbage", "name": "양배추", "desc": "8초 동안 가스 충전 2배", "weight": 0.9, "effect": "regen", "value": 8.0, "color": "#7FC66B", "inner": "#C9EAA0"}, {"id": "milk", "name": "우유", "desc": "도박! 초강력 방귀 아니면 배탈", "weight": 0.7, "effect": "gamble", "value": 2.2, "color": "#FFFFFF", "inner": "#7FB6E8"}], "balance": {"version": 1, "round_time": 40.0, "rounds_to_win": 2, "gas_max": 100.0, "gas_start": 70.0, "gas_cost_full": 45.0, "min_release": 0.12, "pressure_fill_time": 1.25, "sweet_min": 0.72, "sweet_width": 0.16, "overcharge_grace": 0.35, "perfect_mult": 1.6, "push_strength": 0.85, "cloud_friction": 2.4, "cloud_max_speed": 1.6, "blunder_stun": 1.5, "blunder_backfire": 0.28, "block_duration": 0.8, "block_cooldown": 3.0, "block_reduce": 0.75, "parry_window": 0.3, "parry_reflect": 0.45, "stink_push": 0.09, "food_interval_min": 4.0, "food_interval_max": 6.5, "food_lifetime": 4.0, "milk_bad_chance": 0.5, "milk_stun": 1.0, "knockout_stun": 1.8, "beam_min_time": 0.35, "beam_extra_time": 0.7, "special_gain_perfect": 34, "special_gain_hit": 8, "special_gain_parry": 25, "special_mult": 2.0, "special_block_pierce": 0.5, "clash_beats": 3, "clash_beat_len": 0.85, "clash_perfect": 0.08, "clash_good": 0.17, "clash_tap_gas": 6, "clash_shift": 0.42, "clash_win_push": 0.75, "clash_cooldown": 2.5, "clash_min_beam": 0.12, "clash_min_power": 0.4, "clash_draw": 0.12, "clash_stun": 0.7}};
+const BAL = DATA.balance, PLAYER = DATA.player, OPPONENTS = DATA.opponents, FOODS = DATA.foods, STAGES = DATA.stages || [];
 const FONT_D = '"Jua","Noto Sans KR",sans-serif';
 const FONT_B = '"Noto Sans KR",system-ui,sans-serif';
 
@@ -2666,12 +2672,17 @@ function drawCritter(def, st, t) {
   // 꼬리
   if (sp === "squirrel") { ell(70 + sx * .6, -100, 26, 40, shade(body, 0.1), 0.5); ell(56 + sx * .6, -134, 22, 22, shade(body, 0.15)); ell(66, -94, 14, 26, belly, 0.5); }
   else if (sp === "skunk") { ell(64 + sx * .6, -112, 30, 52, "#2A2A33", 0.35); ell(60 + sx * .6, -116, 9, 44, "#FFFFFF", 0.35); }
+  else if (sp === "pig") { ctx.beginPath(); for (let i = 0; i <= 20; i++) { const a = i / 20 * TAU * 1.6, rr = 4 + i * 0.5; ctx.lineTo(92 + sx + Math.cos(a) * rr, -84 + Math.sin(a) * rr); } ctx.strokeStyle = dark; ctx.lineWidth = 3.5; ctx.stroke(); }
+  else if (sp === "bear") circ(94 + sx * .6, -82, 9, shade(body, -0.1));
+  else if (sp === "penguin") { ctx.beginPath(); ctx.moveTo(86 + sx, -48); ctx.lineTo(108 + sx, -40); ctx.lineTo(88 + sx, -34); ctx.fillStyle = body; ctx.fill(); }
   else if (sp !== "gorilla") { line(84 + sx, -78, 100 + sx, -92, dark, 4); arcS(104 + sx, -96, 6, 0, Math.PI * 1.5, dark, 3); }
-  for (const x of [-46, -24]) { rrect(x - 9 + sx * .3, -30, 18, 30, 4, dark); ell(x + sx * .3, -2, 11, 6, shade(body, -0.4)); }
-  for (const x of [34, 56]) { rrect(x - 10 + sx * .3, -38, 20, 38, 4, dark); ell(x + sx * .3, -2, 12, 6, shade(body, -0.4)); }
-  const big = (sp === "gorilla" || sp === "hippo") ? 1.25 : 1;
+  const legC = sp === "penguin" ? "#FF9F2F" : dark;
+  for (const x of [-46, -24]) { rrect(x - 9 + sx * .3, -30, 18, 30, 4, legC); ell(x + sx * .3, -2, 11, 6, shade(body, -0.4)); }
+  for (const x of [34, 56]) { rrect(x - 10 + sx * .3, -38, 20, 38, 4, legC); ell(x + sx * .3, -2, 12, 6, shade(body, -0.4)); }
+  const big = (sp === "gorilla" || sp === "hippo") ? 1.25 : sp === "bear" ? 1.2 : 1;
   ell(6 + sx, -62 + br + sy, 66 * big, 40 * big, body, -0.16);
-  ell(-6 + sx, -46 + br + sy, 46 * big, 20 * big, belly, -0.1);
+  ell(-6 + sx, -46 + br + sy, 46 * big, (sp === "penguin" ? 30 : 20) * big, belly, -0.1);
+  if (sp === "penguin") ell(10 + sx, -66 + br + sy, 16, 34, shade(body, -0.15), 0.5);
   const bR = (36 + 10 * p) * big, bx = 52 + sx, by = -64 + br + sy;
   ell(bx, by, bR, bR * 0.95, shade(body, 0.05));
   arcS(bx + bR * 0.35, by + 4, bR * 0.55, Math.PI * 0.55, Math.PI * 1.25, dark, 3);
@@ -2682,11 +2693,17 @@ function drawCritter(def, st, t) {
   if (sp === "boar") { ctx.beginPath(); ctx.moveTo(hx, hy - r * 0.7); ctx.lineTo(hx + 14, hy - r * 1.3); ctx.lineTo(hx + 18, hy - r * 0.6); ctx.fillStyle = shade(body, -0.2); ctx.fill(); }
   if (sp === "hippo") ell(hx + 10, hy - r * 0.85, 7, 9, shade(body, -0.15));
   if (sp === "skunk") ell(hx + 8, hy - r * 0.85, 9, 10, "#2A2A33");
+  if (sp === "bear") { for (const ox of [0.05, 0.55]) { circ(hx + r * ox, hy - r * 0.82, r * 0.3, shade(body, -0.08)); circ(hx + r * ox, hy - r * 0.82, r * 0.15, shade(belly, -0.1)); } }
+  if (sp === "pig") { ctx.beginPath(); ctx.moveTo(hx - 2, hy - r * 0.7); ctx.lineTo(hx + 10, hy - r * 1.35); ctx.lineTo(hx + 22, hy - r * 0.6); ctx.fillStyle = shade(body, -0.12); ctx.fill(); }
   ell(hx, hy, r, r * 0.92, face);
+  if (sp === "penguin") ell(hx - r * 0.35, hy + 2, r * 0.55, r * 0.62, "#FFFFFF");
   if (sp === "mole") { ell(hx - r * 0.95, hy + 4, 13, 11, "#FF8FB8"); ell(hx - r, hy + 1, 5, 4, "#FFC9DD"); }
   else if (sp === "boar") { ell(hx - r * 0.9, hy + 8, 14, 13, "#D9A08A"); circ(hx - r, hy + 6, 3, "#5A3A30"); line(hx - r * 0.7, hy + 16, hx - r * 0.95, hy, "#FFF8E6", 5); }
   else if (sp === "hippo") { ell(hx - r * 0.7, hy + 10, r * 0.7, r * 0.55, belly); circ(hx - r * 1.05, hy + 2, 3.5, "#5A4A70"); }
-  else if (sp === "gorilla") { ell(hx - r * 0.6, hy + 8, r * 0.55, r * 0.45, "#9A9AA8"); ctx.fillStyle = "#E5483A"; ctx.fillRect(hx - r * 0.6, hy - r * 0.55, r * 1.2, 7); }
+  else if (sp === "gorilla") { ell(hx - r * 0.6, hy + 8, r * 0.55, r * 0.45, "#9A9AA8"); ctx.fillStyle = def.prop === "crown" ? "#FFD25F" : "#E5483A"; ctx.fillRect(hx - r * 0.6, hy - r * 0.55, r * 1.2, 7); }
+  else if (sp === "pig") { ell(hx - r * 0.95, hy + 6, 14, 12, shade(body, -0.08)); circ(hx - r * 1.08, hy + 3, 2.6, "#7A3A4A"); circ(hx - r * 1.08, hy + 10, 2.6, "#7A3A4A"); }
+  else if (sp === "penguin") { ctx.beginPath(); ctx.moveTo(hx - r * 0.78, hy - 2); ctx.lineTo(hx - r * 1.4, hy + 6); ctx.lineTo(hx - r * 0.78, hy + 12); ctx.fillStyle = "#FF9F2F"; ctx.fill(); }
+  else if (sp === "bear") { ell(hx - r * 0.78, hy + 9, r * 0.42, r * 0.32, belly); ell(hx - r * 1.08, hy + 4, 6, 4.5, "#2A1A18"); }
   else { ell(hx - r * 0.85, hy + 6, 10, 8, belly); circ(hx - r * 1.02, hy + 3, 4, "#2A1A0C"); }
   ell(hx - r * 0.25, hy + r * 0.35, 8, 5, `rgba(255,77,90,${0.25 + 0.55 * p})`);
   const ex = hx - r * 0.35, ey = hy - r * 0.15;
@@ -2704,8 +2721,13 @@ function drawCritter(def, st, t) {
   if (p > 0.7 && !st.stunned) ell(hx + 4, hy - r - 2 + (t * 40) % 16, 4, 6, "rgba(128,204,255,0.8)");
   if (st.eatT > 0) arcS(hx - r * 0.75, hy + r * 0.45, 6, 0, Math.PI, "#1A1A1A", 2.5);
   if (sp === "skunk") arcS(ex, ey, 9, 0, TAU, "#5FE8FF", 2.5);
-  if (sp === "boar") { ell(hx + 6, hy - r * 0.95, 10, 6, "#FF5FD2"); ell(hx + 6, hy - r * 0.95, 4, 4, "#FFE15F"); }
+  if (sp === "boar" && def.id === "grandma") { ell(hx + 6, hy - r * 0.95, 10, 6, "#FF5FD2"); ell(hx + 6, hy - r * 0.95, 4, 4, "#FFE15F"); }
   if (sp === "hippo") { const cx = hx + 4, cy = hy - r - 6; ctx.beginPath(); [[-16, 6], [-16, -10], [-8, -2], [0, -14], [8, -2], [16, -10], [16, 6]].forEach(q => ctx.lineTo(cx + q[0], cy + q[1])); ctx.fillStyle = "#FFD25F"; ctx.fill(); }
+  // 소품
+  if (def.prop === "scarf") { ell(hx + r * 0.55, hy + r * 0.55, r * 0.5, r * 0.22, "#E5302A", -0.3); rrect(hx + r * 0.6, hy + r * 0.55, 12, 30, 4, "#E5302A"); }
+  if (def.prop === "band") { ctx.fillStyle = "#2A2440"; ctx.fillRect(hx - r * 0.75, hy - r * 0.5, r * 1.5, 8); line(hx + r * 0.7, hy - r * 0.45, hx + r * 1.3, hy - r * 0.2 + Math.sin(t * 8) * 5, "#2A2440", 5); }
+  if (def.prop === "helmet") { ctx.beginPath(); ctx.arc(hx, hy - r * 0.3, r * 0.82, Math.PI * 1.05, Math.PI * 1.95); ctx.closePath(); ctx.fillStyle = "#8A9AB0"; ctx.fill(); line(hx, hy - r * 1.1, hx, hy - r * 1.45, "#E5302A", 6); }
+  if (def.prop === "crown") { const cx = hx + 4, cy = hy - r - 8; ctx.beginPath(); [[-18, 8], [-18, -12], [-9, -2], [0, -18], [9, -2], [18, -12], [18, 8]].forEach(q => ctx.lineTo(cx + q[0], cy + q[1])); ctx.fillStyle = "#FFD25F"; ctx.fill(); circ(cx, cy - 4, 4, "#FF5FD2"); }
   if (st.blocking) {
     // 코에 커다란 빨래집게
     const nx = hx - r * 0.98, ny = hy + 4, bp = 1 + 0.25 * (st.blockPop || 0);
@@ -2732,7 +2754,6 @@ const SPOT = [{ x: 132, y: 640, s: 1.3 }, { x: 598, y: 300, s: 0.74 }];
 function persp(y) { return Math.max(0.55, Math.min(1.45, 0.74 + (1.3 - 0.74) * (y - 300) / 340)); }
 const WORDS = { tiny: ["뽁", "뿡", "뽀옹"], medium: ["뿌웅!", "뿡뿡!", "뿌르륵!"], big: ["뿌아앙!", "뿌우우웅!", "뿌르르릉!"], mega: ["뿌아아아앙!!", "부와아아앙!!", "뿌르르르릉!!"] };
 let G = null; // 현재 대결 상태
-const LEAVES = Array.from({ length: 16 }, () => ({ x: Math.random() * 720, y: Math.random() * 700, s: 10 + Math.random() * 20, ph: Math.random() * TAU }));
 
 function newBattle(mode, oppIndex, demo) {
   const opp = OPPONENTS[oppIndex];
@@ -2740,6 +2761,8 @@ function newBattle(mode, oppIndex, demo) {
   if (mode === "versus") { for (const k of ["power", "control", "gas_regen", "stink"]) p2[k] = p1[k]; p1.name = "1P " + p1.name; p2.name = "2P " + opp.name; }
   const logic = new Logic(p1, p2);
   const g = { mode, oppIndex, demo: !!demo, logic, defs: [p1, p2], ai: null, ai0: null, st: [{ mood: "normal" }, { mood: "normal" }], parts: [], pops: [], waves: [], arcs: [], cam: { x: 360, y: 360, z: 1, r: 0 }, shot: null, shotCd: 0, freeze: 0, slowT: 0, cutin: null, zoom: 0, shake: 0, flash: 0, state: "intro", stateT: demo ? 0.1 : 1.6, count: 3, big: "", touches: {}, saved: false, t: 0 };
+  const themeIds = Object.keys(THEMES);
+  g.theme = mode === "league" && !demo ? (opp.stage || "forest") : themeIds[Math.floor(Math.random() * themeIds.length)];
   if (mode === "league" || demo) g.ai = new AI(logic, 1, demo ? { ai_reaction: 0.3, ai_accuracy: 0.1, ai_aggression: 0.9, ai_block: 0.3, ai_greed: 0.8 } : null);
   if (demo) g.ai0 = new AI(logic, 0, { ai_reaction: 0.3, ai_accuracy: 0.1, ai_aggression: 0.9, ai_block: 0.3, ai_greed: 0.8 });
   return g;
@@ -2923,31 +2946,67 @@ function beamColors(g, side) {
 }
 function alpha(c, a) { if (c.startsWith("#")) return col(c, a); if (c.startsWith("hsl(")) return c.replace("hsl(", "hsla(").replace(")", `,${a})`); return c; }
 
+// ───── 리그 스테이지 배경: 햇살 숲 / 달밤 늪 / 눈꽃 산 / 불꽃 화산 ─────
+const THEMES = {
+  forest: { sky: ["#FBE6A6", "#D8EBA8"], back: ["#86BC62", "#76AE58", "#689F50"], trunk: "#6E6142", ground: ["#9BD06E", "#4E9A44"], pad: ["#3E7F37", "#8FD06A"], side: ["#4E8A47", "#5E9A4F"], sideTrunk: "#5C5236", ray: "255,244,190", line: "255,255,255", fx: "leaf" },
+  night: { sky: ["#141238", "#3A4A78"], back: ["#2E4A52", "#27424A", "#213A40"], trunk: "#24242E", ground: ["#4E7064", "#24443A"], pad: ["#1E3A30", "#4E8A6A"], side: ["#1F3A3A", "#284848"], sideTrunk: "#1E1E26", ray: "190,210,255", line: "200,230,255", fx: "firefly", moon: true, puddle: true },
+  snow: { sky: ["#A8D8FF", "#EAF6FF"], back: ["#3E6A5E", "#4A7A6C", "#36605A"], trunk: "#5A4A40", ground: ["#F2F8FF", "#C8DCEC"], pad: ["#8FA8C0", "#E6F2FF"], side: ["#2F5A50", "#3A6A5E"], sideTrunk: "#4A3A34", ray: "255,255,255", line: "120,160,200", fx: "snow", pine: true, mountain: "#DDEBF8" },
+  volcano: { sky: ["#240A10", "#8A321C"], back: ["#3A2420", "#30201C", "#2A1A18"], trunk: "#1A1010", ground: ["#5E3A30", "#2E1C18"], pad: ["#1E1210", "#6A4038"], side: ["#2A1814", "#3A2018"], sideTrunk: "#140C0A", ray: "255,140,80", line: "255,170,110", fx: "ember", volcano: true, lava: true },
+};
+const FX = Array.from({ length: 30 }, (_, i) => ({ x: Math.random() * 760 - 20, y: Math.random() * 900, s: 0.5 + Math.random(), ph: Math.random() * TAU }));
+function drawStageBack(g, T, HZ, t) {
+  let grd = ctx.createLinearGradient(0, -900, 0, HZ); grd.addColorStop(0, T.sky[0]); grd.addColorStop(1, T.sky[1]);
+  ctx.fillStyle = grd; ctx.fillRect(-500, -1400, 1720, HZ + 1400);
+  if (T.moon) { circ(560, -60, 70, "rgba(255,250,220,0.15)"); circ(560, -60, 48, "#FFF6D0"); circ(578, -72, 10, "rgba(220,210,170,0.6)"); for (let i = 0; i < 30; i++) circ((i * 151) % 760 - 20, -600 + (i * 97) % 640, 1.5 + (i % 3) * 0.6, `rgba(255,255,255,${0.4 + 0.4 * Math.sin(t * 2 + i)})`); }
+  if (T.mountain) { ctx.fillStyle = "#B8CCE0"; ctx.beginPath(); ctx.moveTo(-200, HZ); ctx.lineTo(120, -160); ctx.lineTo(380, HZ); ctx.lineTo(300, HZ); ctx.lineTo(560, -240); ctx.lineTo(900, HZ); ctx.fill(); ctx.fillStyle = T.mountain; for (const [x, y, w] of [[120, -160, 70], [560, -240, 90]]) { ctx.beginPath(); ctx.moveTo(x - w, y + w * 1.2); ctx.lineTo(x, y); ctx.lineTo(x + w, y + w * 1.2); ctx.lineTo(x + w * 0.3, y + w * 0.9); ctx.lineTo(x - w * 0.2, y + w * 1.15); ctx.fill(); } }
+  if (T.volcano) {
+    ctx.fillStyle = "#1E0E0C"; ctx.beginPath(); ctx.moveTo(-100, HZ); ctx.lineTo(260, -220); ctx.lineTo(420, -220); ctx.lineTo(820, HZ); ctx.fill();
+    const glow = 0.6 + 0.3 * Math.sin(t * 3); grd = ctx.createRadialGradient(340, -230, 10, 340, -230, 220); grd.addColorStop(0, `rgba(255,150,60,${glow})`); grd.addColorStop(1, "rgba(255,80,20,0)"); ctx.fillStyle = grd; ctx.fillRect(100, -460, 480, 480);
+    ctx.strokeStyle = "#FF6A1F"; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(320, -220); ctx.quadraticCurveTo(300, -100, 250, 20); ctx.stroke(); ctx.beginPath(); ctx.moveTo(370, -220); ctx.quadraticCurveTo(400, -80, 460, 40); ctx.stroke();
+    for (let i = 0; i < 4; i++) circ(320 + i * 14 + Math.sin(t * 2 + i) * 10, -260 - ((t * 30 + i * 40) % 160), 18 + i * 4, `rgba(60,40,40,${0.5 - ((t * 30 + i * 40) % 160) / 400})`);
+  }
+  for (let row = 0; row < 3; row++) for (let i = 0; i < 14; i++) {
+    const x = -60 + i * 62 + row * 24, y = HZ - 30 - row * 46 - (i % 3) * 14, c = T.back[(i + row) % 3];
+    if (T.volcano) { ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(x - 34, HZ + 4); ctx.lineTo(x - 10, y - 10); ctx.lineTo(x + 20, y + 8); ctx.lineTo(x + 34, HZ + 4); ctx.fill(); continue; }
+    if (T.pine) { ctx.fillStyle = T.trunk; ctx.fillRect(x - 4, y + 10, 8, HZ - y); for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.moveTo(x - 30 + k * 6, y + 30 - k * 22); ctx.lineTo(x, y - 20 - k * 22); ctx.lineTo(x + 30 - k * 6, y + 30 - k * 22); ctx.fillStyle = c; ctx.fill(); ctx.beginPath(); ctx.moveTo(x - 12 + k * 3, y - 6 - k * 22); ctx.lineTo(x, y - 20 - k * 22); ctx.lineTo(x + 12 - k * 3, y - 6 - k * 22); ctx.fillStyle = "#FFFFFF"; ctx.fill(); } continue; }
+    ctx.fillStyle = T.trunk; ctx.fillRect(x - 5, y, 10, HZ - y + 4); circ(x, y - 20, 46 - row * 4, c);
+  }
+  for (let i = 0; i < 5; i++) { const x0 = 120 + i * 130; ctx.beginPath(); ctx.moveTo(x0, -300); ctx.lineTo(x0 + 60, -300); ctx.lineTo(x0 - 120, ARENA.h); ctx.lineTo(x0 - 220, ARENA.h); ctx.fillStyle = `rgba(${T.ray},${0.05 + 0.03 * Math.sin(t * 0.8 + i)})`; ctx.fill(); }
+  grd = ctx.createLinearGradient(0, HZ, 0, ARENA.h + 200); grd.addColorStop(0, T.ground[0]); grd.addColorStop(1, T.ground[1]);
+  ctx.fillStyle = grd; ctx.fillRect(-500, HZ, 1720, ARENA.h + 800);
+  for (let i = 0; i < 12; i += 2) { const y0 = HZ + (ARENA.h + 260 - HZ) * Math.pow(i / 12, 1.7), y1 = HZ + (ARENA.h + 260 - HZ) * Math.pow((i + 1) / 12, 1.7); ctx.fillStyle = "rgba(255,255,255,0.05)"; ctx.fillRect(-500, y0, 1720, y1 - y0); }
+  if (T.puddle) for (const [x, y, w] of [[90, 330, 90], [640, 520, 110], [420, 640, 80]]) { const sc = persp(y); ell(x, y, w * sc, w * 0.28 * sc, "rgba(40,70,110,0.55)"); ell(x - w * 0.2 * sc, y - 3, w * 0.4 * sc, w * 0.08 * sc, "rgba(220,235,255,0.35)"); }
+  if (T.lava) for (const [x, y, x2, y2] of [[40, 300, 190, 360], [560, 600, 700, 540], [-10, 650, 120, 700], [610, 260, 740, 300]]) { line(x, y, x2, y2, `rgba(255,${110 + 40 * Math.sin(t * 4 + x)},40,0.9)`, 6 * persp(y)); line(x, y, x2, y2, "rgba(255,230,140,0.7)", 2 * persp(y)); }
+  if (g.theme === "snow") for (let i = 0; i < 8; i++) { const x = 40 + ((i * 191) % 640), y = HZ + 60 + ((i * 113) % 480), sc = persp(y); ell(x, y, 26 * sc, 9 * sc, "rgba(255,255,255,0.9)"); }
+  ctx.save(); ctx.translate(372, 455); ctx.rotate(-0.12);
+  ell(0, 0, 400, 205, `rgba(${T.line},0.1)`); ctx.beginPath(); ctx.ellipse(0, 0, 400, 205, 0, 0, TAU); ctx.strokeStyle = `rgba(${T.line},0.5)`; ctx.lineWidth = 4; ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(0, 0, 70, 36, 0, 0, TAU); ctx.stroke(); line(-300, 140, 300, -140, `rgba(${T.line},0.35)`, 3);
+  ctx.restore();
+  for (let s = 0; s < 2; s++) { const p = SPOT[s]; ell(p.x + 10 * p.s, p.y + 8 * p.s, 150 * p.s, 44 * p.s, T.pad[0]); ell(p.x + 10 * p.s, p.y + 2 * p.s, 142 * p.s, 38 * p.s, T.pad[1]); ell(p.x + 10 * p.s, p.y, 110 * p.s, 26 * p.s, "rgba(255,255,255,0.12)"); }
+  if (g.theme === "forest" || !THEMES[g.theme]) for (let i = 0; i < 10; i++) { const x = 40 + ((i * 173) % 640), y = HZ + 40 + ((i * 97) % 520), sc = persp(y); circ(x, y, 4 * sc, ["#FFD25F", "#FF8FB8", "#FFFFFF"][i % 3]); line(x - 8 * sc, y + 6 * sc, x - 6 * sc, y - 6 * sc, "#6FB255", 2.5 * sc); }
+}
+function drawStageFront(g, T, HZ, t) {
+  for (const [x, d] of [[-30, 1], [750, -1]]) {
+    if (T.volcano) { ctx.fillStyle = T.side[0]; ctx.beginPath(); ctx.moveTo(x - 90 * d, HZ + 80); ctx.lineTo(x + d * 40, -400); ctx.lineTo(x + d * 110, HZ + 80); ctx.fill(); continue; }
+    if (T.pine) { ctx.fillStyle = T.sideTrunk; ctx.fillRect(x - 16, -1400, 32, 1400 + HZ + 60); for (let k = 0; k < 6; k++) { const y = HZ - 20 - k * 120; ctx.beginPath(); ctx.moveTo(x - 110, y + 40); ctx.lineTo(x, y - 90); ctx.lineTo(x + 110, y + 40); ctx.fillStyle = T.side[k % 2]; ctx.fill(); ctx.beginPath(); ctx.moveTo(x - 50, y - 30); ctx.lineTo(x, y - 90); ctx.lineTo(x + 50, y - 30); ctx.fillStyle = "#FFFFFF"; ctx.fill(); } continue; }
+    ctx.fillStyle = T.sideTrunk; ctx.fillRect(x - 22, -1400, 44, 1400 + HZ + 60); for (let k = 0; k < 6; k++) circ(x + d * (30 + (k % 2) * 40), HZ - 40 - k * 120, 90, T.side[k % 2]);
+  }
+  for (const p of FX) {
+    if (T.fx === "leaf") circ(p.x + Math.sin(t * 0.7 + p.ph) * 20, (p.y + t * 15 * p.s) % ARENA.h - 60, 3, "rgba(255,230,128,0.6)");
+    else if (T.fx === "firefly") { const a = 0.4 + 0.6 * Math.max(0, Math.sin(t * 2.5 + p.ph)); circ(p.x + Math.sin(t * 0.6 + p.ph) * 30, (p.y % 640) + Math.cos(t * 0.8 + p.ph) * 20, 8, `rgba(200,255,120,${0.15 * a})`); circ(p.x + Math.sin(t * 0.6 + p.ph) * 30, (p.y % 640) + Math.cos(t * 0.8 + p.ph) * 20, 2.5, `rgba(230,255,150,${a})`); }
+    else if (T.fx === "snow") circ(p.x + Math.sin(t + p.ph) * 18, (p.y + t * 40 * p.s) % 900 - 160, 2 + p.s * 2, "rgba(255,255,255,0.9)");
+    else if (T.fx === "ember") { const y = 760 - ((p.y + t * 60 * p.s) % 900); circ(p.x + Math.sin(t * 2 + p.ph) * 14, y, 2 + p.s * 1.5, `rgba(255,${120 + 80 * p.s | 0},40,0.85)`); }
+  }
+  if (g.theme === "night") { ctx.fillStyle = "rgba(20,20,60,0.12)"; ctx.fillRect(-500, -1400, 1720, 2800); }
+  if (g.theme === "volcano") { ctx.fillStyle = `rgba(255,80,20,${0.06 + 0.03 * Math.sin(t * 3)})`; ctx.fillRect(-500, -1400, 1720, 2800); }
+}
 function drawArena(g) {
   const t = g.t, l = g.logic;
-  // 하늘 + 먼 숲
-  const HZ = ARENA.horizon;
-  let grd = ctx.createLinearGradient(0, -900, 0, HZ); grd.addColorStop(0, "#FBE6A6"); grd.addColorStop(1, "#D8EBA8");
-  ctx.fillStyle = grd; ctx.fillRect(-500, -1400, 1720, HZ + 1400);
-  for (let row = 0; row < 3; row++) for (let i = 0; i < 14; i++) { const x = -60 + i * 62 + row * 24, y = HZ - 30 - row * 46 - (i % 3) * 14; ctx.fillStyle = "#6E6142"; ctx.fillRect(x - 5, y, 10, HZ - y + 4); circ(x, y - 20, 46 - row * 4, ["#86BC62", "#76AE58", "#689F50"][(i + row) % 3]); }
-  for (let i = 0; i < 5; i++) { const x0 = 120 + i * 130; ctx.beginPath(); ctx.moveTo(x0, -300); ctx.lineTo(x0 + 60, -300); ctx.lineTo(x0 - 120, ARENA.h); ctx.lineTo(x0 - 220, ARENA.h); ctx.fillStyle = `rgba(255,244,190,${0.07 + 0.04 * Math.sin(t * 0.8 + i)})`; ctx.fill(); }
-  // 땅 (원근 줄무늬 잔디)
-  grd = ctx.createLinearGradient(0, HZ, 0, ARENA.h + 200); grd.addColorStop(0, "#9BD06E"); grd.addColorStop(1, "#4E9A44");
-  ctx.fillStyle = grd; ctx.fillRect(-500, HZ, 1720, ARENA.h + 800);
-  for (let i = 0; i < 12; i += 2) { const y0 = HZ + (ARENA.h + 260 - HZ) * Math.pow(i / 12, 1.7), y1 = HZ + (ARENA.h + 260 - HZ) * Math.pow((i + 1) / 12, 1.7); ctx.fillStyle = "rgba(255,255,255,0.06)"; ctx.fillRect(-500, y0, 1720, y1 - y0); }
-  // 대결장 (원근 타원 + 중앙선)
-  ctx.save(); ctx.translate(372, 455); ctx.rotate(-0.12);
-  ell(0, 0, 400, 205, "rgba(255,240,200,0.16)"); ctx.beginPath(); ctx.ellipse(0, 0, 400, 205, 0, 0, TAU); ctx.strokeStyle = "rgba(255,255,255,0.5)"; ctx.lineWidth = 4; ctx.stroke();
-  ctx.beginPath(); ctx.ellipse(0, 0, 70, 36, 0, 0, TAU); ctx.stroke(); line(-300, 140, 300, -140, "rgba(255,255,255,0.35)", 3);
-  ctx.restore();
-  // 선수 발판
-  for (let s = 0; s < 2; s++) { const p = SPOT[s]; ell(p.x + 10 * p.s, p.y + 8 * p.s, 150 * p.s, 44 * p.s, "#3E7F37"); ell(p.x + 10 * p.s, p.y + 2 * p.s, 142 * p.s, 38 * p.s, "#8FD06A"); ell(p.x + 10 * p.s, p.y, 110 * p.s, 26 * p.s, "rgba(255,255,255,0.12)"); }
-  for (let i = 0; i < 10; i++) { const x = 40 + ((i * 173) % 640), y = HZ + 40 + ((i * 97) % 520), sc = persp(y); circ(x, y, 4 * sc, ["#FFD25F", "#FF8FB8", "#FFFFFF"][i % 3]); line(x - 8 * sc, y + 6 * sc, x - 6 * sc, y - 6 * sc, "#6FB255", 2.5 * sc); }
+  const HZ = ARENA.horizon, TH = THEMES[g.theme] || THEMES.forest;
+  drawStageBack(g, TH, HZ, t);
   // 동물: 뒤(1) 먼저, 앞(0) 나중
   for (const s of [1, 0]) { const p = SPOT[s]; ctx.save(); ctx.translate(p.x, p.y); ctx.scale(s === 0 ? p.s : -p.s, p.s); drawCritter(g.defs[s], g.st[s], t + s * 1.3); ctx.restore(); }
-  // 양옆 나무 (화면 틀)
-  for (const [x, d] of [[-30, 1], [750, -1]]) { ctx.fillStyle = "#5C5236"; ctx.fillRect(x - 22, -1400, 44, 1400 + HZ + 60); for (let k = 0; k < 6; k++) circ(x + d * (30 + (k % 2) * 40), HZ - 40 - k * 120, 90, k % 2 ? "#4E8A47" : "#5E9A4F"); }
-  for (const lf of LEAVES) circ(lf.x + Math.sin(t * 0.7 + lf.ph) * 20, (lf.y + t * lf.s) % ARENA.h - 60, 3, "rgba(255,230,128,0.6)");
+  drawStageFront(g, TH, HZ, t);
   // 모으기 오라
   for (let s = 0; s < 2; s++) {
     const f = l.f[s], st = g.st[s], bp = buttPos(s), cs = beamColors(g, s);
@@ -3265,12 +3324,21 @@ function showTitle() {
 function showSelect() {
   $("title").hidden = true; $("select").hidden = false;
   const box = $("cards"); box.innerHTML = "";
+  let lastStage = null, focus = null;
   OPPONENTS.forEach((o, i) => {
     const open = i < Save.unlocked, wins = Save.wins[o.id] || 0;
-    const card = document.createElement("div"); card.className = "card" + (open ? "" : " locked");
+    if (o.stage !== lastStage) {
+      lastStage = o.stage; const si = STAGES.findIndex(x => x.id === o.stage), st = STAGES[si] || { name: o.stage, desc: "" };
+      const all = OPPONENTS.filter(x => x.stage === o.stage), done = all.filter(x => Save.wins[x.id]).length;
+      const h = document.createElement("div"); h.className = "chap" + (open ? "" : " locked"); h.dataset.stage = o.stage;
+      h.innerHTML = `<b>챕터 ${si + 1} · ${st.name}</b><span>${open ? st.desc : "잠김"} · ${done}/${all.length}</span>`;
+      box.appendChild(h);
+    }
+    const card = document.createElement("div"); card.className = "card" + (open ? "" : " locked") + (o.boss ? " boss" : "");
+    if (open) focus = card;
     const c = document.createElement("canvas"); c.width = 300; c.height = 220; card.appendChild(c);
     const info = document.createElement("div"); info.className = "info";
-    info.innerHTML = `<h3 style="color:${open ? o.beam[0] : "#B9B5B0"}">${i + 1}. ${open ? o.name : "???"}</h3><p>${open ? o.title : "앞 상대를 이기면 열려요"}</p>${open ? `<p>「${o.lines.intro}」</p>` : ""}`;
+    info.innerHTML = `<h3 style="color:${open ? o.beam[0] : "#B9B5B0"}">${i + 1}. ${open ? o.name : "???"}${o.boss ? ' <span class="badge">보스</span>' : ""}</h3><p>${open ? o.title : "앞 상대를 이기면 열려요"}</p>${open ? `<p>「${o.lines.intro}」</p>` : ""}`;
     const b = document.createElement("button"); b.className = "btn"; b.textContent = wins ? `도전! (승리 ${wins})` : "도전!"; b.disabled = !open;
     b.onclick = () => { audioInit(); play("medium"); startBattle("league", i); };
     info.appendChild(b); card.appendChild(info); box.appendChild(card);
@@ -3278,6 +3346,7 @@ function showSelect() {
     drawWith(cx, () => drawCritter(o, { mood: "normal" }, 0)); cx.restore();
     if (!open) { cx.globalCompositeOperation = "source-atop"; cx.fillStyle = "rgba(0,0,0,0.85)"; cx.fillRect(0, 0, 300, 220); }
   });
+  if (focus) requestAnimationFrame(() => { try { focus.scrollIntoView({ block: "center" }); } catch (e) {} });
 }
 // ctx 를 잠깐 다른 캔버스로 바꿔 그리기
 function drawWith(other, fn) { const saved = ctx; ctx = other; try { fn(); } finally { ctx = saved; } }
@@ -3314,7 +3383,7 @@ function showResult(g) {
     html += `<p><b>「${PLAYER.lines[won ? "win" : "lose"]}」</b></p><p class="muted">${g.defs[1].name}: 「${g.defs[1].lines[won ? "lose" : "win"]}」</p>`;
     if (!g.saved) {
       g.saved = true; Save.stats.matches++; Save.stats.farts += st.farts; Save.stats.perfect += st.perfect;
-      if (won) { Save.stats.matchWins++; Save.wins[g.defs[1].id] = (Save.wins[g.defs[1].id] || 0) + 1; if (g.oppIndex + 1 >= Save.unlocked && g.oppIndex + 1 < OPPONENTS.length) { Save.unlocked = g.oppIndex + 2; html += `<p class="good">새 상대 등장: ${OPPONENTS[g.oppIndex + 1].name}!</p>`; } else if (g.oppIndex + 1 >= OPPONENTS.length) html += `<p class="good">뿌앙 리그 챔피언 달성!</p>`; }
+      if (won) { Save.stats.matchWins++; Save.wins[g.defs[1].id] = (Save.wins[g.defs[1].id] || 0) + 1; if (g.oppIndex + 1 >= Save.unlocked && g.oppIndex + 1 < OPPONENTS.length) { Save.unlocked = g.oppIndex + 2; const nx = OPPONENTS[g.oppIndex + 1], ns = STAGES.find(x => x.id === nx.stage); html += nx.stage !== g.defs[1].stage && ns ? `<p class="good">새 챕터 열림: ${ns.name}! 첫 상대 ${nx.name}</p>` : `<p class="good">새 상대 등장: ${nx.name}!</p>`; } else if (g.oppIndex + 1 >= OPPONENTS.length) html += `<p class="good">뿌앙 리그 챔피언 달성!</p>`; }
       writeSave();
     }
     if (won && g.oppIndex + 1 < OPPONENTS.length) btns.push(["다음 상대와 대결", "", () => startBattle("league", g.oppIndex + 1)]);
@@ -3408,7 +3477,7 @@ function netPump(g) {
 }
 function snapOf(g) {
   const l = g.logic, c = l.clash;
-  return { st: g.state, big: g.big, c: l.cloud, v: l.vel, tl: l.timeLeft, rn: l.roundNo, ro: l.roundOver, mo: l.matchOver, mw: l.matchWinner,
+  return { th: g.theme, st: g.state, big: g.big, c: l.cloud, v: l.vel, tl: l.timeLeft, rn: l.roundNo, ro: l.roundOver, mo: l.matchOver, mw: l.matchWinner,
     fo: l.foods.map(x => [x.uid, x.id, x.x, x.y, x.life]), f: l.f.map(f => { const o = {}; for (const k of FKEYS) o[k] = f[k]; return o; }),
     cl: c ? { b: c.beat, bt: c.bt, E: c.E, m: c.m, tp: c.taps.map(t => t ? t.grade : 0), lg: c.log } : null };
 }
@@ -3425,7 +3494,7 @@ function mirrorEv(e) {
   return e;
 }
 function applySnap(g, s) {
-  const l = g.logic;
+  const l = g.logic; if (s.th) g.theme = s.th;
   for (let i = 0; i < 2; i++) { const src = s.f[1 - i], f = l.f[i]; for (const k of FKEYS) if (k in src) f[k] = src[k]; }
   l.cloud = -s.c; l.vel = -s.v; l.timeLeft = s.tl; l.roundNo = s.rn; l.roundOver = s.ro; l.matchOver = s.mo; l.matchWinner = s.mw >= 0 ? 1 - s.mw : s.mw;
   l.foods = s.fo.map(a => ({ uid: a[0], id: a[1], x: a[2], y: a[3], life: a[4] }));
