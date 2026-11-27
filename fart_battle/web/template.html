@@ -105,6 +105,7 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; }
   <div class="on-row" style="width:min(560px,100%)"><button class="btn" id="btn-run" style="flex:1;background:#FF8FE0;box-shadow:0 6px 0 #B0508F;font-size:19px">뿡 챌린지 런</button><button class="btn" id="btn-fly" style="flex:1;background:#9BE05F;box-shadow:0 6px 0 #5E9A34;font-size:19px">방귀 로켓</button></div>
   <div class="on-row" style="width:min(560px,100%)"><button class="btn ghost" id="btn-sound" style="flex:1">소리 켜짐</button><button class="btn ghost" id="btn-art" style="flex:1">그림체: 투박하게</button></div>
   <p class="small" id="record"></p>
+  <button class="btn ghost" id="btn-credits" style="min-height:36px;font-size:13px;width:auto;padding:0 14px">소리 출처</button>
 </div>
 
 <div id="select" class="screen" hidden>
@@ -152,6 +153,8 @@ __QRCODE__
 "use strict";
 // ───────── 데이터 (data/*.json 에서 빌드 시 주입) ─────────
 const DATA = __DATA__;
+// 실제 방귀 녹음 (Wikimedia Commons, 출처: web/sounds/CREDITS.md) — 빌드 때 base64 로 넣음
+const REC_SOUNDS = __SOUNDS__;
 const BAL = DATA.balance, PLAYER = DATA.player, OPPONENTS = DATA.opponents, FOODS = DATA.foods, STAGES = DATA.stages || [];
 const FONT_D = '"Jua","Noto Sans KR",sans-serif';
 const FONT_B = '"Noto Sans KR",system-ui,sans-serif';
@@ -406,6 +409,13 @@ function audioInit() {
     freqs.forEach((f, j) => { for (let i = 0; i < n; i++) d[j * n + i] = Math.sin(2 * Math.PI * f * i / R) * (1 - i / n) * vol; });
     return b;
   };
+  // 실제 녹음 불러오기 (준비되면 같은 이름의 합성 소리를 덮어씀)
+  const recMap = { tiny: "tiny", medium: "medium", big: "big", mega: "mega", perfect: "f_perfect", wet: "f_wet", blunder: "f_blunder" };
+  for (const [k, list] of Object.entries(REC_SOUNDS || {})) {
+    const key = recMap[k]; if (!key) continue; const bufs = [];
+    list.forEach(b64 => { try { const bin = atob(b64), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+      Snd.ctx.decodeAudioData(u8.buffer, buf => { bufs.push(buf); Snd.bufs[key] = bufs; if (key === "tiny") Snd.bufs.f_hiss = bufs; Snd.rec = (Snd.rec || 0) + 1; }, () => {}); } catch (e) {} });
+  }
   Snd.bufs = { tiny: [fart("squeak", 11), fart("squeak", 12)], medium: [fart("medium", 21), fart("medium", 22), fart("medium", 23)],
     big: [fart("big", 31), fart("big", 32)], mega: [fart("mega", 41), fart("mega", 42)],
     f_hiss: [fart("hiss", 51), fart("hiss", 52)], f_perfect: [fart("perfect", 61), fart("perfect", 62), fart("perfect", 63)],
@@ -475,16 +485,15 @@ function fartSoundId(g, ev) {
   if (ev.perfect) return ev.size === "mega" ? "mega" : "f_perfect";
   const sw = g.logic ? g.logic.sweet(ev.side) : [0.72, 0.88];
   if (ev.p > sw[1]) return "f_wet";
-  if (ev.p < 0.3) return "f_hiss";
-  if (ev.p < 0.55) return "tiny";
+  if (ev.p < 0.55) return "tiny"; // 게이지 작으면 빵~
   return ev.size === "mega" || ev.size === "big" ? "big" : "medium";
 }
-function speciesPitch(def) { const sp = def && def.species; return sp === "hippo" || sp === "bear" || sp === "gorilla" ? 0.82 : sp === "squirrel" || sp === "penguin" ? 1.2 : sp === "pig" || sp === "boar" ? 0.92 : 1; }
+function speciesPitch(def) { const sp = def && def.species; return sp === "hippo" || sp === "bear" || sp === "gorilla" ? 0.9 : sp === "squirrel" || sp === "penguin" ? 1.1 : sp === "pig" || sp === "boar" ? 0.95 : 1; }
 function play(id, pitch) {
   if (!Save.sound || !Snd.ctx || !Snd.bufs[id]) return;
   const list = Snd.bufs[id], src = Snd.ctx.createBufferSource();
   src.buffer = list[Math.floor(Math.random() * list.length)];
-  src.playbackRate.value = (pitch || 1) * (0.92 + Math.random() * 0.16);
+  src.playbackRate.value = (pitch || 1) * (0.95 + Math.random() * 0.1);
   src.connect(Snd.ctx.destination); src.start();
 }
 function buzz(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) {} }
@@ -1663,6 +1672,8 @@ $("shop-back").onclick = () => { play("click"); showTitle(); };
 function applyArt() { ART.rough = false; $("btn-art").hidden = true; return; $("btn-art").textContent = ART.rough ? "그림체: 투박하게" : "그림체: 부드럽게"; }
 $("btn-art").onclick = () => { audioInit(); play("click"); Save.art = ART.rough ? "smooth" : "rough"; writeSave(); applyArt(); };
 applyArt();
+$("btn-credits").onclick = () => openOverlay(`<h2>소리 출처</h2><p class="muted">방귀 소리는 Wikimedia Commons 의 녹음을 잘라 음량을 맞춘 것이에요. (CC BY-SA 는 같은 조건으로 재배포)</p>
+  <p>Flatus.wav, Flatulence.wav — JohnSumisu (CC BY-SA 3.0)</p><p>Menselijke wind.ogg — BeatsByDrProcolHarum (CC BY-SA 4.0)</p><p>Flatulence de Clément.ogg — Clémentgirardotconstand (CC BY-SA 4.0)</p><p>Frt755 1.ogg — Horst Frank (CC BY-SA 3.0)</p><p>Wet fart tummy rumbles.ogg — natalie (퍼블릭 도메인)</p>`, [["닫기", "", () => closeOverlay()]]);
 $("btn-shop").onclick = () => { audioInit(); play("click"); showShop(); };
 function startBattle(mode, opp) {
   $("title").hidden = true; $("shop").hidden = true; $("select").hidden = true; $("online").hidden = true; $("chars").hidden = true; closeOverlay();
@@ -1994,7 +2005,7 @@ function flyLaunch(g, p, blunder) {
   F.vx = Math.cos(a) * v; F.vy = Math.sin(a) * v; F.phase = "air"; F.trailT = 0.6;
   flyPuff(g, perfect ? 1.6 : 0.6 + p); g.shake = perfect ? 1 : 0.5;
   popup(g, F.x + 40, F.y - 140, blunder ? "삐끗!" : perfect ? "완벽 발사!!" : "발사!", blunder ? "#FF5F5F" : perfect ? "#7BE85F" : "#FFE15F", perfect ? 44 : 34);
-  play(perfect ? "f_perfect" : blunder ? "f_blunder" : p < 0.3 ? "f_hiss" : p < 0.55 ? "tiny" : p > sw[1] ? "f_wet" : "big", speciesPitch(g.defs[0])); buzz(perfect ? 80 : 40);
+  play(perfect ? "f_perfect" : blunder ? "f_blunder" : p < 0.55 ? "tiny" : p > sw[1] ? "f_wet" : "big", speciesPitch(g.defs[0])); buzz(perfect ? 80 : 40);
 }
 function flyButt(g) { const F = g.fly, c = Math.cos(F.rot), s = Math.sin(F.rot), bx = -88 * 0.9, by = -60 * 0.9; return { x: F.x + bx * c - by * s, y: F.y + bx * s + by * c }; }
 function flyPuff(g, P) {

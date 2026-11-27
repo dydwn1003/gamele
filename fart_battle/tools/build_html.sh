@@ -9,7 +9,12 @@ data = {'player': f['player'], 'opponents': f['opponents'], 'stages': f.get('sta
         'foods': json.load(open('data/foods.json', encoding='utf-8'))['foods'],
         'balance': json.load(open('data/balance.json', encoding='utf-8'))}
 tpl = open('web/template.html', encoding='utf-8').read()
-out = tpl.replace('__DATA__', json.dumps(data, ensure_ascii=False)).replace('__QRCODE__', open('web/vendor/qrcode.js', encoding='utf-8').read())
+import base64, glob, os
+sounds = {}
+for f in sorted(glob.glob('web/sounds/*.mp3')):
+    k, i = os.path.basename(f)[:-4].rsplit('_', 1)
+    sounds.setdefault(k, []).append(base64.b64encode(open(f, 'rb').read()).decode())
+out = tpl.replace('__SOUNDS__', json.dumps(sounds)).replace('__DATA__', json.dumps(data, ensure_ascii=False)).replace('__QRCODE__', open('web/vendor/qrcode.js', encoding='utf-8').read())
 open('web/fart_battle.html', 'w', encoding='utf-8').write(out)
 print('web/fart_battle.html', len(out.encode()), 'bytes')
 PY
