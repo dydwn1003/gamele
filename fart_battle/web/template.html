@@ -489,6 +489,45 @@ function fartSoundId(g, ev) {
   return ev.size === "mega" || ev.size === "big" ? "big" : "medium";
 }
 function speciesPitch(def) { const sp = def && def.species; return sp === "hippo" || sp === "bear" || sp === "gorilla" ? 0.9 : sp === "squirrel" || sp === "penguin" ? 1.1 : sp === "pig" || sp === "boar" ? 0.95 : 1; }
+// ───── 풀파워·필살 방귀: 녹음 + 초저음 "쿠웅" + 거친 찌그러짐 + 울림, 필살은 녹음 두 겹 + 충격음 ─────
+function powerFx() {
+  if (Snd.fx) return Snd.fx; const c = Snd.ctx, R = c.sampleRate;
+  const mk = (sec, fn) => { const n = Math.floor(R * sec), b = c.createBuffer(1, n, R), d = b.getChannelData(0); for (let i = 0; i < n; i++) d[i] = fn(i / R, i / n); return b; };
+  let ph = 0, ph2 = 0;
+  // 쿠웅: 90→32Hz 로 떨어지는 초저음 + 첫 순간 딱 소리
+  const boom = mk(1.0, (t, k) => { const f = 32 + 58 * Math.exp(-t * 5); ph += 2 * Math.PI * f / R; return (Math.sin(ph) * 0.9 + Math.sin(ph * 2) * 0.15) * Math.exp(-t * 3.2) * Math.min(1, t / 0.004) + (t < 0.012 ? (Math.random() * 2 - 1) * (1 - t / 0.012) * 0.6 : 0); });
+  // 쾅: 더 낮고 긴 충격음 + 거친 바람
+  let lp = 0;
+  const blast = mk(1.8, (t, k) => { const f = 26 + 70 * Math.exp(-t * 3.5); ph2 += 2 * Math.PI * f / R; lp += ((Math.random() * 2 - 1) - lp) * 0.06; return (Math.sin(ph2) * 0.85 + lp * 1.6 * Math.exp(-t * 2.2)) * Math.exp(-t * 1.8) * Math.min(1, t / 0.003); });
+  // 울림 (방 잔향)
+  const ir = c.createBuffer(2, Math.floor(R * 1.6), R); for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2.6); }
+  const verb = c.createConvolver(); verb.buffer = ir;
+  const comp = c.createDynamicsCompressor(); comp.threshold.value = -14; comp.knee.value = 8; comp.ratio.value = 5; comp.attack.value = 0.003; comp.release.value = 0.25;
+  // 마지막 리미터: 여러 소리가 겹쳐도 찢어지지 않게
+  const lim = c.createDynamicsCompressor(); lim.threshold.value = -3; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.001; lim.release.value = 0.1;
+  const master = c.createGain(); master.gain.value = 1.1; comp.connect(master); master.connect(lim); lim.connect(c.destination);
+  const verbGain = c.createGain(); verbGain.gain.value = 0.35; verb.connect(verbGain); verbGain.connect(comp);
+  const curve = k => { const n = 1024, a = new Float32Array(n); for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; a[i] = Math.tanh(k * x) / Math.tanh(k); } return a; };
+  Snd.fx = { boom, blast, verb, comp, curve: [curve(1.8), curve(3.2)] };
+  return Snd.fx;
+}
+// level 1 = 풀파워 (완벽+큰 방귀, 엄청 센 방귀), 2 = 필살
+function playPower(id, pitch, level) {
+  if (!Save.sound || !Snd.ctx || !Snd.bufs[id]) return;
+  const c = Snd.ctx, fx = powerFx(), t0 = c.currentTime, list = Snd.bufs[id];
+  const shaper = c.createWaveShaper(); shaper.curve = fx.curve[level >= 2 ? 1 : 0]; shaper.oversample = "2x";
+  const pre = c.createGain(); pre.gain.value = level >= 2 ? 1.4 : 1.2; pre.connect(shaper);
+  const send = c.createGain(); send.gain.value = level >= 2 ? 0.55 : 0.3; shaper.connect(fx.comp); shaper.connect(send); send.connect(fx.verb);
+  const layer = (buf, rate, delay, gain) => { const src = c.createBufferSource(), g = c.createGain(); src.buffer = buf; src.playbackRate.value = rate; g.gain.value = gain; src.connect(g); g.connect(pre); src.start(t0 + delay); };
+  const pick = () => list[Math.floor(Math.random() * list.length)];
+  layer(pick(), (pitch || 1) * (level >= 2 ? 0.88 : 0.93), 0, 1);
+  if (level >= 2) layer(list[(list.indexOf(pick()) + 1) % list.length] || pick(), (pitch || 1) * 0.72, 0.05, 0.75); // 낮은 두 번째 방귀
+  const b = c.createBufferSource(), bg = c.createGain(); b.buffer = fx.boom; bg.gain.value = level >= 2 ? 1.0 : 0.75; b.connect(bg); bg.connect(fx.comp); b.start(t0);
+}
+function playBlast() { // 필살이 터지는 순간
+  if (!Save.sound || !Snd.ctx) return; const c = Snd.ctx, fx = powerFx();
+  const b = c.createBufferSource(), g = c.createGain(); b.buffer = fx.blast; g.gain.value = 1.1; b.connect(g); g.connect(fx.comp); const s = c.createGain(); s.gain.value = 0.5; g.connect(s); s.connect(fx.verb); b.start();
+}
 function play(id, pitch) {
   if (!Save.sound || !Snd.ctx || !Snd.bufs[id]) return;
   const list = Snd.bufs[id], src = Snd.ctx.createBufferSource();
@@ -795,7 +834,7 @@ function handleEvent(g, ev) {
       if (!g.demo) { g.cutin = { side: ev.side, t: 0, dur: 1.25 }; play("ult"); buzz(120); }
       else { g.flash = 1; wave(g, bp.x, bp.y, 320, "#FFFFFF", 12); g.shot = { kind: "ult", side: ev.side, t: 0, dur: 1.4 }; g.pendingArc = { side: ev.side, delay: 0.35, n: 3 }; }
     }
-    if (!g.demo) { play(fartSoundId(g, ev), speciesPitch(g.defs[ev.side])); if (ev.side === 0 || g.mode === "versus") buzz(ev.size === "tiny" || ev.size === "medium" ? 20 : 50); }
+    if (!g.demo) { const lv = ev.ult ? 2 : (ev.size === "mega" || (ev.perfect && ev.size === "big")) ? 1 : 0, sid = fartSoundId(g, ev), pt = speciesPitch(g.defs[ev.side]); if (lv) playPower(lv === 2 ? "mega" : sid === "f_wet" ? "f_wet" : ev.size === "mega" ? "mega" : sid, pt, lv); else play(sid, pt); if (lv && (ev.side === 0 || g.mode === "versus")) buzz(lv === 2 ? [80, 40, 160] : [60, 30, 60]); if (ev.side === 0 || g.mode === "versus") buzz(ev.size === "tiny" || ev.size === "medium" ? 20 : 50); }
   } else if (ev.type === "clash_start") {
     const cp = clashPos(g);
     g.shot = { kind: "clash", side: 0, t: 0, dur: 99 }; g.flash = 0.7; g.shake = 0.8; g.freeze = 0.1;
@@ -876,7 +915,7 @@ function update(g, rdt) {
   let ldt = rdt, edt = rdt;
   if (g.cutin) {
     g.cutin.t += rdt; ldt = 0; edt = rdt * 0.08;
-    if (g.cutin.t >= g.cutin.dur) { const cp = clashPos(g); g.cutin = null; g.shake = 1.3; g.flash = 0.55; g.zoom = 0.05; g.shot = { kind: "ult", side: g.logic.f[0].beamUlt ? 0 : 1, t: 0, dur: 1.5 }; g.pendingArc = { side: g.shot.side, delay: 0.35, n: 3 }; vfxBurst(g, cp.x, cp.y, 1.3, beamColors(g, g.shot.side)[1]); wave(g, cp.x, cp.y, 420, "#FFFFFF", 16); wave(g, cp.x, cp.y, 280, "#FFE15F", 10); play("mega"); play("big", 0.8); }
+    if (g.cutin.t >= g.cutin.dur) { const cp = clashPos(g); g.cutin = null; g.shake = 1.3; g.flash = 0.55; g.zoom = 0.05; g.shot = { kind: "ult", side: g.logic.f[0].beamUlt ? 0 : 1, t: 0, dur: 1.5 }; g.pendingArc = { side: g.shot.side, delay: 0.35, n: 3 }; vfxBurst(g, cp.x, cp.y, 1.3, beamColors(g, g.shot.side)[1]); wave(g, cp.x, cp.y, 420, "#FFFFFF", 16); wave(g, cp.x, cp.y, 280, "#FFE15F", 10); playBlast(); playPower("mega", 0.85, 2); buzz([120, 50, 200]); }
   } else if (g.freeze > 0) { g.freeze -= rdt; ldt = 0; edt = 0; }
   else if (g.slowT > 0) { g.slowT -= rdt; ldt *= 0.3; edt *= 0.3; }
   const dt = ldt;
