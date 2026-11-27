@@ -103,7 +103,6 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; }
   <div class="on-row" style="width:min(560px,100%)"><button class="btn ghost" id="btn-chars" style="flex:2">내 캐릭터: 뿌앙이</button><button class="btn ghost" id="btn-shop" style="flex:1">상점</button></div>
   <button class="btn" id="btn-online" style="background:#5FE8FF;box-shadow:0 6px 0 #2F9AB0">온라인 대전</button>
   <div class="on-row" style="width:min(560px,100%)"><button class="btn" id="btn-run" style="flex:1;background:#FF8FE0;box-shadow:0 6px 0 #B0508F;font-size:19px">뿡 챌린지 런</button><button class="btn" id="btn-fly" style="flex:1;background:#9BE05F;box-shadow:0 6px 0 #5E9A34;font-size:19px">방귀 로켓</button></div>
-  <button class="btn alt" id="btn-versus">둘이서 대결 (폰 하나로)</button>
   <div class="on-row" style="width:min(560px,100%)"><button class="btn ghost" id="btn-sound" style="flex:1">소리 켜짐</button><button class="btn ghost" id="btn-art" style="flex:1">그림체: 투박하게</button></div>
   <p class="small" id="record"></p>
 </div>
@@ -400,31 +399,87 @@ function audioInit() {
   if (Snd.ctx) { if (Snd.ctx.state === "suspended") Snd.ctx.resume(); return; }
   try { Snd.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
   const R = Snd.ctx.sampleRate;
-  const fart = (dur, f0, vol, noise) => {
-    const n = Math.floor(R * dur), b = Snd.ctx.createBuffer(1, n, R), d = b.getChannelData(0);
-    let ph = 0, lp = 0; const fl = 14 + Math.random() * 12;
-    for (let i = 0; i < n; i++) {
-      const t = i / R, k = t / dur, f = f0 * (1 - 0.35 * k) * (1 + 0.08 * Math.sin(2 * Math.PI * 5 * t)) * (1 + (Math.random() - 0.5) * 0.08);
-      ph += 2 * Math.PI * f / R;
-      const buzz = Math.max(-1, Math.min(1, Math.sin(ph) * 2.5)) * 0.7 + Math.sin(ph * 2) * 0.2;
-      const am = 0.55 + 0.45 * Math.sin(2 * Math.PI * fl * t + Math.sin(2 * Math.PI * 3 * t));
-      lp += ((Math.random() * 2 - 1) - lp) * 0.15;
-      const env = Math.min(1, t / 0.02) * Math.pow(1 - k, 0.6);
-      d[i] = (buzz * am * (1 - noise) + lp * noise * 2) * env * vol * 0.55;
-    }
-    return b;
-  };
+  const mkBuf = arr => { const b = Snd.ctx.createBuffer(1, arr.length, R); b.getChannelData(0).set(arr); return b; };
+  const fart = (name, seed) => mkBuf(fartSynth(R, FART_PRESETS[name], seed));
   const tone = (freqs, len, vol) => {
     const n = Math.floor(R * len), b = Snd.ctx.createBuffer(1, n * freqs.length, R), d = b.getChannelData(0);
     freqs.forEach((f, j) => { for (let i = 0; i < n; i++) d[j * n + i] = Math.sin(2 * Math.PI * f * i / R) * (1 - i / n) * vol; });
     return b;
   };
-  Snd.bufs = { tiny: [fart(0.18, 210, 0.55, 0.1), fart(0.14, 260, 0.5, 0.05)], medium: [fart(0.45, 120, 0.7, 0.25), fart(0.5, 140, 0.7, 0.3)],
-    big: [fart(0.85, 85, 0.85, 0.4), fart(0.95, 95, 0.85, 0.35)], mega: [fart(1.4, 62, 1, 0.5), fart(1.5, 70, 1, 0.55)],
+  Snd.bufs = { tiny: [fart("squeak", 11), fart("squeak", 12)], medium: [fart("medium", 21), fart("medium", 22), fart("medium", 23)],
+    big: [fart("big", 31), fart("big", 32)], mega: [fart("mega", 41), fart("mega", 42)],
+    f_hiss: [fart("hiss", 51), fart("hiss", 52)], f_perfect: [fart("perfect", 61), fart("perfect", 62), fart("perfect", 63)],
+    f_wet: [fart("wet", 71), fart("wet", 72)], f_blunder: [fart("blunder", 81), fart("blunder", 82)],
     squeak: [tone([900, 700, 500, 350], 0.1, 0.3)], block: [tone([300, 450], 0.07, 0.3)], parry: [tone([600, 900, 1200], 0.06, 0.3)],
     eat: [tone([520, 660], 0.06, 0.25)], bad: [tone([260, 180], 0.12, 0.3)], win: [tone([523, 659, 784, 1046], 0.1, 0.3)],
     lose: [tone([392, 330, 262], 0.16, 0.3)], ting: [tone([1320, 1760], 0.05, 0.18)], nose: [tone([620, 760, 980, 1400], 0.035, 0.22)], ult: [tone([400, 520, 660, 820, 1000, 1250, 1560, 1950], 0.045, 0.25)], click: [tone([700], 0.04, 0.2)] };
 }
+// ───── 찰진 방귀 합성 ─────
+// 괄약근이 떨리는 펄스(f0) → 몸통 공명(F1)·떨림 공명(F2) + 열릴 때 새는 바람(rasp) + 바람 소리(hiss)
+// 똥방구(wet): 불규칙한 떨림 + 거품 터지는 소리 + 질척한 소음. 끝에 '푸드득' 끊김(sputter).
+const FART_BASE = { dur: 0.5, f0: 120, f1: 85, F1: 200, B1: 80, F2: 560, B2: 240, g1: 1, g2: 0.45, flap: 0.8, closeRate: 0.99, rasp: 0.15, breath: 0.006, hiss: 0, jitter: 0.1, wander: 0.2, flutter: 7, am: 11, att: 0.008, tail: 0.5, sputter: 0, sputterAt: 0.7, wet: 0, vol: 0.9 };
+const FART_PRESETS = {
+  hiss: { dur: 0.45, f0: 30, f1: 20, flap: 0, g1: 0.15, g2: 0.1, rasp: 0, breath: 0.12, hiss: 0.7, att: 0.03, tail: 0.9, vol: 0.5 },                                  // 피시식
+  squeak: { dur: 0.28, f0: 430, f1: 300, F1: 900, B1: 160, F2: 1800, B2: 300, g2: 0.6, closeRate: 0.95, flap: 0.55, rasp: 0.2, jitter: 0.03, wander: 0.06, tail: 0.7, vol: 0.7 }, // 뽀옹
+  medium: { dur: 0.55, f0: 135, f1: 95, F1: 220, F2: 620, flap: 0.9, rasp: 0.15, jitter: 0.06, wander: 0.2, tail: 0.5, vol: 0.85 },                                 // 뿌웅
+  perfect: { dur: 0.95, f0: 122, f1: 72, F1: 200, B1: 60, F2: 480, closeRate: 0.992, flap: 1.0, rasp: 0.14, jitter: 0.05, wander: 0.25, flutter: 6, tail: 0.45, sputter: 0.3, sputterAt: 0.78, vol: 1 }, // 뿌아아앙
+  big: { dur: 1.0, f0: 96, f1: 60, F1: 165, F2: 430, flap: 1.0, rasp: 0.2, jitter: 0.08, wander: 0.25, tail: 0.45, sputter: 0.25, sputterAt: 0.7, vol: 1 },               // 뿌우우웅
+  wet: { dur: 0.8, f0: 86, f1: 55, F1: 170, F2: 720, closeRate: 0.985, flap: 0.8, rasp: 0.45, jitter: 0.25, wander: 0.3, wet: 1, sputter: 0.5, sputterAt: 0.3, tail: 0.5, vol: 0.95 },          // 뿌드득 (똥방구)
+  blunder: { dur: 1.25, f0: 72, f1: 40, F1: 150, F2: 650, closeRate: 0.985, flap: 0.7, rasp: 0.6, jitter: 0.35, wander: 0.35, wet: 1.3, sputter: 0.6, sputterAt: 0.2, tail: 0.4, vol: 1 },      // 뿌지지직
+  mega: { dur: 1.6, f0: 106, f1: 50, F1: 150, F2: 450, flap: 1.1, rasp: 0.18, jitter: 0.07, wander: 0.3, flutter: 5, sputter: 0.35, sputterAt: 0.75, tail: 0.4, vol: 1 },    // 부와아아앙
+};
+function fartSynth(R, preset, seed) {
+  const o = Object.assign({}, FART_BASE, preset);
+  let sd = (seed || 1) * 7919 + 13; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  const vary = 1 + (rnd() - 0.5) * 0.12; o.f0 *= vary; o.f1 *= vary; o.dur *= 1 + (rnd() - 0.5) * 0.15;
+  const n = Math.floor(R * o.dur), out = new Float32Array(n);
+  const res = (F, bw) => { const r = Math.exp(-Math.PI * bw / R); return { a1: 2 * r * Math.cos(2 * Math.PI * F / R), a2: -r * r, y1: 0, y2: 0, g: 1 - r }; };
+  const r1 = res(o.F1, o.B1), r2 = res(o.F2, o.B2), crate = Math.pow(o.closeRate, 44100 / R);
+  let ph = 0, wander = 0, wv = 0, gap = 0, open = 0, lpN = 0, hpPrev = 0, ring = 0, ringW = 0, ringPh = 0, sq = 0;
+  for (let i = 0; i < n; i++) {
+    const t = i / R, k = t / o.dur;
+    // 음높이 떠돎: 40ms마다 새 목표(-1~1)로 부드럽게 이동 (폭 제한)
+    if (i % Math.floor(R * 0.04) === 0) wv = rnd() * 2 - 1; wander += (wv - wander) * (30 / R);
+    let f = (o.f0 + (o.f1 - o.f0) * k) * (1 + wander * o.wander * 0.6 + 0.04 * Math.sin(2 * Math.PI * o.flutter * t));
+    if (o.sputter && k > o.sputterAt) f *= 1 - 0.3 * (k - o.sputterAt);
+    const env = Math.min(1, t / o.att) * Math.pow(Math.max(0, 1 - k), o.tail) * (1 + 0.25 * Math.sin(2 * Math.PI * o.am * t + 1.3 * Math.sin(t * 7)));
+    ph += Math.max(5, f) / R;
+    let ex = 0;
+    if (ph >= 1) {
+      ph -= 1; ph += (rnd() - 0.5) * o.jitter;
+      if (gap > 0) gap--; else { ex = 0.75 + rnd() * 0.5; open = 1; if (o.sputter && k > o.sputterAt && rnd() < o.sputter * 0.5) gap = 1 + (rnd() * 2 | 0); }
+    }
+    open *= crate;
+    const nz = rnd() * 2 - 1, x = ex + nz * open * o.rasp + nz * o.breath;
+    const y = x * r1.g + r1.a1 * r1.y1 + r1.a2 * r1.y2; r1.y2 = r1.y1; r1.y1 = y;
+    const z = x * r2.g + r2.a1 * r2.y1 + r2.a2 * r2.y2; r2.y2 = r2.y1; r2.y1 = z;
+    let s = y * o.g1 * 6 + z * o.g2 * 6 + (open - 0.25) * o.flap * 0.6;
+    const hp = nz - hpPrev * 0.6; hpPrev = nz; s += hp * o.hiss * (0.6 + 0.4 * Math.sin(t * 40)) * 0.5;
+    if (o.wet) {
+      if (rnd() < o.wet * 0.0025 * (44100 / R)) { ring = 0.6 + rnd() * 0.6; ringW = 2 * Math.PI * (250 + rnd() * 1300) / R; ringPh = 0; }
+      if (ring > 0.002) { ringPh += ringW; s += Math.sin(ringPh) * ring * o.wet * 0.35; ring *= Math.pow(0.993, 44100 / R); }
+      lpN += (nz - lpN) * 0.08; sq = sq * 0.995 + (rnd() < 0.01 ? rnd() : 0); s += lpN * o.wet * (0.3 + sq * 1.2) * 0.5;
+    }
+    out[i] = s * env;
+  }
+  // 저음 덜컹 제거(35Hz) → 부드럽게 눌러 찰지게 → 끝 10ms 페이드
+  const a = Math.exp(-2 * Math.PI * 35 / R); let px = 0, py = 0, m = 0;
+  for (let i = 0; i < n; i++) { const v = out[i] - px + a * py; px = out[i]; py = v; out[i] = v; m = Math.max(m, Math.abs(v)); }
+  const sc = m > 0 ? 1.8 / m : 1, fade = Math.floor(R * 0.01);
+  for (let i = 0; i < n; i++) out[i] = Math.tanh(out[i] * sc) * o.vol * 0.8 * (i > n - fade ? (n - i) / fade : 1);
+  return out;
+}
+// 게이지(압력)별 소리: 아주 약함 피시식 / 약함 뽀옹 / 적당 뿌웅 / 완벽 뿌아아앙 / 초록 넘김 뿌드득(똥방구) / 필살 부와아앙
+function fartSoundId(g, ev) {
+  if (ev.ult) return "mega";
+  if (ev.perfect) return ev.size === "mega" ? "mega" : "f_perfect";
+  const sw = g.logic ? g.logic.sweet(ev.side) : [0.72, 0.88];
+  if (ev.p > sw[1]) return "f_wet";
+  if (ev.p < 0.3) return "f_hiss";
+  if (ev.p < 0.55) return "tiny";
+  return ev.size === "mega" || ev.size === "big" ? "big" : "medium";
+}
+function speciesPitch(def) { const sp = def && def.species; return sp === "hippo" || sp === "bear" || sp === "gorilla" ? 0.82 : sp === "squirrel" || sp === "penguin" ? 1.2 : sp === "pig" || sp === "boar" ? 0.92 : 1; }
 function play(id, pitch) {
   if (!Save.sound || !Snd.ctx || !Snd.bufs[id]) return;
   const list = Snd.bufs[id], src = Snd.ctx.createBufferSource();
@@ -731,7 +786,7 @@ function handleEvent(g, ev) {
       if (!g.demo) { g.cutin = { side: ev.side, t: 0, dur: 1.25 }; play("ult"); buzz(120); }
       else { g.flash = 1; wave(g, bp.x, bp.y, 320, "#FFFFFF", 12); g.shot = { kind: "ult", side: ev.side, t: 0, dur: 1.4 }; g.pendingArc = { side: ev.side, delay: 0.35, n: 3 }; }
     }
-    if (!g.demo) { play(ev.size); if (ev.side === 0 || g.mode === "versus") buzz(ev.size === "tiny" || ev.size === "medium" ? 20 : 50); }
+    if (!g.demo) { play(fartSoundId(g, ev), speciesPitch(g.defs[ev.side])); if (ev.side === 0 || g.mode === "versus") buzz(ev.size === "tiny" || ev.size === "medium" ? 20 : 50); }
   } else if (ev.type === "clash_start") {
     const cp = clashPos(g);
     g.shot = { kind: "clash", side: 0, t: 0, dur: 99 }; g.flash = 0.7; g.shake = 0.8; g.freeze = 0.1;
@@ -776,7 +831,7 @@ function handleEvent(g, ev) {
     }
   } else if (ev.type === "blunder") {
     popup(g, headPos(ev.side).x, headPos(ev.side).y, "삐끗!", "#FF5F5F", 44); g.shake = Math.max(g.shake, 0.5);
-    if (!g.demo) { play("squeak"); buzz(80); }
+    if (!g.demo) { play("f_blunder", speciesPitch(g.defs[ev.side])); buzz(80); }
   } else if (ev.type === "eat") {
     g.st[ev.side].eatT = 0.6;
     if (ev.tfx) { const hp = headPos(ev.side); popup(g, hp.x, hp.y - 60, ev.tfx, "#FFB43B", 24); }
@@ -1663,7 +1718,6 @@ function showResult(g) {
   openOverlay(html, btns);
 }
 $("btn-league").onclick = () => { audioInit(); play("medium"); showSelect(); };
-$("btn-versus").onclick = () => { audioInit(); play("click"); charFrom = "title"; showChars("vs1"); };
 $("btn-sound").onclick = () => { audioInit(); Save.sound = !Save.sound; writeSave(); $("btn-sound").textContent = Save.sound ? "소리 켜짐" : "소리 꺼짐"; };
 $("btn-back").onclick = () => { play("click"); showTitle(); };
 
@@ -1940,7 +1994,7 @@ function flyLaunch(g, p, blunder) {
   F.vx = Math.cos(a) * v; F.vy = Math.sin(a) * v; F.phase = "air"; F.trailT = 0.6;
   flyPuff(g, perfect ? 1.6 : 0.6 + p); g.shake = perfect ? 1 : 0.5;
   popup(g, F.x + 40, F.y - 140, blunder ? "삐끗!" : perfect ? "완벽 발사!!" : "발사!", blunder ? "#FF5F5F" : perfect ? "#7BE85F" : "#FFE15F", perfect ? 44 : 34);
-  play(perfect ? "mega" : blunder ? "squeak" : "big"); buzz(perfect ? 80 : 40);
+  play(perfect ? "f_perfect" : blunder ? "f_blunder" : p < 0.3 ? "f_hiss" : p < 0.55 ? "tiny" : p > sw[1] ? "f_wet" : "big", speciesPitch(g.defs[0])); buzz(perfect ? 80 : 40);
 }
 function flyButt(g) { const F = g.fly, c = Math.cos(F.rot), s = Math.sin(F.rot), bx = -88 * 0.9, by = -60 * 0.9; return { x: F.x + bx * c - by * s, y: F.y + bx * s + by * c }; }
 function flyPuff(g, P) {
