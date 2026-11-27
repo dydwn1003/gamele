@@ -2738,6 +2738,7 @@ function parseC(c) {
 }
 function shade(c, k) { const v = parseC(c) || [128, 128, 128, 1]; const f = k < 0 ? 1 + k : 1, add = k > 0 ? k : 0; const r = Math.round(v[0] * f + (255 - v[0]) * add), g = Math.round(v[1] * f + (255 - v[1]) * add), b = Math.round(v[2] * f + (255 - v[2]) * add); return `rgb(${r},${g},${b})`; }
 // 캐릭터 그릴 때만 켜지는 입체 모드: 왼쪽 위 빛 → 오른쪽 아래 그늘 + 만화 외곽선 (작은 점·반투명은 그대로)
+const STYLE_FX = false; // 그림체: false = 처음의 평평한 그림체 (방귀 이펙트만 고퀄)
 const CR = { on: false, line: "rgba(40,22,44,0.9)", w: 3 };
 // 그림체: rough = 손그림 낙서풍 (굵고 삐뚤한 외곽선이 꿈틀, 두 톤 단색 음영), smooth = 부드러운 그라데이션
 const ART = { rough: true, boil: 0 };
@@ -2755,7 +2756,7 @@ function roughBlob(x, y, rx, ry, c, rot) {
   if (rx > 14 && ry > 10) { roughPath(x - rx * 0.38, y - ry * 0.45, rx * 0.16, ry * 0.11, rot); ctx.fillStyle = "rgba(255,255,255,0.4)"; ctx.fill(); }
   roughPath(x, y, rx, ry, rot); ctx.strokeStyle = CR.line; ctx.lineWidth = CR.w * 1.6; ctx.lineJoin = "round"; ctx.stroke();
 }
-function solidBig(c, size) { if (!CR.on || size < 7) return false; const v = parseC(c); return !!v && v[3] >= 0.99; }
+function solidBig(c, size) { if (!STYLE_FX) return false; if (!CR.on || size < 7) return false; const v = parseC(c); return !!v && v[3] >= 0.99; }
 function shadeFill(c, x, y, rad) { const gr = ctx.createRadialGradient(x - rad * 0.35, y - rad * 0.45, rad * 0.05, x, y, rad * 1.25); gr.addColorStop(0, shade(c, 0.28)); gr.addColorStop(0.5, c); gr.addColorStop(1, shade(c, -0.22)); return gr; }
 function ell(x, y, rx, ry, c, rot) {
   if (ART.rough && solidBig(c, Math.max(Math.abs(rx), Math.abs(ry)))) { roughBlob(x, y, rx, ry, c, rot); return; }
@@ -2783,6 +2784,7 @@ function rrect(x, y, w, h, r, c) {
 }
 // 유리 같은 광택 버튼
 function glossCircle(x, y, r, c) {
+  if (!STYLE_FX) { circ(x, y + 8, r, shade(c, -0.4)); circ(x, y, r, c); circ(x - r * 0.35, y - r * 0.4, r * 0.22, "rgba(255,255,255,0.25)"); return; }
   if (ART.rough) {
     circ(x + 3, y + 9, r, "rgba(20,10,30,0.55)");
     const save = CR.on; CR.on = true; CR.w = 4; roughBlob(x, y, r, r, c, 0); CR.w = 3; CR.on = save;
@@ -2797,6 +2799,7 @@ function glossCircle(x, y, r, c) {
   ctx.beginPath(); ctx.arc(x, y, r - 1.5, 0, TAU); ctx.strokeStyle = "rgba(255,255,255,0.35)"; ctx.lineWidth = 3; ctx.stroke();
 }
 function glossBar(x, y, w, h, c) {
+  if (!STYLE_FX) { rrect(x, y, w, h, Math.min(h, w) / 2, c); return; }
   if (ART.rough) { ctx.beginPath(); ctx.roundRect(x, y, w, h, Math.min(h, w) / 2); ctx.fillStyle = shade(c, -0.2); ctx.fill(); ctx.beginPath(); ctx.roundRect(x, y, w, h * 0.62, Math.min(h, w) / 2); ctx.fillStyle = c; ctx.fill(); ctx.beginPath(); ctx.roundRect(x, y, w, h, Math.min(h, w) / 2); ctx.strokeStyle = "rgba(20,10,30,0.9)"; ctx.lineWidth = 3; ctx.stroke(); return; }
   const gr = ctx.createLinearGradient(0, y, 0, y + h); gr.addColorStop(0, shade(c, 0.35)); gr.addColorStop(0.5, c); gr.addColorStop(1, shade(c, -0.25));
   ctx.beginPath(); ctx.roundRect(x, y, w, h, Math.min(h, w) / 2); ctx.fillStyle = gr; ctx.fill();
@@ -2824,7 +2827,7 @@ function drawCritter(def, st, t) { CR.on = true; try { drawCritterInner(def, st,
 function drawCritterInner(def, st, t) {
   const sp = def.species, body = def.body, belly = def.belly, p = st.pressure || 0, dark = shade(body, -0.25);
   const sx = Math.sin(t * 60) * p * p * 3 - (st.recoil || 0) * 10, sy = Math.cos(t * 47) * p * p * 3, br = Math.sin(t * 3) * 1.5;
-  { const gr = ctx.createRadialGradient(4, 4, 4, 4, 4, 100); gr.addColorStop(0, "rgba(0,0,0,0.35)"); gr.addColorStop(1, "rgba(0,0,0,0)"); ctx.save(); ctx.scale(1, 0.16); ctx.beginPath(); ctx.arc(4, 25, 100, 0, TAU); ctx.fillStyle = gr; ctx.fill(); ctx.restore(); }
+  ell(0, 4, 92, 12, "rgba(0,0,0,0.25)");
   // 꼬리
   if (sp === "squirrel") { ell(70 + sx * .6, -100, 26, 40, shade(body, 0.1), 0.5); ell(56 + sx * .6, -134, 22, 22, shade(body, 0.15)); ell(66, -94, 14, 26, belly, 0.5); }
   else if (sp === "skunk") { ell(64 + sx * .6, -112, 30, 52, "#2A2A33", 0.35); ell(60 + sx * .6, -116, 9, 44, "#FFFFFF", 0.35); }
@@ -2852,10 +2855,10 @@ function drawCritterInner(def, st, t) {
   if (sp === "bear") { for (const ox of [0.05, 0.55]) { circ(hx + r * ox, hy - r * 0.82, r * 0.3, shade(body, -0.08)); circ(hx + r * ox, hy - r * 0.82, r * 0.15, shade(belly, -0.1)); } }
   if (sp === "pig") { ctx.beginPath(); ctx.moveTo(hx - 2, hy - r * 0.7); ctx.lineTo(hx + 10, hy - r * 1.35); ctx.lineTo(hx + 22, hy - r * 0.6); ctx.fillStyle = shade(body, -0.12); ctx.fill(); }
   // 머리 털 (몇몇 동물)
-  if (["squirrel", "boar", "gorilla", "bear", "mole"].includes(sp)) { ctx.beginPath(); ctx.moveTo(hx - r * 0.25, hy - r * 0.82); ctx.lineTo(hx - r * 0.05, hy - r * 1.18); ctx.lineTo(hx + r * 0.1, hy - r * 0.86); ctx.lineTo(hx + r * 0.3, hy - r * 1.1); ctx.lineTo(hx + r * 0.42, hy - r * 0.78); ctx.closePath(); ctx.fillStyle = shade(face, -0.05); ctx.fill(); ctx.strokeStyle = CR.line; ctx.lineWidth = CR.w; ctx.stroke(); }
+  if (STYLE_FX && ["squirrel", "boar", "gorilla", "bear", "mole"].includes(sp)) { ctx.beginPath(); ctx.moveTo(hx - r * 0.25, hy - r * 0.82); ctx.lineTo(hx - r * 0.05, hy - r * 1.18); ctx.lineTo(hx + r * 0.1, hy - r * 0.86); ctx.lineTo(hx + r * 0.3, hy - r * 1.1); ctx.lineTo(hx + r * 0.42, hy - r * 0.78); ctx.closePath(); ctx.fillStyle = shade(face, -0.05); ctx.fill(); ctx.strokeStyle = CR.line; ctx.lineWidth = CR.w; ctx.stroke(); }
   ell(hx, hy, r, r * 0.92, face);
   // 털 결 (몸통 위 짧은 선)
-  for (let i = 0; i < 4; i++) { const fx = -20 + i * 18 + sx, fy = -92 * (big > 1 ? 1.08 : 1) + br + sy + (i % 2) * 4; line(fx, fy + 10, fx + 5, fy, shade(body, 0.18), 2.5); }
+  if (STYLE_FX) for (let i = 0; i < 4; i++) { const fx = -20 + i * 18 + sx, fy = -92 * (big > 1 ? 1.08 : 1) + br + sy + (i % 2) * 4; line(fx, fy + 10, fx + 5, fy, shade(body, 0.18), 2.5); }
   if (sp === "penguin") ell(hx - r * 0.35, hy + 2, r * 0.55, r * 0.62, "#FFFFFF");
   if (sp === "mole") { ell(hx - r * 0.95, hy + 4, 13, 11, "#FF8FB8"); ell(hx - r, hy + 1, 5, 4, "#FFC9DD"); }
   else if (sp === "boar") { ell(hx - r * 0.9, hy + 8, 14, 13, "#D9A08A"); circ(hx - r, hy + 6, 3, "#5A3A30"); line(hx - r * 0.7, hy + 16, hx - r * 0.95, hy, "#FFF8E6", 5); }
@@ -2877,6 +2880,7 @@ function drawCritterInner(def, st, t) {
     for (let i = 0; i < 3; i++) { const a = -2.2 + i * 0.5, rr = r * 1.35 + Math.sin(t * 20 + i) * 3; line(hx + Math.cos(a) * rr, hy + Math.sin(a) * rr, hx + Math.cos(a) * (rr + 10), hy + Math.sin(a) * (rr + 10), "#1A1A1A", 2.5); }
   }
   else if (p > 0.55) { line(ex - 6, ey - 4, ex + 4, ey, "#1A1A1A", 3); line(ex - 6, ey + 4, ex + 4, ey, "#1A1A1A", 3); }
+  else if (!STYLE_FX) { circ(ex, ey, sp === "mole" ? 2.5 : 5, "#1A1A1A"); if (sp !== "mole") circ(ex - 1.5, ey - 1.5, 1.6, "#fff"); }
   else if (sp === "mole") { circ(ex, ey, 2.8, "#1A1A1A"); circ(ex - 1, ey - 1, 1, "#fff"); }
   else { const blink = (t * 0.7) % 4 < 0.08; if (blink) line(ex - 6, ey, ex + 6, ey, "#1A1A1A", 3); else { ell(ex, ey, 7.5, 8.5, "#FFFFFF"); circ(ex - 1.5, ey + 0.5, 4.8, "#1A1A2A"); circ(ex - 3, ey - 1.8, 1.9, "#fff"); circ(ex + 0.2, ey + 2.4, 0.9, "#fff"); } }
   if (p > 0.7 && !st.stunned) ell(hx + 4, hy - r - 2 + (t * 40) % 16, 4, 6, "rgba(128,204,255,0.8)");
@@ -3185,7 +3189,7 @@ function drawStageBack(g, T, HZ, t) {
     ctx.strokeStyle = "#FF6A1F"; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(320, -220); ctx.quadraticCurveTo(300, -100, 250, 20); ctx.stroke(); ctx.beginPath(); ctx.moveTo(370, -220); ctx.quadraticCurveTo(400, -80, 460, 40); ctx.stroke();
   }
   // 구름 (천천히 흐름)
-  if (!T.volcano) for (let i = 0; i < 6; i++) { const cx = ((i * 260 + t * (6 + i * 2)) % 1300) - 300, cy = -380 + (i % 3) * 120 + (T.moon ? -100 : 0), a = T.moon ? 0.18 : 0.75; for (const [ox, oy, r] of [[0, 0, 46], [44, 10, 36], [-42, 12, 32], [18, -22, 34]]) circ(cx + ox, cy + oy, r, T.moon ? `rgba(120,130,190,${a})` : `rgba(255,255,255,${a})`); }
+  if (STYLE_FX && !T.volcano) for (let i = 0; i < 6; i++) { const cx = ((i * 260 + t * (6 + i * 2)) % 1300) - 300, cy = -380 + (i % 3) * 120 + (T.moon ? -100 : 0), a = T.moon ? 0.18 : 0.75; for (const [ox, oy, r] of [[0, 0, 46], [44, 10, 36], [-42, 12, 32], [18, -22, 34]]) circ(cx + ox, cy + oy, r, T.moon ? `rgba(120,130,190,${a})` : `rgba(255,255,255,${a})`); }
   for (let row = 0; row < 3; row++) for (let i = 0; i < 14; i++) {
     const x = -60 + i * 62 + row * 24, y = HZ - 30 - row * 46 - (i % 3) * 14, c = T.back[(i + row) % 3];
     if (T.volcano) { ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(x - 34, HZ + 4); ctx.lineTo(x - 10, y - 10); ctx.lineTo(x + 20, y + 8); ctx.lineTo(x + 34, HZ + 4); ctx.fill(); continue; }
@@ -3193,14 +3197,14 @@ function drawStageBack(g, T, HZ, t) {
     ctx.fillStyle = T.trunk; ctx.fillRect(x - 5, y, 10, HZ - y + 4); circ(x, y - 20, 46 - row * 4, c);
   }
   // 원근 안개 (먼 나무를 흐리게)
-  { const hz = ctx.createLinearGradient(0, HZ - 150, 0, HZ + 10), c = parseC(T.sky[1]); hz.addColorStop(0, `rgba(${c[0]},${c[1]},${c[2]},0)`); hz.addColorStop(1, `rgba(${c[0]},${c[1]},${c[2]},0.55)`); ctx.fillStyle = hz; ctx.fillRect(-500, HZ - 150, 1720, 160); }
+  if (STYLE_FX) { const hz = ctx.createLinearGradient(0, HZ - 150, 0, HZ + 10), c = parseC(T.sky[1]); hz.addColorStop(0, `rgba(${c[0]},${c[1]},${c[2]},0)`); hz.addColorStop(1, `rgba(${c[0]},${c[1]},${c[2]},0.55)`); ctx.fillStyle = hz; ctx.fillRect(-500, HZ - 150, 1720, 160); }
   for (let i = 0; i < 5; i++) { const x0 = 120 + i * 130; ctx.beginPath(); ctx.moveTo(x0, -300); ctx.lineTo(x0 + 60, -300); ctx.lineTo(x0 - 120, ARENA.h); ctx.lineTo(x0 - 220, ARENA.h); ctx.fillStyle = `rgba(${T.ray},${0.05 + 0.03 * Math.sin(t * 0.8 + i)})`; ctx.fill(); }
   grd = ctx.createLinearGradient(0, HZ, 0, ARENA.h + 200); grd.addColorStop(0, T.ground[0]); grd.addColorStop(1, T.ground[1]);
   ctx.fillStyle = grd; ctx.fillRect(-500, HZ, 1720, ARENA.h + 800);
   for (let i = 0; i < 12; i += 2) { const y0 = HZ + (ARENA.h + 260 - HZ) * Math.pow(i / 12, 1.7), y1 = HZ + (ARENA.h + 260 - HZ) * Math.pow((i + 1) / 12, 1.7); ctx.fillStyle = "rgba(255,255,255,0.05)"; ctx.fillRect(-500, y0, 1720, y1 - y0); }
   // 땅 질감: 원근에 맞춘 잔디/돌 점
   const crOn = CR.on; CR.on = false;
-  for (let i = 0; i < 70; i++) { const x = ((i * 137) % 760) - 20, y = HZ + 12 + ((i * 89) % 600), sc = persp(y), c = shade(T.ground[1], i % 2 ? 0.12 : -0.15); if (T.volcano || g.theme === "snow") ell(x, y, 6 * sc, 2.5 * sc, c); else { line(x, y, x - 3 * sc, y - 9 * sc, c, 2 * sc); line(x + 4 * sc, y, x + 5 * sc, y - 8 * sc, c, 2 * sc); } }
+  if (STYLE_FX) for (let i = 0; i < 70; i++) { const x = ((i * 137) % 760) - 20, y = HZ + 12 + ((i * 89) % 600), sc = persp(y), c = shade(T.ground[1], i % 2 ? 0.12 : -0.15); if (T.volcano || g.theme === "snow") ell(x, y, 6 * sc, 2.5 * sc, c); else { line(x, y, x - 3 * sc, y - 9 * sc, c, 2 * sc); line(x + 4 * sc, y, x + 5 * sc, y - 8 * sc, c, 2 * sc); } }
   CR.on = crOn;
   if (T.puddle) for (const [x, y, w] of [[90, 330, 90], [640, 520, 110], [420, 640, 80]]) { const sc = persp(y); ell(x, y, w * sc, w * 0.28 * sc, "rgba(40,70,110,0.55)"); ell(x - w * 0.2 * sc, y - 3, w * 0.4 * sc, w * 0.08 * sc, "rgba(220,235,255,0.35)"); }
   if (T.lava) for (const [x, y, x2, y2] of [[40, 300, 190, 360], [560, 600, 700, 540], [-10, 650, 120, 700], [610, 260, 740, 300]]) { line(x, y, x2, y2, `rgba(255,${110 + 40 * Math.sin(t * 4 + x)},40,0.9)`, 6 * persp(y)); line(x, y, x2, y2, "rgba(255,230,140,0.7)", 2 * persp(y)); }
@@ -3246,7 +3250,7 @@ function drawStageFrontStatic(g, T, HZ) {
     ctx.fillStyle = T.sideTrunk; ctx.fillRect(x - 22, -1400, 44, 1400 + HZ + 60); for (let k = 0; k < 6; k++) circ(x + d * (30 + (k % 2) * 40), HZ - 40 - k * 120, 90, T.side[k % 2]);
   }
   // 앞쪽 풀숲 (화면 아래 모서리)
-  for (const [bx, by, d] of [[-10, 740, 1], [730, 735, -1]]) for (let k = 0; k < 4; k++) circ(bx + d * k * 34, by - (k % 2) * 16, 48 - k * 6, k % 2 ? T.side[0] : T.side[1]);
+  if (STYLE_FX) for (const [bx, by, d] of [[-10, 740, 1], [730, 735, -1]]) for (let k = 0; k < 4; k++) circ(bx + d * k * 34, by - (k % 2) * 16, 48 - k * 6, k % 2 ? T.side[0] : T.side[1]);
 }
 function drawStageFX(g, T, t) {
   for (const p of FX) {
@@ -3572,7 +3576,8 @@ function drawPad(g, side, y0, flipped) {
   const l = g.logic, f = l.f[side], def = g.defs[side], acc = (def.beam || ["#FF5FD2"])[0];
   ctx.save();
   if (flipped) { ctx.translate(720, y0 + 300); ctx.rotate(Math.PI); } else ctx.translate(0, y0);
-  { const pg = ctx.createLinearGradient(0, 0, 0, 300); pg.addColorStop(0, "rgba(58,45,80,0.97)"); pg.addColorStop(1, "rgba(24,18,34,0.98)"); ctx.beginPath(); ctx.roundRect(0, 0, 720, 300, 26); ctx.fillStyle = pg; ctx.fill(); line(26, 2, 694, 2, "rgba(255,255,255,0.18)", 2); }
+  if (!STYLE_FX) rrect(0, 0, 720, 300, 26, "rgba(34,26,46,0.94)");
+  else { const pg = ctx.createLinearGradient(0, 0, 0, 300); pg.addColorStop(0, "rgba(58,45,80,0.97)"); pg.addColorStop(1, "rgba(24,18,34,0.98)"); ctx.beginPath(); ctx.roundRect(0, 0, 720, 300, 26); ctx.fillStyle = pg; ctx.fill(); line(26, 2, 694, 2, "rgba(255,255,255,0.18)", 2); }
   text(def.name, 24, 30, 20, acc, "left", 0, FONT_B);
   const spv = f.special || 0, ready = spv >= 100, rb = `hsl(${(g.t * 400) % 360},100%,65%)`;
   rrect(24, 52, 170, 14, 7, "rgba(0,0,0,0.45)"); if (spv > 0) { if (ready) rrect(24, 52, 170, 14, 7, rb); else glossBar(24, 52, Math.max(14, 170 * spv / 100), 14, "#FFB43B"); }
@@ -3585,12 +3590,13 @@ function drawPad(g, side, y0, flipped) {
   chips.slice(0, 3).forEach((c, i) => { rrect(474 + i * 80, 16, 74, 26, 10, c[1]); text(c[0], 511 + i * 80, 29, 13, "#fff", "center", 0, FONT_B); });
   const gg = PAD.gauge, sw = l.sweet(side), gy = v => gg.y + gg.h * (1 - v);
   rrect(gg.x - 4, gg.y - 4, gg.w + 8, gg.h + 8, 12, "rgba(0,0,0,0.5)");
-  for (let i = 1; i < 10; i++) line(gg.x + gg.w - 8, gy(i / 10), gg.x + gg.w, gy(i / 10), "rgba(255,255,255,0.25)", 1.5);
+  if (STYLE_FX) for (let i = 1; i < 10; i++) line(gg.x + gg.w - 8, gy(i / 10), gg.x + gg.w, gy(i / 10), "rgba(255,255,255,0.25)", 1.5);
   ctx.fillStyle = "#7BE85F"; ctx.fillRect(gg.x - 6, gy(sw[1]), gg.w + 12, (sw[1] - sw[0]) * gg.h);
   ctx.fillStyle = "#FF5F5F"; ctx.fillRect(gg.x, gy(1), gg.w, 8);
   const p = f.holding ? f.pressure : 0;
-  if (p > 0) { const pc = p >= sw[0] && p <= sw[1] ? "#B4FF96" : p > sw[1] ? "#FF5F5F" : "#FFD25F", pg = ctx.createLinearGradient(gg.x + 6, 0, gg.x + gg.w - 6, 0); pg.addColorStop(0, shade(pc, -0.15)); pg.addColorStop(0.4, shade(pc, 0.3)); pg.addColorStop(1, shade(pc, -0.2)); ctx.fillStyle = pg; ctx.fillRect(gg.x + 6, gy(p), gg.w - 12, gg.h * p); }
-  ctx.fillStyle = "rgba(255,255,255,0.12)"; ctx.fillRect(gg.x + 4, gg.y, 6, gg.h);
+  if (p > 0 && !STYLE_FX) { ctx.fillStyle = p >= sw[0] && p <= sw[1] ? "#B4FF96" : p > sw[1] ? "#FF5F5F" : "#FFD25F"; ctx.fillRect(gg.x + 6, gy(p), gg.w - 12, gg.h * p); }
+  else if (p > 0) { const pc = p >= sw[0] && p <= sw[1] ? "#B4FF96" : p > sw[1] ? "#FF5F5F" : "#FFD25F", pg = ctx.createLinearGradient(gg.x + 6, 0, gg.x + gg.w - 6, 0); pg.addColorStop(0, shade(pc, -0.15)); pg.addColorStop(0.4, shade(pc, 0.3)); pg.addColorStop(1, shade(pc, -0.2)); ctx.fillStyle = pg; ctx.fillRect(gg.x + 6, gy(p), gg.w - 12, gg.h * p); }
+  if (STYLE_FX) { ctx.fillStyle = "rgba(255,255,255,0.12)"; ctx.fillRect(gg.x + 4, gg.y, 6, gg.h); }
   const mp = l.maxP(side); if (mp < 1) line(gg.x - 8, gy(mp), gg.x + gg.w + 8, gy(mp), "rgba(255,255,255,0.6)", 2);
   text("압력", gg.x + gg.w / 2, gg.y + gg.h + 22, 15, "#B9B5B0", "center", 0, FONT_B);
   const b = PAD.block, cd = f.blockCd, bc = f.blockT > 0 ? "#9BFFB0" : cd <= 0 ? "#5FE8FF" : "#4A5A6E";
@@ -3627,13 +3633,14 @@ function drawBattle(g) {
   ctx.translate(Math.round(T.ox + (Math.random() * 2 - 1) * sh), Math.round(T.oy + (Math.random() * 2 - 1) * sh)); ctx.scale(T.z, T.z); ctx.translate(-T.cx, -T.cy);
   drawArena(g);
   ctx.restore();
-  { if (!VIG.c || VIG.h !== H) { VIG.h = H; VIG.c = document.createElement("canvas"); VIG.c.width = 360; VIG.c.height = Math.round(H / 2); const x = VIG.c.getContext("2d"), vg = x.createRadialGradient(180, H * 0.225, H * 0.15, 180, H * 0.225, H * 0.375); vg.addColorStop(0, "rgba(10,5,25,0)"); vg.addColorStop(1, "rgba(10,5,25,0.35)"); x.fillStyle = vg; x.fillRect(0, 0, 360, VIG.c.height); } ctx.drawImage(VIG.c, 0, 0, 720, H); }
+  if (STYLE_FX) { if (!VIG.c || VIG.h !== H) { VIG.h = H; VIG.c = document.createElement("canvas"); VIG.c.width = 360; VIG.c.height = Math.round(H / 2); const x = VIG.c.getContext("2d"), vg = x.createRadialGradient(180, H * 0.225, H * 0.15, 180, H * 0.225, H * 0.375); vg.addColorStop(0, "rgba(10,5,25,0)"); vg.addColorStop(1, "rgba(10,5,25,0.35)"); x.fillStyle = vg; x.fillRect(0, 0, 360, VIG.c.height); } ctx.drawImage(VIG.c, 0, 0, 720, H); }
   if (g.demo) return;
   drawPad(g, 0, H - 300, false);
   if (g.mode === "versus") drawPad(g, 1, 0, true);
   if (g.mode !== "versus") {
     const o = g.defs[1];
-    { const pg = ctx.createLinearGradient(0, 16, 0, 124); pg.addColorStop(0, "rgba(64,50,88,0.95)"); pg.addColorStop(1, "rgba(30,22,42,0.95)"); ctx.beginPath(); ctx.roundRect(16, 16, 600, 108, 20); ctx.fillStyle = pg; ctx.fill(); ctx.strokeStyle = "rgba(255,255,255,0.15)"; ctx.lineWidth = 2; ctx.stroke(); }
+    if (!STYLE_FX) rrect(16, 16, 600, 108, 20, "rgba(34,26,46,0.92)");
+    else { const pg = ctx.createLinearGradient(0, 16, 0, 124); pg.addColorStop(0, "rgba(64,50,88,0.95)"); pg.addColorStop(1, "rgba(30,22,42,0.95)"); ctx.beginPath(); ctx.roundRect(16, 16, 600, 108, 20); ctx.fillStyle = pg; ctx.fill(); ctx.strokeStyle = "rgba(255,255,255,0.15)"; ctx.lineWidth = 2; ctx.stroke(); }
     text(g.mode === "online" ? `VS ${o.name}` : `${o.name}  ·  ${o.title}`, 34, 48, 28, (o.beam || ["#FFD25F"])[0], "left", 0, FONT_D);
     const sub = g.mode === "online" ? `온라인 · ${o.title} · ${l.roundNo || 1}라운드 · ${Math.max(0, Math.ceil(l.timeLeft))}초 · ${l.f[0].wins} : ${l.f[1].wins} · 핑 ${Net.ping}ms` : g.state === "intro" ? `「${o.lines.intro}」` : `${l.roundNo}라운드 · 남은 시간 ${Math.max(0, Math.ceil(l.timeLeft))}초 · 나 ${l.f[0].wins} : ${l.f[1].wins} 상대 · 가스 ${Math.round(l.f[1].gas)} · 필살 ${Math.round(l.f[1].special)}%`;
     text(sub, 34, 92, 17, "#B9B5B0", "left", 0, FONT_B);
@@ -3820,7 +3827,7 @@ function showShop() {
   build("shop-beams", SKINS, "beam"); build("shop-hats", HATS, "hat");
 }
 $("shop-back").onclick = () => { play("click"); showTitle(); };
-function applyArt() { ART.rough = Save.art !== "smooth"; $("btn-art").textContent = ART.rough ? "그림체: 투박하게" : "그림체: 부드럽게"; }
+function applyArt() { ART.rough = false; $("btn-art").hidden = true; return; $("btn-art").textContent = ART.rough ? "그림체: 투박하게" : "그림체: 부드럽게"; }
 $("btn-art").onclick = () => { audioInit(); play("click"); Save.art = ART.rough ? "smooth" : "rough"; writeSave(); applyArt(); };
 applyArt();
 $("btn-shop").onclick = () => { audioInit(); play("click"); showShop(); };
